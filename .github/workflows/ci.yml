@@ -1,0 +1,54 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  build-test:
+    name: build / typecheck / lint / test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm (AC-F1-09)
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.4
+          run_install: false
+
+      - name: Setup Node (pinned via .nvmrc)
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: pnpm
+
+      - name: Install (frozen lockfile)
+        run: pnpm install --frozen-lockfile
+
+      - name: Build (AC-F1-01)
+        run: pnpm build
+
+      - name: Typecheck (AC-F1-02)
+        run: pnpm typecheck
+
+      - name: Forbid .only/.skip/.todo in tests (Single-PR Protocol tooth #1)
+        run: |
+          set -e
+          matches=$(grep -rnE '\.(only|skip|todo)\(' --include='*.test.ts' tests packages apps 2>/dev/null || true)
+          if [ -n "$matches" ]; then
+            echo "::error::Forbidden test modifier (.only/.skip/.todo) found — build fails per Single-PR Protocol tooth #1"
+            echo "$matches"
+            exit 1
+          fi
+
+      - name: Lint (AC-F1-08)
+        run: pnpm lint
+
+      - name: Test (AC-F1-03 / AC-F1-05)
+        run: pnpm test

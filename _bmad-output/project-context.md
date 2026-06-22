@@ -26,9 +26,9 @@ _This file contains critical rules and patterns that AI agents must follow when 
 
 ## Technology Stack & Versions
 
-> ⚠️ **Two open items needing resolution before F1 scaffold** (flagged by Party Mode round 1 — Winston/Amelia/Murat):
-> - **AGE version pin is unverified.** Architecture cites "AGE ≥1.7.0" but latest GA appears to be **AGE 1.5.0 (Rhodes, Aug 2024)**. Either the spec is tracking a fork/prerelease, or this is a transcription error. **Verify against ADR-002 before writing the pin** — can't implement against a version that doesn't ship. If binding, amend ADR-002 with the real version + PG compatibility cell.
-> - **bge-m3 serving path is unspecified.** Ollama's embedding catalog is shallow and may not ship bge-m3. Decide the runtime before F3: Text Embeddings Inference (TEI) / vLLM / `sentence-transformers` Python sidecar. The choice changes the embedding client's API shape. Schema-affecting (OQ-1).
+> ✅ **Both F1-blocker open items RESOLVED 2026-06-22** (originally flagged by Party Mode round 1 — Winston/Amelia/Murat):
+> - **AGE version pin — RESOLVED (ADR-002).** Original flag claimed "latest GA appears to be AGE 1.5.0 (Rhodes, Aug 2024)." **Verified stale.** `github.com/apache/age/releases` confirms **AGE v1.7.0 is latest GA** (PG18 branch: 21 Jan 2025; PG17 branch: 11 Feb 2025; no "1.5.0 Rhodes" release exists). Architecture's "AGE ≥1.7.0" pin was correct. **Binding pin: Apache AGE 1.7.0 + PostgreSQL 16** (exact, not floating). See `docs/adr/0002-apache-age-version-pin.md`.
+> - **bge-m3 serving path — RESOLVED (ADR-020).** Original flag claimed "Ollama's embedding catalog is shallow and may not ship bge-m3." **Verified wrong.** `ollama.com/library/bge-m3` ships it: **4.8M downloads**, `bge-m3:latest` 1.2GB 8K context. **Decision: serve bge-m3 via Ollama in v1** (zero added containers — Ollama already required for Qwen3-14B per ADR-005); **TEI is the documented F3+ upgrade path** (schema-safe behind `@iip/llm-router`). OQ-1 is satisfied by the model+dim lock (`bge-m3`, 1024, dense-only), NOT by the runtime. See `docs/adr/0020-embedding-serving-runtime.md`.
 
 ### Languages & Runtimes
 - **TypeScript (strict)** — all planes; **Python 3.12.x** (NOT 3.13 — PaddlePaddle/Docling wheels lag; `.python-version` + `pyproject.toml requires-python`) for `tools/eval`, `tools/chaos` only
@@ -1371,14 +1371,14 @@ The final review exposed four backfills that belong in earlier categories. Flagg
 
 | # | Item | Category | Owner | Resolution |
 |---|---|---|---|---|
-| 1 | AGE version pin unverified (≥1.7.0 vs latest GA 1.5.0) | Tech Stack | Architect | Verify against ADR-002 before scaffold; amend if binding |
-| 2 | bge-m3 serving path unspecified (Ollama may not ship it) | Tech Stack | Architect | Decide TEI / vLLM / sentence-transformers sidecar before F3 |
+| 1 | ~~AGE version pin unverified (≥1.7.0 vs latest GA 1.5.0)~~ **RESOLVED** | Tech Stack | Architect | **ADR-002 (2026-06-22):** "1.5.0 Rhodes" was stale — no such release exists. Verified AGE v1.7.0 GA (PG18: 21 Jan 2025; PG17: 11 Feb 2025). Binding pin: Apache AGE 1.7.0 + PostgreSQL 16, exact |
+| 2 | ~~bge-m3 serving path unspecified (Ollama may not ship it)~~ **RESOLVED** | Tech Stack | Architect | **ADR-020 (2026-06-22):** Ollama ships bge-m3 (4.8M downloads, verified). v1: Ollama serves bge-m3 + Qwen3-14B (zero added containers). F3+: TEI upgrade path (schema-safe via `@iip/llm-router`). OQ-1 satisfied by model+dim lock, not runtime |
 | 3 | Qwen3-14B Ollama tag unverified | Tech Stack | Architect | Verify exact `ollama pull` string against ADR-005 |
 | 3a | **Model-tier split for Q&A (RESOLVED)** | Tech Stack | Architect/Product | **Decision recorded in ADR-005 / NFR-D-2 / RK-5a:** local Qwen3-14B for ingestion/extraction/embedding/lightweight read-model work; cloud **Gemini 2.5 Flash single-call** for Q&A answer generation (passes all hard gates incl. p95 ≤10s); Pro as high-stakes fallback. Caveat: pilot returned prose answers (`assertions: 0`); production must enforce structured citations before the render gate. Remaining work: re-test at scale after structured-citation parser is implemented. |
 | 4 | UUID v4 vs v7 ADR (time-sortable IDs) | Language | Architect | ADR candidate if `created_at` indexing benefits |
 | 5 | "fact" vs "assertion" vs "claim" disambiguation | Code Quality | Paige/Glossary | Lock definitions at F1 before any retrieval/extraction code ships |
 | 6 | ADR-019 (VAL-4 T2 contradiction: SEC-4 ↔ NFR-D-1) | Workflow | Architect | Resolve before any GPU-using code |
-| 7 | ADR-020…024 backlog (embedding provenance, PG/AGE backup boundary, citation chain format, telemetry boundary, version skew) | Workflow | Architects/Agents | File as divergences surface |
+| 7 | ADR-021…024 backlog (embedding provenance, PG/AGE backup boundary, citation chain format, telemetry boundary, version skew) | Workflow | Architects/Agents | File as divergences surface. Note: ADR-020 was repurposed 2026-06-22 for the embedding **serving runtime** decision (was originally listed here as "embedding provenance" — now shifted to ADR-021+) |
 | 8 | Citation entailment elevation to first-class VAL amendment | Critical | Test Architect | Backfill — structural validation is not validation |
 | 9 | Prompt injection via corpus content — currently has no home | Critical/PC/SEC | Security | Backfill — single most likely real-world defamation vector |
 | 10 | Multilingual defamation rule + RA 10175 jurisdictional anchor | Critical | Test Architect + Legal | Backfill — English-only filters miss Tagalog/Cebuano defamation |

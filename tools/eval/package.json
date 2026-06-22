@@ -1,0 +1,10 @@
+{
+  "name": "@iip/tools-eval",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Python eval harness shim - NOT a pnpm workspace member (STR-12). Invoked via the root eval:uv script.",
+  "scripts": {
+    "eval": "uv run --project . python -m eval",
+    "test": "uv run --project . python -m unittest discover -s tests"
+  }
+}

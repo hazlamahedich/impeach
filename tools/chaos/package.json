@@ -1,0 +1,7 @@
+{
+  "name": "@iip/tools-chaos",
+  "version": "0.0.1",
+  "private": true,
+  "description": "k6 + Playwright chaos workspace shim - NOT a pnpm workspace member (STR-12). No JS business logic in 1.1; no pyproject.toml in 1.1.",
+  "scripts": {}
+}

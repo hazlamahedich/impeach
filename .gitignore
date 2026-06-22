@@ -7,3 +7,10 @@ __pycache__/
 .venv/
 /tmp/
 pilot-corpus/
+
+# Node / Turborepo build artifacts
+node_modules/
+**/dist/
+**/.turbo/
+coverage/
+*.tsbuildinfo
