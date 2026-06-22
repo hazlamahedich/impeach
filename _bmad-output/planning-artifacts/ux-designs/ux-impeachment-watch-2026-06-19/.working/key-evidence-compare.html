@@ -1,0 +1,311 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=1280, initial-scale=1" />
+<title>Impeachment Watch — /evidence/compare · Honest three-way split</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=Geist:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  /*
+    Governing spine sections:
+      DESIGN.md → Colors, Typography, Layout & Spacing, Components
+        (evidence-panel-supporting / -refuting / -contextualizing,
+         evidence-panel-empty-one-sided, citation-chip, trust-badge-*,
+         source-verb-tag, claim-fact / claim-attributed)
+      EXPERIENCE.md → IA (Evidence compare surface), Component Patterns
+        (Evidence split, Citation compound, Trust badge, Claim),
+        State Patterns (Empty — one-sided evidence — verbatim PRD §6.3 copy,
+        Empty — no evidence), Voice and Tone (one-sided copy verbatim, banned
+        "no contradiction found"), Editorial Integrity Surface (No-oversell FR-5.4)
+      Decision Log → Journey 1 step 5; "Only supporting evidence detected in v1;
+        refuting evidence was not surfaced — v1 does not detect contradictions."
+  */
+
+  :root{
+    --primary:#1E3A5F; --primary-fg:#FFFFFF;
+    --accent:#B8761E; --accent-active:#8F5A12; --accent-fg:#FBF8F2;
+    --base:#FBF8F2; --raised:#FFFFFF; --sunken:#F0EDE6;
+    --border:#E3DED1; --muted:#F0EDE6; --muted-fg:#6B6258;
+    --trust-verified:#2A6B5E; --trust-contradicted:#9B3A2E; --trust-caution:#8F5A12;
+    --claim-fact:#1B1C19; --claim-attributed:#6B6258; --claim-dashed:#736B5E;
+    --r-sm:3px; --r-md:5px; --r-lg:8px; --r-full:9999px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    font-family:'Geist','Inter',system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+    color:var(--claim-fact); background:#0c0d10; -webkit-font-smoothing:antialiased;
+    font-size:14px; line-height:1.6;
+  }
+  .mono{font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,monospace}
+  .serif{font-family:'Source Serif 4',Georgia,'Times New Roman',serif}
+  .caps{font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase}
+
+  .device{width:1280px;margin:24px auto;background:var(--base);border-radius:10px;
+    box-shadow:0 24px 60px rgba(0,0,0,.45),0 2px 6px rgba(0,0,0,.4);overflow:hidden;
+    border:1px solid #1d1f23}
+  .chrome{background:#2b2d31;color:#e8e6e1;display:flex;align-items:center;
+    padding:8px 10px;font-size:12px;gap:8px;border-bottom:1px solid #15171a}
+  .dots{display:flex;gap:6px}
+  .dot{width:11px;height:11px;border-radius:50%;background:#46494f}
+  .dot.r{background:#e0635a} .dot.y{background:#e0a34d} .dot.g{background:#5dba60}
+  .addr{flex:1;background:#15171a;border-radius:6px;padding:5px 10px;color:#c7c4be;
+    font-family:'IBM Plex Mono',monospace;font-size:11.5px;display:flex;align-items:center;gap:8px}
+  .lock{color:#6b6258}
+  .cr-btn{width:14px;height:14px;border-radius:3px;background:#46494f}
+  .chrome-r{display:flex;gap:10px}
+
+  .app{display:grid;grid-template-columns:56px 1fr;min-height:760px}
+  .sidebar{width:56px;background:var(--sunken);border-right:1px solid var(--border);
+    display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 0}
+  .nav-item{width:38px;height:38px;border-radius:var(--r-md);display:flex;
+    align-items:center;justify-content:center;color:var(--muted-fg);font-size:14px;text-decoration:none}
+  .nav-item.active{background:var(--primary);color:#fff}
+  .brand-glyph{width:30px;height:30px;border-radius:var(--r-sm);background:var(--primary);
+    color:#fff;display:flex;align-items:center;justify-content:center;font-family:'Source Serif 4',serif;
+    font-weight:600;font-size:15px;margin-bottom:12px}
+
+  .main{display:flex;flex-direction:column;min-width:0}
+  .topbar{display:flex;align-items:center;justify-content:space-between;
+    padding:8px 16px;border-bottom:1px solid var(--border);background:var(--raised);min-height:40px}
+  .essence{font-size:11.5px;color:var(--muted-fg);font-style:italic;
+    font-family:'Source Serif 4',serif}
+  .essence b{color:var(--primary);font-style:normal;font-weight:600}
+  .top-r{display:flex;align-items:center;gap:12px}
+  .case-badge{display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--muted-fg);
+    border:1px solid var(--border);border-radius:var(--r-full);padding:2px 8px;background:var(--sunken)}
+  .case-badge .b-dot{width:6px;height:6px;border-radius:50%;background:var(--accent)}
+
+  /* Surface header */
+  .surface{padding:24px 40px 0}
+  .surface h1{font-family:'Source Serif 4',serif;font-size:26px;font-weight:400;
+    letter-spacing:-.01em;margin:0 0 4px}
+  .surface .sub{font-size:13px;color:var(--muted-fg);margin:0 0 6px}
+  .surface .meta{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:10px}
+  .meta-pill{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted-fg);
+    border:1px solid var(--border);border-radius:var(--r-sm);padding:2px 8px;background:var(--raised)}
+  .meta-pill b{color:var(--claim-fact);font-weight:500}
+
+  /* The claim under comparison */
+  .under-claim{margin:18px 40px 0;background:var(--raised);border:1px solid var(--border);
+    border-radius:var(--r-lg);padding:18px 20px;border-left:3px dashed var(--claim-attributed)}
+  .under-claim .lbl{color:var(--muted-fg);margin-bottom:6px}
+  .under-claim .txt{color:var(--claim-attributed);font-style:italic;font-size:15px;line-height:1.55}
+  .under-claim .txt b{color:var(--claim-fact);font-style:normal;font-weight:600}
+  .under-claim .tags{display:flex;gap:8px;align-items:center;margin-top:10px;flex-wrap:wrap}
+
+  /* Citation chip */
+  .chip{display:inline-flex;align-items:center;gap:4px;background:var(--sunken);
+    color:var(--claim-attributed);border:1px solid var(--border);border-radius:var(--r-full);
+    padding:1px 8px;font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;
+    cursor:pointer;vertical-align:baseline;line-height:1.4}
+  .chip sup{font-size:8.5px;opacity:.7}
+  .chip.on{background:var(--accent-active);color:var(--accent-fg);border-color:var(--accent-active)}
+  .chip:hover{border-color:var(--accent)}
+
+  .verb{color:var(--primary);font-size:10px;font-weight:600;letter-spacing:.12em;
+    text-transform:uppercase}
+  .trust{display:inline-flex;align-items:center;gap:4px;font-size:9px;font-weight:600;
+    letter-spacing:.1em;text-transform:uppercase;border-radius:var(--r-sm);padding:1px 5px;color:#fff}
+  .trust.v{background:var(--trust-verified)} .trust.c{background:var(--trust-contradicted)}
+  .trust.k{background:var(--sunken);color:var(--trust-caution);border:1px solid var(--trust-caution)}
+
+  /* Three-column split */
+  .split{display:grid;grid-template-columns:1fr 1fr 1fr;gap:48px;padding:24px 40px 40px}
+
+  .panel{background:var(--raised);border:1px solid var(--border);border-radius:var(--r-lg);
+    border-top-width:2px;display:flex;flex-direction:column;overflow:hidden}
+  .panel.supporting{border-top-color:var(--trust-verified);border-top-style:solid}
+  .panel.refuting{border-top-color:var(--trust-contradicted);border-top-style:solid}
+  .panel.contextualizing{border-top-color:var(--muted-fg);border-top-style:solid}
+
+  .panel-h{padding:14px 16px 10px;border-bottom:1px solid var(--border);
+    display:flex;align-items:center;justify-content:space-between}
+  .panel-h .ttl{font-size:12px;font-weight:600;letter-spacing:.12em;text-transform:uppercase}
+  .panel.supporting .ttl{color:var(--trust-verified)}
+  .panel.refuting .ttl{color:var(--trust-contradicted)}
+  .panel.contextualizing .ttl{color:var(--muted-fg)}
+  .panel-h .count{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted-fg)}
+
+  /* Evidence rows */
+  .row{padding:14px 16px;border-bottom:1px solid var(--border)}
+  .row:last-child{border-bottom:none}
+  .row .claim{font-size:13px;line-height:1.5;color:var(--claim-attributed);font-style:italic;
+    border-left:3px dashed var(--claim-attributed);padding-left:10px;margin-bottom:8px}
+  .row .claim.fact{color:var(--claim-fact);font-style:normal;border-left-style:solid;border-left-color:var(--claim-fact)}
+  .row .who{font-size:12px;color:var(--muted-fg);margin-bottom:8px}
+  .row .who b{color:var(--claim-fact);font-weight:600}
+  .row .tags{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+  .row .src{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted-fg);
+    margin-top:6px;line-height:1.45}
+
+  /* One-sided empty state — verbatim PRD §6.3 */
+  .empty-sided{padding:18px 16px;background:var(--sunken);border:1px dashed var(--border);
+    margin:14px;border-radius:var(--r-md);text-align:left}
+  .empty-sided .h{font-family:'Source Serif 4',serif;font-size:15px;font-weight:400;
+    color:var(--muted-fg);line-height:1.3;margin:0 0 8px}
+  .empty-sided .b{font-size:12.5px;color:var(--muted-fg);line-height:1.55}
+  .empty-sided .b b{color:var(--claim-attributed);font-weight:500}
+  .empty-sided .note{margin-top:10px;font-size:11px;color:var(--trust-caution);
+    border-top:1px solid var(--border);padding-top:8px;display:flex;align-items:center;gap:6px}
+
+  /* Contextualizing empty */
+  .empty-ctx{padding:18px 16px;background:var(--sunken);border:1px dashed var(--border);
+    margin:14px;border-radius:var(--r-md);font-size:12.5px;color:var(--muted-fg);line-height:1.55}
+
+  .footnote{padding:0 40px 24px;font-size:11.5px;color:var(--muted-fg);line-height:1.5;
+    border-top:1px solid var(--border);padding-top:14px;margin-top:0}
+  .footnote b{color:var(--claim-attributed);font-weight:500}
+</style>
+</head>
+<body>
+<div class="device">
+  <div class="chrome">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="addr"><span class="lock">🔒</span> impeachmentwatch.ph/evidence/compare?ids=claim-cf-allegation,evidence-coa-ar-2022,src-castro-aff</div>
+    <div class="chrome-r"><div class="cr-btn"></div><div class="cr-btn"></div><div class="cr-btn"></div></div>
+  </div>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand-glyph">I</div>
+      <a class="nav-item" href="#">💬</a>
+      <a class="nav-item" href="#">📄</a>
+      <a class="nav-item" href="#">🕸</a>
+      <a class="nav-item" href="#">🗓</a>
+      <a class="nav-item active" href="#">⚖</a>
+      <a class="nav-item" href="#">🏛</a>
+      <a class="nav-item" href="#">📑</a>
+    </aside>
+
+    <div class="main">
+      <div class="topbar">
+        <div class="essence">Every claim IIP shows you cites a source you can open — or IIP shows you <b>nothing.</b></div>
+        <div class="top-r"><div class="case-badge"><span class="b-dot"></span>Duterte impeachment · v1</div></div>
+      </div>
+
+      <div class="surface">
+        <h1>Evidence compare</h1>
+        <div class="sub">Honest split — supporting, refuting, and contextualizing evidence on record. v1 does not detect contradictions.</div>
+        <div class="meta">
+          <span class="meta-pill">ids: <b>claim-cf-allegation</b>, <b>evidence-coa-ar-2022</b>, <b>src-castro-aff</b></span>
+          <span class="meta-pill">3 items compared</span>
+          <span class="meta-pill">last updated <b>2026-06-19</b></span>
+        </div>
+      </div>
+
+      <!-- The claim under comparison -->
+      <div class="under-claim">
+        <div class="caps lbl">Claim under comparison · attributed</div>
+        <div class="txt">"The Office of the Vice President disbursed ₱125 million in confidential funds to personnel not authorized under the General Appropriations Act, including members of the Vice President's personal security detail."</div>
+        <div class="tags">
+          <span class="verb">ALLEGED</span>
+          <span class="chip">¹ ALLEGED · CASTRO</span>
+          <span class="trust k">◉ TIER 3 · single manual</span>
+          <span class="meta-pill" style="border-color:var(--border)">AKN:claim-cf-allegation</span>
+        </div>
+      </div>
+
+      <!-- Three-way split -->
+      <div class="split">
+
+        <!-- SUPPORTING -->
+        <div class="panel supporting">
+          <div class="panel-h">
+            <span class="ttl">Supporting</span>
+            <span class="count">3 items</span>
+          </div>
+
+          <div class="row">
+            <div class="who"><b>Commission on Audit</b> — Annual Audit Report, OVP, CY 2022</div>
+            <div class="claim fact">"Disbursements totaling ₱125,000,000.00 under Confidential Expenses were not supported by required documents, in violation of COA Circular No. 2012-002."</div>
+            <div class="tags">
+              <span class="verb">REPORTED</span>
+              <span class="chip">² REPORTED</span>
+              <span class="trust v">✓ TIER 1 · primary</span>
+            </div>
+            <div class="src">COA-AR-2022-OVP · AKN:coa-ar-2022-ovp#finding-3</div>
+          </div>
+
+          <div class="row">
+            <div class="who"><b>Rep. France Castro</b> — affidavit in support of verified complaint</div>
+            <div class="claim">"…the Office of the Vice President disbursed confidential funds to personnel not authorized under the General Appropriations Act, including members of the Vice President's personal security detail."</div>
+            <div class="tags">
+              <span class="verb">ALLEGED</span>
+              <span class="chip">¹ ALLEGED</span>
+              <span class="trust k">◉ TIER 3 · single manual</span>
+            </div>
+            <div class="src">castro-aff-2025-10-12 · AKN:castro-aff-2025-10-12#para-7</div>
+          </div>
+
+          <div class="row">
+            <div class="who"><b>Senate Blue Ribbon Committee</b> — hearing transcript</div>
+            <div class="claim">"The COA findings, taken with the sworn affidavit, establish a prima facie basis for the allegation of misapplication of public funds."</div>
+            <div class="tags">
+              <span class="verb">STATED</span>
+              <span class="chip">³ STATED · HONTIVEROS</span>
+              <span class="trust v">✓ TIER 1 · primary</span>
+            </div>
+            <div class="src">SBC-2026-03-14 · AKN:sbc-2026-03-14#p-42</div>
+          </div>
+        </div>
+
+        <!-- REFUTING — one-sided empty state, verbatim -->
+        <div class="panel refuting">
+          <div class="panel-h">
+            <span class="ttl">Refuting</span>
+            <span class="count">—</span>
+          </div>
+
+          <div class="empty-sided">
+            <div class="caps" style="color:var(--trust-contradicted);margin-bottom:8px">One-sided · v1 honest absence</div>
+            <div class="h">Only supporting evidence detected in v1.</div>
+            <div class="b">Refuting evidence was not surfaced — <b>v1 does not detect contradictions.</b></div>
+            <div class="note">
+              <span class="trust k" style="background:transparent;border:1px solid var(--trust-caution);padding:1px 5px">◉ CAUTION</span>
+              Absence here is <b style="color:var(--trust-caution)">not</b> consistency. It is a v1 capability limit, not a finding.
+            </div>
+          </div>
+        </div>
+
+        <!-- CONTEXTUALIZING -->
+        <div class="panel contextualizing">
+          <div class="panel-h">
+            <span class="ttl">Contextualizing</span>
+            <span class="count">2 items</span>
+          </div>
+
+          <div class="row">
+            <div class="who"><b>OVP Answer to Summons</b> — respondent pleading</div>
+            <div class="claim">"The disbursements were made in good faith pursuant to existing guidelines; the absence of documentation reflects administrative process, not misapplication."</div>
+            <div class="tags">
+              <span class="verb">DENIED</span>
+              <span class="chip">⁴ DENIED · DUTERTE</span>
+              <span class="trust v">✓ TIER 1 · primary</span>
+            </div>
+            <div class="src">ovp-answer-2026-04-10 · AKN:ovp-answer-2026-04-10#para-12</div>
+          </div>
+
+          <div class="row">
+            <div class="who"><b>House Committee on Good Government</b> — Report No. 2025-CG-014</div>
+            <div class="claim fact">"The committee recommends the drafting of Articles of Impeachment for betrayal of public trust, citing the confidential funds disbursement as a central allegation, while noting the respondent's denial on the record."</div>
+            <div class="tags">
+              <span class="verb">FILED</span>
+              <span class="chip">⁵ FILED</span>
+              <span class="trust v">✓ TIER 1 · primary</span>
+            </div>
+            <div class="src">HR-CG-014 · AKN:hr-cg-014#rec-1</div>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="footnote">
+        <b>Honest split notice.</b> The evidence split is first-class (FR-5.4). A one-sided panel is never silently empty — it surfaces the verbatim v1 capability statement. The product states what v1 does <b>not</b> do as clearly as what it does (DR-4). Contradiction detection is deferred to Phase 3.
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

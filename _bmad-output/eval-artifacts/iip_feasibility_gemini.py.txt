@@ -1,0 +1,476 @@
+#!/usr/bin/env python3
+"""Feasibility: verbatim-citation pipeline with Gemini cloud tier for answer generation."""
+from __future__ import annotations
+
+import hashlib
+import json
+import os
+import re
+import sys
+import time
+from dataclasses import dataclass, field
+from pathlib import Path
+
+import numpy as np
+import ollama
+import google.generativeai as genai
+from sklearn.neighbors import NearestNeighbors
+
+
+@dataclass
+class Chunk:
+    doc_id: str
+    doc_title: str
+    text: str
+    start: int
+    end: int
+    embedding: np.ndarray | None = None
+
+
+@dataclass
+class Citation:
+    doc_id: str
+    span_start: int
+    span_end: int
+    content_hash: str
+    quote: str
+
+
+@dataclass
+class Assertion:
+    text: str
+    claim_type: str
+    citations: list[Citation] = field(default_factory=list)
+
+
+@dataclass
+class EvalResult:
+    question: str
+    answer_text: str
+    assertions: list[Assertion]
+    no_answer: bool
+    latency_s: float
+
+
+PILOT_QUESTIONS = [
+    "Who filed the impeachment complaints against Vice President Sara Duterte in February 2026?",
+    "What did the House Committee on Justice vote on March 4, 2026 regarding the impeachment complaints?",
+    "What is the capital city of France?",
+]
+
+
+def load_documents(raw_dir: Path):
+    docs = []
+    for p in sorted(raw_dir.glob("*.md")):
+        text = p.read_text(encoding="utf-8")
+        if text.startswith("---"):
+            parts = text.split("---", 2)
+            body = parts[2] if len(parts) >= 3 else text
+        else:
+            body = text
+        docs.append((p.name, p.stem, body))
+    return docs
+
+
+def chunk_text(doc_id, doc_title, text, max_chars=None, overlap=150):
+    import os
+    if max_chars is None:
+        max_chars = int(os.environ.get("IIP_CHUNK_MAX_CHARS", 1200))
+    paragraphs = re.split(r"\n\s*\n", text)
+    chunks = []
+    buffer = ""
+    buf_start = 0
+    for para in paragraphs:
+        para = para.strip()
+        if not para:
+            continue
+        if len(buffer) + len(para) > max_chars and buffer:
+            start = buf_start
+            end = buf_start + len(buffer)
+            chunks.append(Chunk(doc_id, doc_title, buffer.strip(), start, end))
+            if len(buffer) > overlap:
+                buffer = buffer[-overlap:]
+                buf_start = end - len(buffer)
+            buffer += "\n\n" + para
+        else:
+            buffer = (buffer + "\n\n" + para) if buffer else para
+            if not buf_start and buffer == para:
+                buf_start = text.find(para)
+    if buffer:
+        start = buf_start
+        end = buf_start + len(buffer)
+        chunks.append(Chunk(doc_id, doc_title, buffer.strip(), start, end))
+    return chunks
+
+
+def embed(texts, model="bge-m3"):
+    client = ollama.Client()
+    resp = client.embed(model=model, input=texts)
+    return np.asarray(resp["embeddings"], dtype=np.float32)
+
+
+def build_index(chunks):
+    X = np.vstack([c.embedding for c in chunks])
+    X = X / (np.linalg.norm(X, axis=1, keepdims=True) + 1e-10)
+    nn = NearestNeighbors(n_neighbors=min(5, len(chunks)), metric="cosine")
+    nn.fit(X)
+    return nn
+
+
+def retrieve(query, chunks, index, k=None):
+    import os
+    if k is None:
+        k = int(os.environ.get("IIP_RETRIEVE_K", 8))
+    q_emb = embed([query])
+    q_emb = q_emb / (np.linalg.norm(q_emb, axis=1, keepdims=True) + 1e-10)
+    k = min(k, len(chunks))
+    dists, idxs = index.kneighbors(q_emb, n_neighbors=k)
+    return [chunks[int(i)] for i in idxs[0]]
+
+
+def hash_span(text):
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()[:16]
+
+
+def ollama_generate(model, system, prompt, options=None):
+    client = ollama.Client()
+    return client.generate(model=model, system=system, prompt=prompt, options=options or {"temperature": 0.0, "num_ctx": 8192}, format="")
+
+
+def gemini_generate(model_name, system, prompt, temperature=0.0):
+    api_key = os.environ.get("GEMINI_API_KEY")
+    if not api_key:
+        key_file = Path.home() / ".gemini_api_key"
+        if key_file.exists():
+            api_key = key_file.read_text().strip()
+    if not api_key:
+        raise RuntimeError("GEMINI_API_KEY environment variable not set and ~/.gemini_api_key not found")
+    genai.configure(api_key=api_key)
+    model = genai.GenerativeModel(
+        model_name,
+        system_instruction=system,
+        generation_config=genai.types.GenerationConfig(temperature=temperature),
+    )
+    resp = model.generate_content(prompt)
+    return {"response": resp.text}
+
+
+def dispatch_generate(model, system, prompt):
+    if model.startswith("gemini-"):
+        return gemini_generate(model, system, prompt)
+    return ollama_generate(model, system, prompt)
+
+
+def extract_verbatim_spans(question, contexts, model="gemini-2.5-flash"):
+    # Parallel extraction: each chunk is processed independently so latency is one LLM round-trip per chunk batch.
+    import concurrent.futures
+
+    def _extract_for_chunk(c):
+        system = (
+            "You extract verbatim passages from the provided document that help answer the user's question. "
+            "Output strictly valid JSON: a list of objects with keys 'doc_title' and 'quote'. "
+            "Each 'quote' MUST be an exact, contiguous substring copied directly from the document text. "
+            "Do not paraphrase, summarize, or stitch fragments. If no relevant passage exists, return an empty list."
+        )
+        prompt = (
+            f"Question: {question}\n\n"
+            f"[DOCUMENT: {c.doc_title}]\n{c.text}\n\n"
+            "Extract verbatim quotes as JSON list:"
+        )
+        resp = dispatch_generate(model, system, prompt)
+        raw = resp["response"].strip()
+        if "```json" in raw:
+            raw = raw.split("```json")[1].split("```")[0].strip()
+        elif "```" in raw:
+            raw = raw.split("```")[1].split("```")[0].strip()
+        try:
+            data = json.loads(raw)
+        except Exception:
+            try:
+                data = json.loads(raw[raw.find("["):raw.rfind("]") + 1])
+            except Exception:
+                return []
+        if not isinstance(data, list):
+            return []
+        valid = []
+        for item in data:
+            if not isinstance(item, dict):
+                continue
+            doc_title = item.get("doc_title", "")
+            quote = item.get("quote", "")
+            if doc_title in (c.doc_title, c.doc_id) and quote in c.text:
+                valid.append((doc_title, quote))
+        return valid
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=min(len(contexts), 6)) as ex:
+        futures = [ex.submit(_extract_for_chunk, c) for c in contexts]
+        valid = []
+        for fut in concurrent.futures.as_completed(futures):
+            valid.extend(fut.result())
+    # Deduplicate identical quotes
+    seen = set()
+    deduped = []
+    for doc_title, quote in valid:
+        key = (doc_title, quote)
+        if key not in seen:
+            seen.add(key)
+            deduped.append((doc_title, quote))
+    return deduped
+
+
+def generate_answer_with_spans(question, contexts, spans, model="gemini-2.5-flash"):
+    # Single-call generation: pass both the extracted spans and the full context; no separate span-extraction latency here.
+    context_text = "\n\n---\n\n".join(f"[DOCUMENT: {c.doc_title}]\n{c.text}" for c in contexts)
+    span_text = "\n".join(f"- [{doc}] {quote!r}" for doc, quote in spans)
+    system = (
+        "You are a citation-grounded research assistant. Answer ONLY using the provided verbatim quotes. "
+        "Every factual assertion must cite one of the verbatim quotes. "
+        "Output strictly valid JSON: {\"no_answer\": bool, \"answer\": string, \"assertions\": [{\"text\": string, \"claim_type\": \"fact\" or \"attributed\", \"citations\": [{\"doc_title\": string, \"quote\": string}]}]}. "
+        "If the provided quotes do not support an answer, set no_answer to true and answer to 'No sourced answer found.'."
+    )
+    prompt = (
+        f"Question: {question}\n\n"
+        f"Verbatim quotes from sources:\n{span_text}\n\n"
+        f"Full context:\n{context_text}\n\n"
+        "Answer as JSON:"
+    )
+    start = time.perf_counter()
+    resp = dispatch_generate(model, system, prompt)
+    latency = time.perf_counter() - start
+    return parse_response(question, resp["response"], latency, contexts, spans)
+
+
+def parse_response(question, raw, latency, contexts, spans):
+    raw = raw.strip()
+    if "```json" in raw:
+        raw = raw.split("```json")[1].split("```")[0].strip()
+    elif "```" in raw:
+        raw = raw.split("```")[1].split("```")[0].strip()
+    try:
+        data = json.loads(raw)
+    except Exception:
+        try:
+            data = json.loads(raw[raw.find("{"):raw.rfind("}") + 1])
+        except Exception:
+            return EvalResult(question, raw, [], False, latency)
+
+    assertions = []
+    no_answer = bool(data.get("no_answer", False))
+    answer_text = data.get("answer", "")
+    span_quotes = {quote for _, quote in spans}
+    for a in data.get("assertions", []):
+        claim_type = a.get("claim_type", "attributed")
+        cits = []
+        for ci in a.get("citations", []):
+            doc_id = ci.get("doc_title", "")
+            quote = ci.get("quote", "")
+            if quote not in span_quotes:
+                found_parent = False
+                for sdoc, squote in spans:
+                    if sdoc == doc_id and quote in squote:
+                        quote = squote
+                        found_parent = True
+                        break
+                if not found_parent:
+                    continue
+            matching = [c for c in contexts if c.doc_title == doc_id or c.doc_id == doc_id]
+            if matching:
+                chunk = matching[0]
+                span_start = chunk.text.find(quote)
+                if span_start == -1:
+                    span_start = 0
+                span_end = span_start + len(quote)
+            else:
+                span_start, span_end = 0, len(quote)
+            cits.append(Citation(doc_id, span_start, span_end, hash_span(quote), quote))
+        if cits:
+            assertions.append(Assertion(a.get("text", ""), claim_type, cits))
+    return EvalResult(question, answer_text, assertions, no_answer, latency)
+
+
+def generate_single_call(question, contexts, model='gemini-2.5-pro'):
+    """One-call Q&A: model extracts verbatim citations itself from full context."""
+    sep = chr(10) + '---' + chr(10)
+    context_text = sep.join(f'[DOCUMENT: {c.doc_title}]' + chr(10) + c.text for c in contexts)
+    system = (
+        'You are a citation-grounded research assistant. Use only the provided documents. '
+        'Answer the question and cite exact, contiguous verbatim substrings from the documents. '
+        'Output strictly valid JSON: {\"no_answer\": bool, \"answer\": string, \"assertions\": [{\"text\": string, \"claim_type\": \"fact\" or \"attributed\", \"citations\": [{\"doc_title\": string, \"quote\": string}]}]}. '
+        "If the documents do not support an answer, set no_answer to true and answer to 'No sourced answer found.'."
+    )
+    prompt = 'Question: ' + question + chr(10) + chr(10) + 'Context documents:' + chr(10) + context_text + chr(10) + chr(10) + 'Answer as JSON:'
+    start = time.perf_counter()
+    resp = dispatch_generate(model, system, prompt)
+    latency = time.perf_counter() - start
+    return parse_response(question, resp['response'], latency, contexts, [])
+
+
+def substring_validate(assertions, chunks):
+    failures = []
+    total = 0
+    valid = 0
+    for a in assertions:
+        for c in a.citations:
+            total += 1
+            matches = [ch for ch in chunks if ch.doc_id == c.doc_id or ch.doc_title == c.doc_id]
+            found = any(c.quote in ch.text for ch in matches)
+            if found:
+                valid += 1
+            else:
+                failures.append(f"Missing quote in {c.doc_id}: {c.quote[:80]!r}")
+    return valid, total, failures
+
+
+def groundedness_check(result, chunks, model="gemini-2.5-flash"):
+    if not result.assertions:
+        return 1.0 if result.no_answer else 0.0
+    scores = []
+    for a in result.assertions:
+        if not a.citations:
+            scores.append(0.0)
+            continue
+        c = a.citations[0]
+        prompt = (
+            f"Passage: {c.quote}\n\n"
+            f"Claim: {a.text}\n\n"
+            "Does the passage support the claim? Reply only with one word: yes/no/unknown."
+        )
+        try:
+            resp = dispatch_generate(model, "You are a strict entailment judge.", prompt)
+            text = resp["response"].strip().lower()
+            if "yes" in text:
+                scores.append(1.0)
+            elif "no" in text:
+                scores.append(0.0)
+            else:
+                scores.append(0.5)
+        except Exception:
+            scores.append(0.5)
+    return float(np.mean(scores)) if scores else 0.0
+
+
+def main():
+    raw_dir = Path(os.environ.get("IIP_RAW_DIR", "/tmp/iip-feasibility/pilot-corpus"))
+    if not raw_dir.exists():
+        print(f"Raw directory not found: {raw_dir}", file=sys.stderr)
+        return 1
+
+    print(f"[1/5] Loading documents from {raw_dir} ...")
+    docs = load_documents(raw_dir)
+    print(f"      Loaded {len(docs)} documents.")
+
+    print("[2/5] Chunking ...")
+    chunks = []
+    for doc_id, title, text in docs:
+        chunks.extend(chunk_text(doc_id, title, text))
+    print(f"      Created {len(chunks)} chunks.")
+
+    print("[3/5] Embedding chunks with bge-m3 ...")
+    batch = 32
+    for i in range(0, len(chunks), batch):
+        batch_chunks = chunks[i:i + batch]
+        embs = embed([c.text for c in batch_chunks])
+        for c, e in zip(batch_chunks, embs):
+            c.embedding = e
+        print(f"      embedded {min(i + batch, len(chunks))}/{len(chunks)}")
+
+    print("[4/5] Building retrieval index ...")
+    index = build_index(chunks)
+
+    gen_model = os.environ.get("IIP_GEN_MODEL", "gemini-2.5-flash")
+    print(f"[5/5] Running {len(PILOT_QUESTIONS)} questions with {gen_model} ...")
+    results = []
+    opt_mode = os.environ.get("IIP_OPT_MODE", "two-call").lower()
+    for idx, q in enumerate(PILOT_QUESTIONS, 1):
+        print(f"      Q{idx}: {q[:80]}...")
+        contexts = retrieve(q, chunks, index, k=8)
+        if opt_mode == "single":
+            result = generate_single_call(q, contexts, model=gen_model)
+            print(f"           single-call mode, assertions={len(result.assertions)} no_answer={result.no_answer}")
+        else:
+            spans = extract_verbatim_spans(q, contexts, model=gen_model)
+            print(f"           extracted {len(spans)} verbatim spans")
+            result = generate_answer_with_spans(q, contexts, spans, model=gen_model)
+        results.append(result)
+        print(f"           assertions={len(result.assertions)} no_answer={result.no_answer} latency={result.latency_s:.1f}s")
+        print(f"           A: {result.answer_text[:160]}{'...' if len(result.answer_text) > 160 else ''}")
+
+    print("[6/6] Computing metrics ...")
+    total_quote = 0
+    valid_quote = 0
+    quote_failures = []
+    total_assertions = 0
+    tagged_assertions = 0
+    groundedness_scores = []
+    no_answer_correct = 0
+    no_answer_total = 0
+    latencies = []
+
+    for r in results:
+        latencies.append(r.latency_s)
+        if "capital city of france" in r.question.lower():
+            no_answer_total += 1
+            if r.no_answer:
+                no_answer_correct += 1
+        v, t, f = substring_validate(r.assertions, chunks)
+        valid_quote += v
+        total_quote += t
+        quote_failures.extend(f)
+        total_assertions += len(r.assertions)
+        tagged_assertions += sum(1 for a in r.assertions if a.claim_type in ("fact", "attributed"))
+        if r.assertions:
+            groundedness_scores.append(groundedness_check(r, chunks, model=gen_model))
+
+    quote_validity_rate = valid_quote / total_quote if total_quote else 1.0
+    fact_claim_coverage_rate = tagged_assertions / total_assertions if total_assertions else 1.0
+    groundedness_mean = float(np.mean(groundedness_scores)) if groundedness_scores else 1.0
+    no_answer_rate = no_answer_correct / no_answer_total if no_answer_total else 1.0
+    p95_latency = float(np.percentile(latencies, 95)) if latencies else 0.0
+
+    report = {
+        "model": gen_model,
+        "embedding_model": "bge-m3",
+        "pipeline": "verbatim-span-extraction-fast-3q-gemini",
+        "documents": len(docs),
+        "chunks": len(chunks),
+        "questions": len(PILOT_QUESTIONS),
+        "quote_validity_rate": quote_validity_rate,
+        "quote_validity_target": 1.0,
+        "quote_validity_pass": quote_validity_rate >= 1.0,
+        "groundedness_mean": groundedness_mean,
+        "groundedness_target": 0.95,
+        "groundedness_pass": groundedness_mean >= 0.95,
+        "fact_claim_coverage_rate": fact_claim_coverage_rate,
+        "fact_claim_coverage_target": 1.0,
+        "fact_claim_coverage_pass": fact_claim_coverage_rate >= 1.0,
+        "no_answer_rate": no_answer_rate,
+        "p95_latency_s": p95_latency,
+        "p95_latency_target_s": 10.0,
+        "p95_latency_pass": p95_latency <= 10.0,
+        "all_hard_gates_pass": (
+            quote_validity_rate >= 1.0
+            and groundedness_mean >= 0.95
+            and fact_claim_coverage_rate >= 1.0
+        ),
+        "quote_failures_sample": quote_failures[:20],
+        "per_question": [
+            {
+                "question": r.question,
+                "no_answer": r.no_answer,
+                "assertion_count": len(r.assertions),
+                "latency_s": r.latency_s,
+                "answer_preview": r.answer_text[:200],
+            }
+            for r in results
+        ],
+    }
+
+    out_path = Path("/tmp/iip-feasibility/iip-feasibility-report-gemini.json")
+    out_path.write_text(json.dumps(report, indent=2, default=str))
+    print(f"\nReport written to {out_path}")
+    print(json.dumps(report, indent=2, default=str))
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

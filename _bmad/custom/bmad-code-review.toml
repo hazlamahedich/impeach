@@ -1,0 +1,10 @@
+# Graphify integration override for bmad-code-review
+# This file is merged with the skill's customize.toml by BMad on activation.
+
+[workflow]
+
+persistent_facts = [
+  "file:{project-root}/_bmad/custom/graphify-integration.md",
+  "file:{project-root}/graphify-out/GRAPH_REPORT.md",
+  "A graphify knowledge graph exists at {project-root}/graphify-out/. During code review, query the graph to verify that changed concepts still connect correctly to architecture, epics, citation invariants, and trust badges. Flag changes that sever connections to god nodes or that create unverified cross-community edges without explicit rationale.",
+]

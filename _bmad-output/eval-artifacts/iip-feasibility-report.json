@@ -1,0 +1,89 @@
+{
+  "model": "qwen3:14b",
+  "embedding_model": "bge-m3",
+  "documents": 5,
+  "chunks": 253,
+  "questions": 7,
+  "quote_validity_rate": 0.21052631578947367,
+  "quote_validity_target": 1.0,
+  "quote_validity_pass": false,
+  "groundedness_mean": 0.16666666666666666,
+  "groundedness_target": 0.95,
+  "groundedness_pass": false,
+  "fact_claim_coverage_rate": 1.0,
+  "fact_claim_coverage_target": 1.0,
+  "fact_claim_coverage_pass": true,
+  "no_answer_rate": 1.0,
+  "p95_latency_s": 268.83433304566415,
+  "p95_latency_target_s": 10.0,
+  "p95_latency_pass": false,
+  "all_hard_gates_pass": false,
+  "quote_failures_sample": [
+    "Missing quote in 2026-05-04-House-of-Representatives-Committee-Report-No-261: 'On February 2, 2026, the House of Representatives Office of the Secretary Genera'",
+    "Missing quote in 2026-05-04-House-of-Representatives-Committee-Report-No-261: 'a third complaint for the impeachment of Respondent Vice President Duterte was f'",
+    "Missing quote in 2026-05-04-House-of-Representatives-Committee-Report-No-261: 'a fourth complaint for the impeachment of Respondent Vice President Duterte was '",
+    "Missing quote in 2026-05-04-House-of-Representatives-Committee-Report-No-261: 'The Saballa, et al. Complaint lists six (6) grounds for impeachment against Resp'",
+    "Missing quote in 2026-05-04-House-of-Representatives-Committee-Report-No-261: 'It was further claimed that ... her deposits were manifestly out of proportion t'",
+    "Missing quote in 2026-05-04-House-of-Representatives-Committee-Report-No-261: '1. Atty. Cynthia Pantonal | Notary Public'",
+    "Missing quote in 2026-05-04-House-of-Representatives-Committee-Report-No-261: '2. Ramil Madriaga | Former Supporter of Respondent Vice President Duterte'",
+    "Missing quote in 2026-05-04-House-of-Representatives-Committee-Report-No-261: '3. Marivic Pareja | Legislative Information Resources Management Department of t'",
+    "Missing quote in 2026-05-04-House-of-Representatives-Committee-Report-No-261: '4. Atty. Melvin Matibag | Director of the National Bureau of Investigation(NBI)'",
+    "Missing quote in 2026-05-04-House-of-Representatives-Committee-Report-No-261: '5. Carolyn J. Moldez-Pitoy | NBI Questioned Documents Division'",
+    "Missing quote in 2026-05-04-House-of-Representatives-Committee-Report-No-261: '6. Mr. Antonio Magbojos | NBI Questioned Documents Division'",
+    "Missing quote in 2026-05-04-House-of-Representatives-Committee-Report-No-261: '7. Marizza B. Grande | Assistant National Statistician,PSA'",
+    "Missing quote in 2026-05-04-House-of-Representatives-Committee-Report-No-261: '8. Atty. Gloria Camora | Commission of Audit-Intelligence and Confidential Funds'",
+    "Missing quote in 2026-05-04-House-of-Representatives-Committee-Report-No-261: '9. Atty. Michael Poa | Former Chief of Staff of the Office of the Secretary of t'",
+    "Missing quote in 2026-05-04-House-of-Representatives-Committee-Report-No-261: 'It was discussed that the initial ruling in the case of Duterte expressly stated'"
+  ],
+  "per_question": [
+    {
+      "question": "Who filed the impeachment complaints against Vice President Sara Duterte in February 2026?",
+      "no_answer": false,
+      "assertion_count": 3,
+      "latency_s": 157.5817884579301,
+      "answer_preview": "The impeachment complaints against Vice President Sara Duterte in February 2026 were filed by multiple groups, including Francisca 'France' Castro, et al.; Francis Joseph Aquino Dee, et al.; Rev. Fr. "
+    },
+    {
+      "question": "What grounds were cited in the Saballa et al. complaint against Sara Duterte?",
+      "no_answer": false,
+      "assertion_count": 2,
+      "latency_s": 139.78610412497073,
+      "answer_preview": "The Saballa et al. complaint cited six grounds for impeachment against Sara Duterte, including plunder, malversation, graft, corruption, bribery, and unexplained wealth linked to SALN violations."
+    },
+    {
+      "question": "What did the House Committee on Justice vote on March 4, 2026 regarding the impeachment complaints?",
+      "no_answer": false,
+      "assertion_count": 1,
+      "latency_s": 98.12584066600539,
+      "answer_preview": "On March 4, 2026, the House Committee on Justice voted 54-1-0 to declare the Saballa, et al. and Cabrera impeachment complaints sufficient in substance."
+    },
+    {
+      "question": "Who testified before the House Committee on Justice during the April 14, 2026 hearing?",
+      "no_answer": false,
+      "assertion_count": 9,
+      "latency_s": 314.0963240831625,
+      "answer_preview": "The following individuals testified before the House Committee on Justice during the April 14, 2026 hearing: Atty. Cynthia Pantonal, Ramil Madriaga, Marivic Pareja, Atty. Melvin Matibag, Carolyn J. Mo"
+    },
+    {
+      "question": "What was the Supreme Court's ruling in Duterte v. House of Representatives regarding the one-year bar rule?",
+      "no_answer": false,
+      "assertion_count": 2,
+      "latency_s": 156.14235625020228,
+      "answer_preview": "The Supreme Court in Duterte v. House of Representatives clarified that the one-year bar rule under Article XI, Section 3(5) of the Constitution is triggered when an impeachment complaint is referred "
+    },
+    {
+      "question": "How much confidential funds were allegedly misused according to the impeachment complaints?",
+      "no_answer": false,
+      "assertion_count": 2,
+      "latency_s": 163.22302062483504,
+      "answer_preview": "According to the impeachment complaints, the alleged misuse of confidential funds included not less than Php500,000,000.00 from the Office of the Vice President (OVP) for 2022 and 2023, and not less t"
+    },
+    {
+      "question": "What is the capital city of France?",
+      "no_answer": true,
+      "assertion_count": 0,
+      "latency_s": 62.42816491681151,
+      "answer_preview": "No sourced answer found."
+    }
+  ]
+}

@@ -1,0 +1,433 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=1280, initial-scale=1" />
+<title>Impeachment Watch — /senators/hontiveros · Lightweight v1 dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=Geist:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  /*
+    Governing spine sections:
+      DESIGN.md → Colors, Typography, Layout & Spacing, Components
+        (senator-card, senator-card-header, senator-card-stat-label,
+         senator-card-stat-value, citation-chip, trust-badge-*,
+         source-verb-tag, claim-fact / claim-attributed, empty-state-*)
+      EXPERIENCE.md → IA (Senator dashboard surface), Component Patterns
+        (Senator dashboard, Citation compound, Claim, Trust badge,
+        Source-verb tag), State Patterns (Empty — thin senator dashboard —
+        "no 'no data' apology, just absence"), Voice and Tone (attributed
+        claim framing, "Senator Hontiveros stated X on [date]"),
+        Key Flows (Flow 2 — Renz, steps 1 and 6)
+      Decision Log → Journey 2 step 1; lightweight v1 read-model; full
+        dashboard deferred to Phase 2; "the absence is the signal" for
+        publicly-undecided senators.
+  */
+
+  :root{
+    --primary:#1E3A5F; --primary-fg:#FFFFFF;
+    --accent:#B8761E; --accent-active:#8F5A12; --accent-fg:#FBF8F2;
+    --base:#FBF8F2; --raised:#FFFFFF; --sunken:#F0EDE6;
+    --border:#E3DED1; --muted:#F0EDE6; --muted-fg:#6B6258;
+    --trust-verified:#2A6B5E; --trust-contradicted:#9B3A2E; --trust-caution:#8F5A12;
+    --claim-fact:#1B1C19; --claim-attributed:#6B6258; --claim-dashed:#736B5E;
+    --r-sm:3px; --r-md:5px; --r-lg:8px; --r-full:9999px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    font-family:'Geist','Inter',system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+    color:var(--claim-fact); background:#0c0d10; -webkit-font-smoothing:antialiased;
+    font-size:14px; line-height:1.6;
+  }
+  .mono{font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,monospace}
+  .serif{font-family:'Source Serif 4',Georgia,'Times New Roman',serif}
+  .caps{font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase}
+
+  .device{width:1280px;margin:24px auto;background:var(--base);border-radius:10px;
+    box-shadow:0 24px 60px rgba(0,0,0,.45),0 2px 6px rgba(0,0,0,.4);overflow:hidden;
+    border:1px solid #1d1f23}
+  .chrome{background:#2b2d31;color:#e8e6e1;display:flex;align-items:center;
+    padding:8px 10px;font-size:12px;gap:8px;border-bottom:1px solid #15171a}
+  .dots{display:flex;gap:6px}
+  .dot{width:11px;height:11px;border-radius:50%;background:#46494f}
+  .dot.r{background:#e0635a} .dot.y{background:#e0a34d} .dot.g{background:#5dba60}
+  .addr{flex:1;background:#15171a;border-radius:6px;padding:5px 10px;color:#c7c4be;
+    font-family:'IBM Plex Mono',monospace;font-size:11.5px;display:flex;align-items:center;gap:8px}
+  .lock{color:#6b6258}
+  .cr-btn{width:14px;height:14px;border-radius:3px;background:#46494f}
+  .chrome-r{display:flex;gap:10px}
+
+  .app{display:grid;grid-template-columns:56px 1fr;min-height:780px}
+  .sidebar{width:56px;background:var(--sunken);border-right:1px solid var(--border);
+    display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 0}
+  .nav-item{width:38px;height:38px;border-radius:var(--r-md);display:flex;
+    align-items:center;justify-content:center;color:var(--muted-fg);font-size:14px;text-decoration:none}
+  .nav-item.active{background:var(--primary);color:#fff}
+  .brand-glyph{width:30px;height:30px;border-radius:var(--r-sm);background:var(--primary);
+    color:#fff;display:flex;align-items:center;justify-content:center;font-family:'Source Serif 4',serif;
+    font-weight:600;font-size:15px;margin-bottom:12px}
+
+  .main{display:flex;flex-direction:column;min-width:0}
+  .topbar{display:flex;align-items:center;justify-content:space-between;
+    padding:8px 16px;border-bottom:1px solid var(--border);background:var(--raised);min-height:40px}
+  .essence{font-size:11.5px;color:var(--muted-fg);font-style:italic;font-family:'Source Serif 4',serif}
+  .essence b{color:var(--primary);font-style:normal;font-weight:600}
+  .top-r{display:flex;align-items:center;gap:12px}
+  .case-badge{display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--muted-fg);
+    border:1px solid var(--border);border-radius:var(--r-full);padding:2px 8px;background:var(--sunken)}
+  .case-badge .b-dot{width:6px;height:6px;border-radius:50%;background:var(--accent)}
+
+  /* Senator header */
+  .sen-hdr{padding:28px 40px 20px;border-bottom:1px solid var(--border);
+    display:grid;grid-template-columns:auto 1fr auto;gap:24px;align-items:center}
+  .avatar{width:72px;height:72px;border-radius:50%;background:var(--primary);color:#fff;
+    display:flex;align-items:center;justify-content:center;font-family:'Source Serif 4',serif;
+    font-size:26px;font-weight:600}
+  .sen-title h1{font-family:'Source Serif 4',serif;font-size:32px;font-weight:400;
+    letter-spacing:-.015em;line-height:1.12;margin:0 0 4px}
+  .sen-title .role{font-size:13.5px;color:var(--muted-fg);margin:0}
+  .sen-title .role b{color:var(--claim-fact);font-weight:600}
+  .sen-meta{display:flex;gap:8px;align-items:center;margin-top:8px;flex-wrap:wrap}
+  .meta-pill{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted-fg);
+    border:1px solid var(--border);border-radius:var(--r-sm);padding:2px 8px;background:var(--raised)}
+  .meta-pill b{color:var(--claim-fact);font-weight:500}
+  .stance{display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+  .stance .l{font-size:10.5px;color:var(--muted-fg);letter-spacing:.1em;text-transform:uppercase}
+  .stance .v{font-size:14px;color:var(--claim-fact);font-weight:500}
+  .stance .v.lean{color:var(--claim-attributed);font-style:italic}
+  .graph-link{display:inline-flex;align-items:center;gap:6px;background:var(--primary);color:#fff;
+    border-radius:var(--r-md);padding:6px 12px;font-size:11.5px;font-weight:600;
+    letter-spacing:.04em;text-decoration:none;margin-top:4px}
+
+  /* 12-col grid */
+  .grid{display:grid;grid-template-columns:repeat(12,1fr);gap:24px;padding:32px 40px 40px}
+
+  /* Stat cards (4-col) */
+  .stats{grid-column:span 12;display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+  .stat-card{background:var(--raised);border:1px solid var(--border);border-radius:var(--r-lg);
+    padding:20px 24px}
+  .stat-card .l{font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;
+    color:var(--muted-fg);margin-bottom:8px}
+  .stat-card .v{font-size:24px;font-family:'Source Serif 4',serif;font-weight:400;
+    color:var(--claim-fact);line-height:1.1}
+  .stat-card .v .unit{font-size:13px;color:var(--muted-fg);margin-left:4px}
+  .stat-card .sub{font-size:11.5px;color:var(--muted-fg);margin-top:6px}
+
+  /* Section card */
+  .card{grid-column:span 6;background:var(--raised);border:1px solid var(--border);
+    border-radius:var(--r-lg);padding:24px;display:flex;flex-direction:column}
+  .card.full{grid-column:span 12}
+  .card-h{display:flex;align-items:center;justify-content:space-between;
+    padding-bottom:12px;border-bottom:1px solid var(--border);margin-bottom:14px}
+  .card-h .t{font-family:'Source Serif 4',serif;font-size:22px;font-weight:600;line-height:1.25}
+  .card-h .n{font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--muted-fg)}
+  .card-h .more{font-size:11.5px;color:var(--primary);text-decoration:none}
+
+  /* Citation chip */
+  .chip{display:inline-flex;align-items:center;gap:4px;background:var(--sunken);
+    color:var(--claim-attributed);border:1px solid var(--border);border-radius:var(--r-full);
+    padding:1px 8px;font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;
+    cursor:pointer;vertical-align:baseline;line-height:1.4}
+  .chip sup{font-size:8.5px;opacity:.7}
+  .chip.on{background:var(--accent-active);color:var(--accent-fg);border-color:var(--accent-active)}
+  .chip:hover{border-color:var(--accent)}
+
+  .verb{color:var(--primary);font-size:10px;font-weight:600;letter-spacing:.12em;
+    text-transform:uppercase}
+  .trust{display:inline-flex;align-items:center;gap:4px;font-size:9px;font-weight:600;
+    letter-spacing:.1em;text-transform:uppercase;border-radius:var(--r-sm);padding:1px 5px;color:#fff}
+  .trust.v{background:var(--trust-verified)} .trust.c{background:var(--trust-contradicted)}
+  .trust.k{background:var(--sunken);color:var(--trust-caution);border:1px solid var(--trust-caution)}
+
+  /* Claim row (statements) */
+  .stmt{padding:12px 0;border-bottom:1px solid var(--border)}
+  .stmt:last-child{border-bottom:none}
+  .stmt .meta{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px}
+  .stmt .date{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted-fg)}
+  .stmt .where{font-size:11.5px;color:var(--muted-fg)}
+  .stmt .where b{color:var(--claim-fact);font-weight:500}
+  .stmt .claim{color:var(--claim-attributed);font-style:italic;font-size:13.5px;
+    line-height:1.55;border-left:3px dashed var(--claim-attributed);padding-left:10px;margin:6px 0}
+  .stmt .claim.fact{color:var(--claim-fact);font-style:normal;border-left-style:solid;border-left-color:var(--claim-fact)}
+  .stmt .tags{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:8px}
+  .stmt .src{font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--muted-fg);margin-top:4px}
+
+  /* Vote row */
+  .vote{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;
+    padding:10px 0;border-bottom:1px solid var(--border)}
+  .vote:last-child{border-bottom:none}
+  .vote .art{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted-fg);width:120px}
+  .vote .art b{color:var(--claim-fact);font-weight:500}
+  .vote .desc{font-size:13px;color:var(--claim-fact)}
+  .vote .desc .sub{font-size:11px;color:var(--muted-fg)}
+  .vote-ballot{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;
+    padding:2px 8px;border-radius:var(--r-sm);color:#fff}
+  .vote-ballot.yea{background:var(--trust-verified)}
+  .vote-ballot.nay{background:var(--trust-contradicted)}
+  .vote-ballot.abst{background:var(--sunken);color:var(--muted-fg);border:1px solid var(--border)}
+
+  /* Committee chips */
+  .cm-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
+  .cm-chip{display:inline-flex;align-items:center;gap:6px;background:var(--sunken);
+    border:1px solid var(--border);border-radius:var(--r-full);padding:3px 10px;
+    font-size:12px;color:var(--claim-fact)}
+  .cm-chip .role{font-size:10.5px;color:var(--muted-fg);letter-spacing:.06em;text-transform:uppercase}
+
+  /* Timeline entries */
+  .tl-row{display:grid;grid-template-columns:96px 1fr;gap:14px;padding:10px 0;
+    border-bottom:1px solid var(--border)}
+  .tl-row:last-child{border-bottom:none}
+  .tl-date{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted-fg)}
+  .tl-date .prec{display:block;font-size:9.5px;color:var(--trust-caution);margin-top:2px}
+  .tl-body{font-size:13px;color:var(--claim-fact);line-height:1.5}
+  .tl-body .ev{font-weight:500;color:var(--primary)}
+  .tl-body .src{font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--muted-fg);margin-top:2px}
+
+  /* Thin / absence card — honest "what we don't have" */
+  .absence{grid-column:span 6;background:var(--raised);border:1px solid var(--border);
+    border-radius:var(--r-lg);padding:24px;border-top:2px solid var(--muted-fg)}
+  .absence .t{font-family:'Source Serif 4',serif;font-size:18px;font-weight:400;
+    color:var(--muted-fg);margin:0 0 8px;line-height:1.3}
+  .absence .b{font-size:13px;color:var(--muted-fg);line-height:1.6}
+  .absence .b b{color:var(--claim-attributed);font-weight:500}
+  .absence .list{margin:12px 0 0;padding:0;list-style:none}
+  .absence .list li{font-size:12.5px;color:var(--muted-fg);padding:4px 0 4px 16px;
+    position:relative;line-height:1.5}
+  .absence .list li::before{content:"—";position:absolute;left:0;color:var(--border)}
+  .absence .why{margin-top:14px;padding-top:12px;border-top:1px dashed var(--border);
+    font-size:11.5px;color:var(--muted-fg);font-style:italic;font-family:'Source Serif 4',serif}
+
+  .foot{padding:0 40px 24px;font-size:11.5px;color:var(--muted-fg);
+    border-top:1px solid var(--border);padding-top:14px}
+  .foot b{color:var(--claim-attributed);font-weight:500}
+</style>
+</head>
+<body>
+<div class="device">
+  <div class="chrome">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="addr"><span class="lock">🔒</span> impeachmentwatch.ph/senators/senator-hontiveros</div>
+    <div class="chrome-r"><div class="cr-btn"></div><div class="cr-btn"></div><div class="cr-btn"></div></div>
+  </div>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand-glyph">I</div>
+      <a class="nav-item" href="#">💬</a>
+      <a class="nav-item" href="#">📄</a>
+      <a class="nav-item" href="#">🕸</a>
+      <a class="nav-item" href="#">🗓</a>
+      <a class="nav-item" href="#">⚖</a>
+      <a class="nav-item active" href="#">🏛</a>
+      <a class="nav-item" href="#">📑</a>
+    </aside>
+
+    <div class="main">
+      <div class="topbar">
+        <div class="essence">Every claim IIP shows you cites a source you can open — or IIP shows you <b>nothing.</b></div>
+        <div class="top-r"><div class="case-badge"><span class="b-dot"></span>Duterte impeachment · v1</div></div>
+      </div>
+
+      <!-- Senator header -->
+      <div class="sen-hdr">
+        <div class="avatar">RH</div>
+        <div class="sen-title">
+          <h1>Senator Risa Hontiveros</h1>
+          <div class="role"><b>Senator, 18th Congress</b> · Chair, Senate Committee on Women, Children, Family Relations &amp; Gender Equality · Member, Senate Blue Ribbon Committee</div>
+          <div class="sen-meta">
+            <span class="meta-pill">id: <b>senator-hontiveros</b></span>
+            <span class="meta-pill">party: <b>Akbayan</b></span>
+            <span class="meta-pill">term: <b>2025–2031</b></span>
+            <span class="meta-pill">senator-judge: <b>yes</b></span>
+          </div>
+        </div>
+        <div class="stance">
+          <div class="l">Public posture</div>
+          <div class="v lean">On record · critical of respondent</div>
+          <a class="graph-link" href="#">Open in graph → /graph?seed=senator-hontiveros</a>
+        </div>
+      </div>
+
+      <!-- 12-col grid -->
+      <div class="grid">
+
+        <!-- Stat cards -->
+        <div class="stats">
+          <div class="stat-card">
+            <div class="l">Statements on record</div>
+            <div class="v">7<span class="unit">statements</span></div>
+            <div class="sub">All attributed · cited</div>
+          </div>
+          <div class="stat-card">
+            <div class="l">Past impeachment votes</div>
+            <div class="v">0<span class="unit">votes</span></div>
+            <div class="sub">First impeachment as senator-judge</div>
+          </div>
+          <div class="stat-card">
+            <div class="l">Committee participation</div>
+            <div class="v">3<span class="unit">committees</span></div>
+            <div class="sub">2 relevant to the case</div>
+          </div>
+          <div class="stat-card">
+            <div class="l">Case timeline entries</div>
+            <div class="v">5<span class="unit">entries</span></div>
+            <div class="sub">Tied to Duterte impeachment</div>
+          </div>
+        </div>
+
+        <!-- Statements on record -->
+        <div class="card">
+          <div class="card-h">
+            <div class="t">Statements on record</div>
+            <div class="n">7 items</div>
+          </div>
+
+          <div class="stmt">
+            <div class="meta">
+              <span class="date">2026-03-14</span>
+              <span class="where"><b>Senate Blue Ribbon Committee hearing</b> · SBC-2026-03-14</span>
+            </div>
+            <div class="claim">"The disbursement bears the hallmarks of misapplication of public funds. I am calling on the Ombudsman to investigate."</div>
+            <div class="tags">
+              <span class="verb">STATED</span>
+              <span class="chip on">¹ STATED</span>
+              <span class="trust v">✓ TIER 1 · primary</span>
+            </div>
+            <div class="src">AKN:sbc-2026-03-14#p-42</div>
+          </div>
+
+          <div class="stmt">
+            <div class="meta">
+              <span class="date">2026-02-02</span>
+              <span class="where"><b>Plenary speech</b> · Senate Journal 2026-02-02</span>
+            </div>
+            <div class="claim">"The confidential funds issue is not a partisan question. It is a question of whether public funds were used for their authorized purpose."</div>
+            <div class="tags">
+              <span class="verb">STATED</span>
+              <span class="chip">² STATED</span>
+              <span class="trust v">✓ TIER 1 · primary</span>
+            </div>
+            <div class="src">AKN:senate-journal-2026-02-02#p-88</div>
+          </div>
+
+          <div class="stmt">
+            <div class="meta">
+              <span class="date">2025-12-05</span>
+              <span class="where"><b>Press briefing</b> · Senate Press Office</span>
+            </div>
+            <div class="claim">"I will support the Articles of Impeachment if the evidence supports them. The Senate must weigh each article on its merits."</div>
+            <div class="tags">
+              <span class="verb">STATED</span>
+              <span class="chip">³ STATED</span>
+              <span class="trust k">◉ TIER 3 · single manual</span>
+            </div>
+            <div class="src">AKN:press-2025-12-05#para-3</div>
+          </div>
+
+          <div style="text-align:center;padding-top:8px">
+            <a href="#" style="font-size:11.5px;color:var(--primary)">View all 7 statements →</a>
+          </div>
+        </div>
+
+        <!-- Past votes (impeachment + relevant roll calls) -->
+        <div class="card">
+          <div class="card-h">
+            <div class="t">Past votes</div>
+            <div class="n">roll call</div>
+          </div>
+
+          <div class="vote">
+            <div class="art">Art. I — <b>Betrayal of public trust</b></div>
+            <div class="desc">Concurred in committee report <div class="sub">Vote 2026-05-20 · Motion to concur in HR-CG-014</div></div>
+            <div class="vote-ballot yea">VOTED YES</div>
+          </div>
+
+          <div class="vote">
+            <div class="art">Roll call <b>2026-03-14</b></div>
+            <div class="desc">Motion to cite OVP officials in contempt <div class="sub">SBC-2026-03-14 · non-impeachment</div></div>
+            <div class="vote-ballot yea">VOTED YES</div>
+          </div>
+
+          <div class="vote">
+            <div class="art">Roll call <b>2025-11-10</b></div>
+            <div class="desc">Motion to release COA report to the Senate <div class="sub">Non-impeachment · procedural</div></div>
+            <div class="vote-ballot yea">VOTED YES</div>
+          </div>
+
+          <div style="padding-top:10px;font-size:11.5px;color:var(--muted-fg);line-height:1.5;border-top:1px dashed var(--border);margin-top:6px">
+            <b style="color:var(--claim-attributed);font-weight:500">No past impeachment verdict votes.</b> The Duterte impeachment is the first in which Sen. Hontiveros serves as a senator-judge. Verdict roll-call will appear here once the trial reaches the verdict stage.
+          </div>
+        </div>
+
+        <!-- Committee participation -->
+        <div class="card">
+          <div class="card-h">
+            <div class="t">Committee participation</div>
+            <div class="n">3 committees</div>
+          </div>
+
+          <div class="cm-row">
+            <div class="cm-chip">Senate Blue Ribbon Committee <span class="role">member</span></div>
+            <div class="cm-chip">Committee on Women, Children, Family Relations &amp; Gender Equality <span class="role">chair</span></div>
+            <div class="cm-chip">Committee on Health and Demography <span class="role">member</span></div>
+          </div>
+
+          <div style="margin-top:14px;font-size:12.5px;color:var(--muted-fg);line-height:1.5">
+            Two of three committees are <b style="color:var(--claim-fact);font-weight:500">relevant to the case.</b> The Blue Ribbon Committee held hearings on the confidential funds disbursement; Sen. Hontiveros's statements on record were made in that venue.
+          </div>
+        </div>
+
+        <!-- Personal case timeline -->
+        <div class="card">
+          <div class="card-h">
+            <div class="t">Personal timeline — case</div>
+            <div class="n">5 entries</div>
+          </div>
+
+          <div class="tl-row">
+            <div class="tl-date">2025-11-10<span class="prec">date_precision: day</span></div>
+            <div class="tl-body"><span class="ev">Voted to release COA report</span> to the Senate. <span class="src">Roll call 2025-11-10</span></div>
+          </div>
+          <div class="tl-row">
+            <div class="tl-date">2025-12-05<span class="prec">date_precision: day</span></div>
+            <div class="tl-body"><span class="ev">Press briefing</span> — stated intent to weigh Articles on the merits. <span class="src">press-2025-12-05</span></div>
+          </div>
+          <div class="tl-row">
+            <div class="tl-date">2026-02<span class="prec">date_precision: month</span></div>
+            <div class="tl-body"><span class="ev">Plenary speech</span> on the confidential funds issue. <span class="src">senate-journal-2026-02-02</span></div>
+          </div>
+          <div class="tl-row">
+            <div class="tl-date">2026-03-14<span class="prec">date_precision: day</span></div>
+            <div class="tl-body"><span class="ev">SBC hearing statement</span> — called for Ombudsman investigation. <span class="src">sbc-2026-03-14</span></div>
+          </div>
+          <div class="tl-row">
+            <div class="tl-date">2026-05-20<span class="prec">date_precision: day</span></div>
+            <div class="tl-body"><span class="ev">Concurred in committee report</span> recommending Articles of Impeachment. <span class="src">Roll call 2026-05-20</span></div>
+          </div>
+        </div>
+
+        <!-- Honest absence card — thin dashboard -->
+        <div class="absence" style="grid-column:span 12">
+          <div class="t">What this dashboard does not show — v1 honest absence</div>
+          <div class="b">This is a <b>lightweight v1 read-model.</b> Full senator dashboard — voting-pattern analytics, influence metrics, committee attendance, statement sentiment, cross-senator comparison — is deferred to <b>Phase 2.</b></div>
+          <ul class="list">
+            <li>Past impeachment verdict votes — Sen. Hontiveros has none; this is her first impeachment trial as senator-judge.</li>
+            <li>Speech-by-speech stance scoring — v1 surfaces statements as attributed claims, not as numeric stance vectors.</li>
+            <li>Committee attendance records — out of v1 scope; available in Senate Journal, not ingested.</li>
+            <li>Influence / centrality analytics (PageRank, betweenness) — deferred to Phase 3.</li>
+            <li>Predictive vote trajectory — IIP does not make predictions. The raw material on this page is the most the platform will serve.</li>
+          </ul>
+          <div class="why">The absence is the signal — a senator with less on record has less to trace. The platform shows what it has and is honest about what it doesn't. No "no data" apology.</div>
+        </div>
+
+      </div>
+
+      <div class="foot">
+        <b>Lightweight v1 dashboard.</b> Statements on record, past votes, committee participation, and personal timeline entries tied to the case. Full dashboard deferred to Phase 2. Every statement is an attributed claim (EI-2) with a citation you can open, or it is not shown.
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

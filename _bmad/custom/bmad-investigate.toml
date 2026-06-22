@@ -1,0 +1,10 @@
+# Graphify integration override for bmad-investigate
+# This file is merged with the skill's customize.toml by BMad on activation.
+
+[workflow]
+
+persistent_facts = [
+  "file:{project-root}/_bmad/custom/graphify-integration.md",
+  "file:{project-root}/graphify-out/GRAPH_REPORT.md",
+  "A graphify knowledge graph exists at {project-root}/graphify-out/. During investigations, query it with `graphify query \"<question>\"` or `graphify path \"<A>\" \"<B>\"` to trace dependencies, security boundaries, and citation invariants. Cite graph edge source_file when a graph-derived finding becomes Confirmed evidence.",
+]

@@ -1,0 +1,51 @@
+installation:
+  version: 6.8.0
+  installDate: 2026-06-19T03:17:58.629Z
+  lastUpdated: 2026-06-19T03:17:58.629Z
+modules:
+  - name: core
+    version: 6.8.0
+    installDate: 2026-06-19T03:17:49.172Z
+    lastUpdated: 2026-06-19T03:17:58.625Z
+    source: built-in
+    npmPackage: null
+    repoUrl: null
+  - name: bmm
+    version: 6.8.0
+    installDate: 2026-06-19T03:17:48.704Z
+    lastUpdated: 2026-06-19T03:17:58.625Z
+    source: built-in
+    npmPackage: null
+    repoUrl: null
+  - name: tea
+    version: v1.19.0
+    installDate: 2026-06-19T03:17:52.731Z
+    lastUpdated: 2026-06-19T03:17:58.627Z
+    source: external
+    npmPackage: bmad-method-test-architecture-enterprise
+    repoUrl: https://github.com/bmad-code-org/bmad-method-test-architecture-enterprise
+    channel: stable
+    sha: 8734d51f24071ddbcb3617390b5fcddb4128ef77
+  - name: bmb
+    version: v2.0.0
+    installDate: 2026-06-19T03:17:53.749Z
+    lastUpdated: 2026-06-19T03:17:58.628Z
+    source: external
+    npmPackage: bmad-builder
+    repoUrl: https://github.com/bmad-code-org/bmad-builder
+    channel: stable
+    sha: 41569013c018c100aeabdeb802855e3459e8b9d6
+  - name: wds
+    version: v0.4.3
+    installDate: 2026-06-19T03:17:58.210Z
+    lastUpdated: 2026-06-19T03:17:58.629Z
+    source: external
+    npmPackage: bmad-wds
+    repoUrl: https://github.com/bmad-code-org/bmad-method-wds-expansion
+    channel: stable
+    sha: cc16f09fcfab26d35635af1491f36a38a8431c8d
+ides:
+  - claude-code
+  - antigravity
+  - opencode
+  - warp

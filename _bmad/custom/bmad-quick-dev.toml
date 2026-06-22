@@ -1,0 +1,10 @@
+# Graphify integration override for bmad-quick-dev
+# This file is merged with the skill's customize.toml by BMad on activation.
+
+[workflow]
+
+persistent_facts = [
+  "file:{project-root}/_bmad/custom/graphify-integration.md",
+  "file:{project-root}/graphify-out/GRAPH_REPORT.md",
+  "A graphify knowledge graph exists at {project-root}/graphify-out/. Before implementing any change, run `graphify query \"<feature or area>\"` to identify bridge nodes and cross-community dependencies. Check shortest paths to security, citation, evidence-trust, and editorial-control communities to assess blast radius.",
+]

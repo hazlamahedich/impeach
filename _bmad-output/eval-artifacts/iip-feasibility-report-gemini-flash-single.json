@@ -1,0 +1,46 @@
+{
+  "model": "gemini-2.5-flash",
+  "embedding_model": "bge-m3",
+  "pipeline": "verbatim-span-extraction-fast-3q-gemini",
+  "documents": 5,
+  "chunks": 302,
+  "questions": 3,
+  "quote_validity_rate": 1.0,
+  "quote_validity_target": 1.0,
+  "quote_validity_pass": true,
+  "groundedness_mean": 1.0,
+  "groundedness_target": 0.95,
+  "groundedness_pass": true,
+  "fact_claim_coverage_rate": 1.0,
+  "fact_claim_coverage_target": 1.0,
+  "fact_claim_coverage_pass": true,
+  "no_answer_rate": 1.0,
+  "p95_latency_s": 9.53868819172494,
+  "p95_latency_target_s": 10.0,
+  "p95_latency_pass": true,
+  "all_hard_gates_pass": true,
+  "quote_failures_sample": [],
+  "per_question": [
+    {
+      "question": "Who filed the impeachment complaints against Vice President Sara Duterte in February 2026?",
+      "no_answer": false,
+      "assertion_count": 0,
+      "latency_s": 10.202572250040248,
+      "answer_preview": "In February 2026, several impeachment complaints were filed against Vice President Sara Duterte:\n\n*   On February 2, 2026, the \"Castro, et al. Complaint\" was filed by Francisca \"France\" Castro, et al."
+    },
+    {
+      "question": "What did the House Committee on Justice vote on March 4, 2026 regarding the impeachment complaints?",
+      "no_answer": false,
+      "assertion_count": 0,
+      "latency_s": 3.563731666887179,
+      "answer_preview": "On March 4, 2026, the House Committee on Justice voted 54-1-0 to declare both the Saballa, et al. and Cabrera Complaints sufficient in substance. Following this, copies of these complaints were direct"
+    },
+    {
+      "question": "What is the capital city of France?",
+      "no_answer": true,
+      "assertion_count": 0,
+      "latency_s": 1.2491867078933865,
+      "answer_preview": "No sourced answer found."
+    }
+  ]
+}

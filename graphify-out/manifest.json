@@ -1,0 +1,522 @@
+{
+  "/Volumes/One Touch/impeach/_bmad-output/project-context.md": {
+    "mtime": 1782106300.58,
+    "ast_hash": "7db0fe8162b98e6c59bb8485147feba7",
+    "semantic_hash": "7db0fe8162b98e6c59bb8485147feba7"
+  },
+  "/Volumes/One Touch/impeach/_bmad-output/._project-context.md": {
+    "mtime": 1782100315.38,
+    "ast_hash": "852ec923542ae437819e94031d11d749",
+    "semantic_hash": "852ec923542ae437819e94031d11d749"
+  },
+  "/Volumes/One Touch/impeach/_bmad-output/planning-artifacts/sprint-change-proposal-2026-06-19.md": {
+    "mtime": 1781843658.04,
+    "ast_hash": "3e80afd47fa9c26c660259c9bb22d02b",
+    "semantic_hash": "3e80afd47fa9c26c660259c9bb22d02b"
+  },
+  "/Volumes/One Touch/impeach/_bmad-output/planning-artifacts/._sprint-change-proposal-2026-06-19.md": {
+    "mtime": 1781843593.54,
+    "ast_hash": "852ec923542ae437819e94031d11d749",
+    "semantic_hash": "852ec923542ae437819e94031d11d749"
+  },
+  "/Volumes/One Touch/impeach/_bmad-output/planning-artifacts/architecture.md": {
+    "mtime": 1781868357.16,
+    "ast_hash": "147e620b31d5141fc04b9e349a79cf91",
+    "semantic_hash": "147e620b31d5141fc04b9e349a79cf91"
+  },
+  "/Volumes/One Touch/impeach/_bmad-output/planning-artifacts/._architecture.md": {
+    "mtime": 1781847605.85,
+    "ast_hash": "852ec923542ae437819e94031d11d749",
+    "semantic_hash": "852ec923542ae437819e94031d11d749"
+  },
+  "/Volumes/One Touch/impeach/_bmad-output/planning-artifacts/epics.md": {
+    "mtime": 1782099591.35,
+    "ast_hash": "160f59931d8cd22d29844a1e82cb1f53",
+    "semantic_hash": "160f59931d8cd22d29844a1e82cb1f53"
+  },
+  "/Volumes/One Touch/impeach/_bmad-output/planning-artifacts/._epics.md": {
+    "mtime": 1782023620.56,
+    "ast_hash": "852ec923542ae437819e94031d11d749",
+    "semantic_hash": "852ec923542ae437819e94031d11d749"
+  },
+  "/Volumes/One Touch/impeach/_bmad-output/planning-artifacts/research/domain-philippine-impeachment-intelligence-political-knowledge-graphs-research-2026-06-19.md": {
+    "mtime": 1781843396.22,
+    "ast_hash": "ed21ce6a1c4856960ba3abbfa2af2d37",
+    "semantic_hash": "ed21ce6a1c4856960ba3abbfa2af2d37"
+  },
+  "/Volumes/One Touch/impeach/_bmad-output/planning-artifacts/research/._domain-philippine-impeachment-intelligence-political-knowledge-graphs-research-2026-06-19.md": {
+    "mtime": 1781839540.06,
+    "ast_hash": "852ec923542ae437819e94031d11d749",
+    "semantic_hash": "852ec923542ae437819e94031d11d749"
+  },
+  "/Volumes/One Touch/impeach/_bmad-output/planning-artifacts/research/domain-philippine-impeachment-knowledge-representation-standards-research-2026-06-19.md": {
+    "mtime": 1781840003.19,
+    "ast_hash": "e3274546a833a08c5bafccc1b64b717e",
+    "semantic_hash": "e3274546a833a08c5bafccc1b64b717e"
+  },
+  "/Volumes/One Touch/impeach/_bmad-output/planning-artifacts/research/._domain-philippine-impeachment-knowledge-representation-standards-research-2026-06-19.md": {
+    "mtime": 1781840003.19,
+    "ast_hash": "852ec923542ae437819e94031d11d749",
+    "semantic_hash": "852ec923542ae437819e94031d11d749"
+  },
+  "/Volumes/One Touch/impeach/_bmad-output/planning-artifacts/research/industry-research-civic-tech-legal-political-platforms-2026-06-19.md": {
+    "mtime": 1781839945.2,
+    "ast_hash": "751b6bb7d72e97a23ccad8e8e0d3ac7a",
+    "semantic_hash": "751b6bb7d72e97a23ccad8e8e0d3ac7a"
+  },
+  "/Volumes/One Touch/impeach/_bmad-output/planning-artifacts/research/._industry-research-civic-tech-legal-political-platforms-2026-06-19.md": {
+    "mtime": 1781839945.19,
+    "ast_hash": "852ec923542ae437819e94031d11d749",
+    "semantic_hash": "852ec923542ae437819e94031d11d749"
+  },
+  "/Volumes/One Touch/impeach/_bmad-output/planning-artifacts/research/domain-research-philippine-impeachment-mechanics.md": {
+    "mtime": 1781839886.82,
+    "ast_hash": "1ff972e8722d6f5069cce9a52efa20e1",
+    "semantic_hash": "1ff972e8722d6f5069cce9a52efa20e1"
+  },
+  "/Volumes/One Touch/impeach/_bmad-output/planning-artifacts/research/._domain-research-philippine-impeachment-mechanics.md": {
+    "mtime": 1781839886.82,
+    "ast_hash": "852ec923542ae437819e94031d11d749",
+    "semantic_hash": "852ec923542ae437819e94031d11d749"
+  },
+  "/Volumes/One Touch/impeach/_bmad-output/planning-artifacts/research/domain-philippine-sources-and-document-formats-research-2026-06-19.md": {
+    "mtime": 1781840062.12,
+    "ast_hash": "0e99536073a9a02bc57ef9bb0599ce99",
+    "semantic_hash": "0e99536073a9a02bc57ef9bb0599ce99"
+  },
+  "/Volumes/One Touch/impeach/_bmad-output/planning-artifacts/research/._domain-philippine-sources-and-document-formats-research-2026-06-19.md": {
+    "mtime": 1781840062.11,
+    "ast_hash": "852ec923542ae437819e94031d11d749",
+    "semantic_hash": "852ec923542ae437819e94031d11d749"
+  },
+  "/Volumes/One Touch/impeach/_bmad-output/planning-artifacts/research/technical-iip-technology-stack-validation-research-2026-06-19.md": {
+    "mtime": 1781843658.04,
+    "ast_hash": "d060ac096756662da60e211700f9c4c6",
+    "semantic_hash": "d060ac096756662da60e211700f9c4c6"
+  },
+  "/Volumes/One Touch/impeach/_bmad-output/planning-artifacts/research/._technical-iip-technology-stack-validation-research-2026-06-19.md": {
+    "mtime": 1781840339.02,
+    "ast_hash": "852ec923542ae437819e94031d11d749",
+    "semantic_hash": "852ec923542ae437819e94031d11d749"
+  },
+  "/Volumes/One Touch/impeach/_bmad-output/planning-artifacts/research/technical-graph-db-apache-age-evaluation-2026-06-19.md": {
+    "mtime": 1781840764.91,
+    "ast_hash": "8e2bce1d96a13be7b95c6c41eb3fb21c",
+    "semantic_hash": "8e2bce1d96a13be7b95c6c41eb3fb21c"
+  },
+  "/Volumes/One Touch/impeach/_bmad-output/planning-artifacts/research/._technical-graph-db-apache-age-evaluation-2026-06-19.md": {
+    "mtime": 1781840764.9,
+    "ast_hash": "852ec923542ae437819e94031d11d749",
+    "semantic_hash": "852ec923542ae437819e94031d11d749"
+  },
+  "/Volumes/One Touch/impeach/_bmad-output/planning-artifacts/research/technical-ingestion-architecture-blocked-ph-sources-2026-06-19.md": {
+    "mtime": 1781840941.22,
+    "ast_hash": "629d4ca446ffdc9ab4e1095144c2f335",
+    "semantic_hash": "629d4ca446ffdc9ab4e1095144c2f335"
+  },
+  "/Volumes/One Touch/impeach/_bmad-output/planning-artifacts/research/._technical-ingestion-architecture-blocked-ph-sources-2026-06-19.md": {
+    "mtime": 1781840941.21,
+    "ast_hash": "852ec923542ae437819e94031d11d749",
+    "semantic_hash": "852ec923542ae437819e94031d11d749"
+  },
+  "/Volumes/One Touch/impeach/_bmad-output/planning-artifacts/research/technical-local-llm-extraction-feasibility-2026-06-19.md": {
+    "mtime": 1781840978.75,
+    "ast_hash": "2e30ec9a64476b1be764a6b14137d30e",
+    "semantic_hash": "2e30ec9a64476b1be764a6b14137d30e"
+  },
+  "/Volumes/One Touch/impeach/_bmad-output/planning-artifacts/research/._technical-local-llm-extraction-feasibility-2026-06-19.md": {
+    "mtime": 1781840978.75,
+    "ast_hash": "852ec923542ae437819e94031d11d749",
+    "semantic_hash": "852ec923542ae437819e94031d11d749"
+  },
+  "/Volumes/One Touch/impeach/_bmad-output/planning-artifacts/research/technical-orchestration-kg-construction-retrieval-2026-06-19.md": {
+    "mtime": 1781841015.45,
+    "ast_hash": "71606013416216e6376c9e5bf039f03a",
+    "semantic_hash": "71606013416216e6376c9e5bf039f03a"
+  },
+  "/Volumes/One Touch/impeach/_bmad-output/planning-artifacts/research/technical-citation-eval-graph-viz-2026-06-19.md": {
+    "mtime": 1781841015.45,
+    "ast_hash": "0f2bfacc7bf614eb86b95208a986b242",
+    "semantic_hash": "0f2bfacc7bf614eb86b95208a986b242"
+  },
+  "/Volumes/One Touch/impeach/_bmad-output/planning-artifacts/research/._technical-orchestration-kg-construction-retrieval-2026-06-19.md": {
+    "mtime": 1781841015.44,
+    "ast_hash": "852ec923542ae437819e94031d11d749",
+    "semantic_hash": "852ec923542ae437819e94031d11d749"
+  },
+  "/Volumes/One Touch/impeach/_bmad-output/planning-artifacts/research/._technical-citation-eval-graph-viz-2026-06-19.md": {
+    "mtime": 1781841015.44,
+    "ast_hash": "852ec923542ae437819e94031d11d749",
+    "semantic_hash": "852ec923542ae437819e94031d11d749"
+  },
+  "/Volumes/One Touch/impeach/_bmad-output/planning-artifacts/research/market-philippine-political-intelligence-civic-tech-2026-06-19.md": {
+    "mtime": 1781843658.04,
+    "ast_hash": "d087c0a4658b668b67fae6f0c211c744",
+    "semantic_hash": "d087c0a4658b668b67fae6f0c211c744"
+  },
+  "/Volumes/One Touch/impeach/_bmad-output/planning-artifacts/research/._market-philippine-political-intelligence-civic-tech-2026-06-19.md": {
+    "mtime": 1781841185.06,
+    "ast_hash": "852ec923542ae437819e94031d11d749",
+    "semantic_hash": "852ec923542ae437819e94031d11d749"
+  },
+  "/Volumes/One Touch/impeach/_bmad-output/planning-artifacts/research/market-competitive-landscape-2026-06-19.md": {
+    "mtime": 1781841543.12,
+    "ast_hash": "4cdf9c3651fa3204bba818753d95ec65",
+    "semantic_hash": "4cdf9c3651fa3204bba818753d95ec65"
+  },
+  "/Volumes/One Touch/impeach/_bmad-output/planning-artifacts/research/._market-competitive-landscape-2026-06-19.md": {
+    "mtime": 1781841543.11,
+    "ast_hash": "852ec923542ae437819e94031d11d749",
+    "semantic_hash": "852ec923542ae437819e94031d11d749"
+  },
+  "/Volumes/One Touch/impeach/_bmad-output/planning-artifacts/research/market-business-models-funding-2026-06-19.md": {
+    "mtime": 1781841585.01,
+    "ast_hash": "b41e9e1dfa180fed84d7908393250c0b",
+    "semantic_hash": "b41e9e1dfa180fed84d7908393250c0b"
+  },
+  "/Volumes/One Touch/impeach/_bmad-output/planning-artifacts/research/._market-business-models-funding-2026-06-19.md": {
+    "mtime": 1781841585.01,
+    "ast_hash": "852ec923542ae437819e94031d11d749",
+    "semantic_hash": "852ec923542ae437819e94031d11d749"
+  },
+  "/Volumes/One Touch/impeach/_bmad-output/planning-artifacts/research/market-tam-sam-som-gtm-2026-06-19.md": {
+    "mtime": 1781841465.9,
+    "ast_hash": "a1f4d57b3d831c411845b21222174c73",
+    "semantic_hash": "a1f4d57b3d831c411845b21222174c73"
+  },
+  "/Volumes/One Touch/impeach/_bmad-output/planning-artifacts/research/._market-tam-sam-som-gtm-2026-06-19.md": {
+    "mtime": 1781841465.89,
+    "ast_hash": "852ec923542ae437819e94031d11d749",
+    "semantic_hash": "852ec923542ae437819e94031d11d749"
+  },
+  "/Volumes/One Touch/impeach/_bmad-output/planning-artifacts/research/market-customer-segments-use-cases-2026-06-19.md": {
+    "mtime": 1781841640.2,
+    "ast_hash": "054ceb3749114c9a993cde1189d3962e",
+    "semantic_hash": "054ceb3749114c9a993cde1189d3962e"
+  },
+  "/Volumes/One Touch/impeach/_bmad-output/planning-artifacts/research/._market-customer-segments-use-cases-2026-06-19.md": {
+    "mtime": 1781841470.65,
+    "ast_hash": "852ec923542ae437819e94031d11d749",
+    "semantic_hash": "852ec923542ae437819e94031d11d749"
+  },
+  "/Volumes/One Touch/impeach/_bmad-output/planning-artifacts/research/perplexity-followup-targeted-gaps-2026-06-19.md": {
+    "mtime": 1781843658.04,
+    "ast_hash": "049410cdf6cab8550dc11bbafdcbf7bf",
+    "semantic_hash": "049410cdf6cab8550dc11bbafdcbf7bf"
+  },
+  "/Volumes/One Touch/impeach/_bmad-output/planning-artifacts/research/._perplexity-followup-targeted-gaps-2026-06-19.md": {
+    "mtime": 1781843212.47,
+    "ast_hash": "852ec923542ae437819e94031d11d749",
+    "semantic_hash": "852ec923542ae437819e94031d11d749"
+  },
+  "/Volumes/One Touch/impeach/_bmad-output/planning-artifacts/prds/prd-impeachment-watch-2026-06-19/prd.md": {
+    "mtime": 1782023368.26,
+    "ast_hash": "37488bdf463f08b143373f6a0de06cab",
+    "semantic_hash": "37488bdf463f08b143373f6a0de06cab"
+  },
+  "/Volumes/One Touch/impeach/_bmad-output/planning-artifacts/prds/prd-impeachment-watch-2026-06-19/._prd.md": {
+    "mtime": 1781844532.07,
+    "ast_hash": "852ec923542ae437819e94031d11d749",
+    "semantic_hash": "852ec923542ae437819e94031d11d749"
+  },
+  "/Volumes/One Touch/impeach/_bmad-output/planning-artifacts/prds/prd-impeachment-watch-2026-06-19/addendum.md": {
+    "mtime": 1782023377.93,
+    "ast_hash": "b4b1aaebad610e326d813da2f9fc990d",
+    "semantic_hash": "b4b1aaebad610e326d813da2f9fc990d"
+  },
+  "/Volumes/One Touch/impeach/_bmad-output/planning-artifacts/prds/prd-impeachment-watch-2026-06-19/._addendum.md": {
+    "mtime": 1781844580.24,
+    "ast_hash": "852ec923542ae437819e94031d11d749",
+    "semantic_hash": "852ec923542ae437819e94031d11d749"
+  },
+  "/Volumes/One Touch/impeach/_bmad-output/planning-artifacts/prds/prd-impeachment-watch-2026-06-19/.decision-log.md": {
+    "mtime": 1782023404.08,
+    "ast_hash": "f6e7a13791f95d2dceccd1f81721c20e",
+    "semantic_hash": "f6e7a13791f95d2dceccd1f81721c20e"
+  },
+  "/Volumes/One Touch/impeach/_bmad-output/planning-artifacts/prds/prd-impeachment-watch-2026-06-19/._.decision-log.md": {
+    "mtime": 1781844604.94,
+    "ast_hash": "852ec923542ae437819e94031d11d749",
+    "semantic_hash": "852ec923542ae437819e94031d11d749"
+  },
+  "/Volumes/One Touch/impeach/_bmad-output/planning-artifacts/prds/prd-impeachment-watch-2026-06-19/reconcile-enterprise-prd.md": {
+    "mtime": 1781844943.85,
+    "ast_hash": "bf1eaeac8c47db6eb77c7f70f75a14d8",
+    "semantic_hash": "bf1eaeac8c47db6eb77c7f70f75a14d8"
+  },
+  "/Volumes/One Touch/impeach/_bmad-output/planning-artifacts/prds/prd-impeachment-watch-2026-06-19/._reconcile-enterprise-prd.md": {
+    "mtime": 1781844943.85,
+    "ast_hash": "852ec923542ae437819e94031d11d749",
+    "semantic_hash": "852ec923542ae437819e94031d11d749"
+  },
+  "/Volumes/One Touch/impeach/_bmad-output/planning-artifacts/prds/prd-impeachment-watch-2026-06-19/reconcile-tdd.md": {
+    "mtime": 1781845045.68,
+    "ast_hash": "55d0da8f298b0a760fca58a163d5e522",
+    "semantic_hash": "55d0da8f298b0a760fca58a163d5e522"
+  },
+  "/Volumes/One Touch/impeach/_bmad-output/planning-artifacts/prds/prd-impeachment-watch-2026-06-19/._reconcile-tdd.md": {
+    "mtime": 1781845045.68,
+    "ast_hash": "852ec923542ae437819e94031d11d749",
+    "semantic_hash": "852ec923542ae437819e94031d11d749"
+  },
+  "/Volumes/One Touch/impeach/_bmad-output/planning-artifacts/prds/prd-impeachment-watch-2026-06-19/review-adversarial-general.md": {
+    "mtime": 1782022592.81,
+    "ast_hash": "8c52a89554620ab061c0fdbd47c2150b",
+    "semantic_hash": "8c52a89554620ab061c0fdbd47c2150b"
+  },
+  "/Volumes/One Touch/impeach/_bmad-output/planning-artifacts/prds/prd-impeachment-watch-2026-06-19/._review-adversarial-general.md": {
+    "mtime": 1781845805.67,
+    "ast_hash": "852ec923542ae437819e94031d11d749",
+    "semantic_hash": "852ec923542ae437819e94031d11d749"
+  },
+  "/Volumes/One Touch/impeach/_bmad-output/planning-artifacts/prds/prd-impeachment-watch-2026-06-19/review-rubric.md": {
+    "mtime": 1782022624.08,
+    "ast_hash": "9375f3251b22639952d2881cc40c769d",
+    "semantic_hash": "9375f3251b22639952d2881cc40c769d"
+  },
+  "/Volumes/One Touch/impeach/_bmad-output/planning-artifacts/prds/prd-impeachment-watch-2026-06-19/._review-rubric.md": {
+    "mtime": 1781845816.46,
+    "ast_hash": "852ec923542ae437819e94031d11d749",
+    "semantic_hash": "852ec923542ae437819e94031d11d749"
+  },
+  "/Volumes/One Touch/impeach/_bmad-output/planning-artifacts/prds/prd-impeachment-watch-2026-06-19/review-editorial-integrity.md": {
+    "mtime": 1782022582.94,
+    "ast_hash": "99357d8fcb61988130bb385b1dbc64ff",
+    "semantic_hash": "99357d8fcb61988130bb385b1dbc64ff"
+  },
+  "/Volumes/One Touch/impeach/_bmad-output/planning-artifacts/prds/prd-impeachment-watch-2026-06-19/._review-editorial-integrity.md": {
+    "mtime": 1781845860.0,
+    "ast_hash": "852ec923542ae437819e94031d11d749",
+    "semantic_hash": "852ec923542ae437819e94031d11d749"
+  },
+  "/Volumes/One Touch/impeach/_bmad-output/planning-artifacts/prds/prd-impeachment-watch-2026-06-19/validation-report.md": {
+    "mtime": 1782022672.75,
+    "ast_hash": "4afcad8aa476796962bdcef905adf7f3",
+    "semantic_hash": "4afcad8aa476796962bdcef905adf7f3"
+  },
+  "/Volumes/One Touch/impeach/_bmad-output/planning-artifacts/prds/prd-impeachment-watch-2026-06-19/._validation-report.md": {
+    "mtime": 1782022672.74,
+    "ast_hash": "852ec923542ae437819e94031d11d749",
+    "semantic_hash": "852ec923542ae437819e94031d11d749"
+  },
+  "/Volumes/One Touch/impeach/_bmad-output/planning-artifacts/prds/prd-impeachment-watch-2026-06-19/validation-report.html": {
+    "mtime": 1782022736.24,
+    "ast_hash": "e734ba65ec53d3eced11175b6890b026",
+    "semantic_hash": "e734ba65ec53d3eced11175b6890b026"
+  },
+  "/Volumes/One Touch/impeach/_bmad-output/planning-artifacts/prds/prd-impeachment-watch-2026-06-19/._validation-report.html": {
+    "mtime": 1782022736.23,
+    "ast_hash": "852ec923542ae437819e94031d11d749",
+    "semantic_hash": "852ec923542ae437819e94031d11d749"
+  },
+  "/Volumes/One Touch/impeach/_bmad-output/planning-artifacts/ux-designs/ux-impeachment-watch-2026-06-19/DESIGN.md": {
+    "mtime": 1781959961.6,
+    "ast_hash": "2f9389405e4a6ab5befa14ca3672a5a5",
+    "semantic_hash": "2f9389405e4a6ab5befa14ca3672a5a5"
+  },
+  "/Volumes/One Touch/impeach/_bmad-output/planning-artifacts/ux-designs/ux-impeachment-watch-2026-06-19/EXPERIENCE.md": {
+    "mtime": 1781959948.77,
+    "ast_hash": "b706620074332b0c0e1f486f0ada2fff",
+    "semantic_hash": "b706620074332b0c0e1f486f0ada2fff"
+  },
+  "/Volumes/One Touch/impeach/_bmad-output/planning-artifacts/ux-designs/ux-impeachment-watch-2026-06-19/.decision-log.md": {
+    "mtime": 1781959971.81,
+    "ast_hash": "80e3f79f51e65e90e3b9096eb20b69ef",
+    "semantic_hash": "80e3f79f51e65e90e3b9096eb20b69ef"
+  },
+  "/Volumes/One Touch/impeach/_bmad-output/planning-artifacts/ux-designs/ux-impeachment-watch-2026-06-19/._DESIGN.md": {
+    "mtime": 1781868660.11,
+    "ast_hash": "852ec923542ae437819e94031d11d749",
+    "semantic_hash": "852ec923542ae437819e94031d11d749"
+  },
+  "/Volumes/One Touch/impeach/_bmad-output/planning-artifacts/ux-designs/ux-impeachment-watch-2026-06-19/._EXPERIENCE.md": {
+    "mtime": 1781868660.11,
+    "ast_hash": "852ec923542ae437819e94031d11d749",
+    "semantic_hash": "852ec923542ae437819e94031d11d749"
+  },
+  "/Volumes/One Touch/impeach/_bmad-output/planning-artifacts/ux-designs/ux-impeachment-watch-2026-06-19/._.decision-log.md": {
+    "mtime": 1781868660.11,
+    "ast_hash": "852ec923542ae437819e94031d11d749",
+    "semantic_hash": "852ec923542ae437819e94031d11d749"
+  },
+  "/Volumes/One Touch/impeach/_bmad-output/planning-artifacts/ux-designs/ux-impeachment-watch-2026-06-19/review-accessibility.md": {
+    "mtime": 1781959470.18,
+    "ast_hash": "1c1fa2ac13570781292295d318469104",
+    "semantic_hash": "1c1fa2ac13570781292295d318469104"
+  },
+  "/Volumes/One Touch/impeach/_bmad-output/planning-artifacts/ux-designs/ux-impeachment-watch-2026-06-19/._review-accessibility.md": {
+    "mtime": 1781959470.18,
+    "ast_hash": "852ec923542ae437819e94031d11d749",
+    "semantic_hash": "852ec923542ae437819e94031d11d749"
+  },
+  "/Volumes/One Touch/impeach/_bmad-output/planning-artifacts/ux-designs/ux-impeachment-watch-2026-06-19/review-rubric.md": {
+    "mtime": 1781959616.62,
+    "ast_hash": "4a2798e5f10d72a17f9e5dc3220f6af7",
+    "semantic_hash": "4a2798e5f10d72a17f9e5dc3220f6af7"
+  },
+  "/Volumes/One Touch/impeach/_bmad-output/planning-artifacts/ux-designs/ux-impeachment-watch-2026-06-19/._review-rubric.md": {
+    "mtime": 1781959616.62,
+    "ast_hash": "852ec923542ae437819e94031d11d749",
+    "semantic_hash": "852ec923542ae437819e94031d11d749"
+  },
+  "/Volumes/One Touch/impeach/_bmad-output/planning-artifacts/ux-designs/ux-impeachment-watch-2026-06-19/.working/key-graph-trace.html": {
+    "mtime": 1781959825.49,
+    "ast_hash": "6598a1f4d64ace46fd4d6776d6085b23",
+    "semantic_hash": "6598a1f4d64ace46fd4d6776d6085b23"
+  },
+  "/Volumes/One Touch/impeach/_bmad-output/planning-artifacts/ux-designs/ux-impeachment-watch-2026-06-19/.working/._key-graph-trace.html": {
+    "mtime": 1781959825.49,
+    "ast_hash": "852ec923542ae437819e94031d11d749",
+    "semantic_hash": "852ec923542ae437819e94031d11d749"
+  },
+  "/Volumes/One Touch/impeach/_bmad-output/planning-artifacts/ux-designs/ux-impeachment-watch-2026-06-19/.working/key-chat-answer.html": {
+    "mtime": 1781959860.33,
+    "ast_hash": "530ed68cc7609554fbf44cc40a19d00c",
+    "semantic_hash": "530ed68cc7609554fbf44cc40a19d00c"
+  },
+  "/Volumes/One Touch/impeach/_bmad-output/planning-artifacts/ux-designs/ux-impeachment-watch-2026-06-19/.working/._key-chat-answer.html": {
+    "mtime": 1781959860.31,
+    "ast_hash": "852ec923542ae437819e94031d11d749",
+    "semantic_hash": "852ec923542ae437819e94031d11d749"
+  },
+  "/Volumes/One Touch/impeach/_bmad-output/planning-artifacts/ux-designs/ux-impeachment-watch-2026-06-19/.working/key-evidence-compare.html": {
+    "mtime": 1781959891.05,
+    "ast_hash": "09eab4fe23557bd583b6cdabde412496",
+    "semantic_hash": "09eab4fe23557bd583b6cdabde412496"
+  },
+  "/Volumes/One Touch/impeach/_bmad-output/planning-artifacts/ux-designs/ux-impeachment-watch-2026-06-19/.working/._key-evidence-compare.html": {
+    "mtime": 1781959891.05,
+    "ast_hash": "852ec923542ae437819e94031d11d749",
+    "semantic_hash": "852ec923542ae437819e94031d11d749"
+  },
+  "/Volumes/One Touch/impeach/_bmad-output/planning-artifacts/ux-designs/ux-impeachment-watch-2026-06-19/.working/key-senator-dashboard.html": {
+    "mtime": 1781959922.98,
+    "ast_hash": "8a35c55aaadeef62afe905226d96f03f",
+    "semantic_hash": "8a35c55aaadeef62afe905226d96f03f"
+  },
+  "/Volumes/One Touch/impeach/_bmad-output/planning-artifacts/ux-designs/ux-impeachment-watch-2026-06-19/.working/._key-senator-dashboard.html": {
+    "mtime": 1781959922.98,
+    "ast_hash": "852ec923542ae437819e94031d11d749",
+    "semantic_hash": "852ec923542ae437819e94031d11d749"
+  },
+  "/Volumes/One Touch/impeach/_bmad-output/planning-artifacts/ux-designs/ux-impeachment-watch-2026-06-19/.working/source-extracts/prd-scope.md": {
+    "mtime": 1781958304.63,
+    "ast_hash": "089dab8672bbe6ab45c83a398c1e116c",
+    "semantic_hash": "089dab8672bbe6ab45c83a398c1e116c"
+  },
+  "/Volumes/One Touch/impeach/_bmad-output/planning-artifacts/ux-designs/ux-impeachment-watch-2026-06-19/.working/source-extracts/._prd-scope.md": {
+    "mtime": 1781958304.63,
+    "ast_hash": "852ec923542ae437819e94031d11d749",
+    "semantic_hash": "852ec923542ae437819e94031d11d749"
+  },
+  "/Volumes/One Touch/impeach/_bmad-output/planning-artifacts/ux-designs/ux-impeachment-watch-2026-06-19/.working/source-extracts/architecture-graph-model.md": {
+    "mtime": 1781958329.39,
+    "ast_hash": "c567de42dc976a7d5913de0454167f8e",
+    "semantic_hash": "c567de42dc976a7d5913de0454167f8e"
+  },
+  "/Volumes/One Touch/impeach/_bmad-output/planning-artifacts/ux-designs/ux-impeachment-watch-2026-06-19/.working/source-extracts/._architecture-graph-model.md": {
+    "mtime": 1781958329.39,
+    "ast_hash": "852ec923542ae437819e94031d11d749",
+    "semantic_hash": "852ec923542ae437819e94031d11d749"
+  },
+  "/Volumes/One Touch/impeach/_bmad-output/planning-artifacts/ux-designs/ux-impeachment-watch-2026-06-19/.working/source-extracts/domain-content-model.md": {
+    "mtime": 1781958363.05,
+    "ast_hash": "7f84398264dac2141747757deff25299",
+    "semantic_hash": "7f84398264dac2141747757deff25299"
+  },
+  "/Volumes/One Touch/impeach/_bmad-output/planning-artifacts/ux-designs/ux-impeachment-watch-2026-06-19/.working/source-extracts/._domain-content-model.md": {
+    "mtime": 1781958363.04,
+    "ast_hash": "852ec923542ae437819e94031d11d749",
+    "semantic_hash": "852ec923542ae437819e94031d11d749"
+  },
+  "/Volumes/One Touch/impeach/_bmad-output/planning-artifacts/ux-designs/ux-impeachment-watch-2026-06-19/.working/source-extracts/market-customer-research.md": {
+    "mtime": 1781958563.71,
+    "ast_hash": "03f3865b9d343f16198658603fa4f407",
+    "semantic_hash": "03f3865b9d343f16198658603fa4f407"
+  },
+  "/Volumes/One Touch/impeach/_bmad-output/planning-artifacts/ux-designs/ux-impeachment-watch-2026-06-19/.working/source-extracts/._market-customer-research.md": {
+    "mtime": 1781958563.7,
+    "ast_hash": "852ec923542ae437819e94031d11d749",
+    "semantic_hash": "852ec923542ae437819e94031d11d749"
+  },
+  "/Volumes/One Touch/impeach/_bmad-output/planning-artifacts/ux-designs/ux-impeachment-watch-2026-06-19/.working/source-extracts/technical-ux-constraints.md": {
+    "mtime": 1781958599.11,
+    "ast_hash": "7d6f9fc60743ec2b52be8beee24d2f00",
+    "semantic_hash": "7d6f9fc60743ec2b52be8beee24d2f00"
+  },
+  "/Volumes/One Touch/impeach/_bmad-output/planning-artifacts/ux-designs/ux-impeachment-watch-2026-06-19/.working/source-extracts/._technical-ux-constraints.md": {
+    "mtime": 1781958599.11,
+    "ast_hash": "852ec923542ae437819e94031d11d749",
+    "semantic_hash": "852ec923542ae437819e94031d11d749"
+  },
+  "/Volumes/One Touch/impeach/_bmad-output/planning-artifacts/ux-designs/ux-impeachment-watch-2026-06-19/imports/stitch-prompt.md": {
+    "mtime": 1782020628.87,
+    "ast_hash": "c96d37ff62bbb5d196746bb873e60293",
+    "semantic_hash": "c96d37ff62bbb5d196746bb873e60293"
+  },
+  "/Volumes/One Touch/impeach/_bmad-output/planning-artifacts/ux-designs/ux-impeachment-watch-2026-06-19/imports/._stitch-prompt.md": {
+    "mtime": 1782020628.87,
+    "ast_hash": "852ec923542ae437819e94031d11d749",
+    "semantic_hash": "852ec923542ae437819e94031d11d749"
+  },
+  "/Volumes/One Touch/impeach/_bmad-output/planning-artifacts/ux-designs/ux-impeachment-watch-2026-06-19/mockups/graph-trace.html": {
+    "mtime": 1781959944.39,
+    "ast_hash": "6598a1f4d64ace46fd4d6776d6085b23",
+    "semantic_hash": "6598a1f4d64ace46fd4d6776d6085b23"
+  },
+  "/Volumes/One Touch/impeach/_bmad-output/planning-artifacts/ux-designs/ux-impeachment-watch-2026-06-19/mockups/._graph-trace.html": {
+    "mtime": 1781959944.4,
+    "ast_hash": "852ec923542ae437819e94031d11d749",
+    "semantic_hash": "852ec923542ae437819e94031d11d749"
+  },
+  "/Volumes/One Touch/impeach/_bmad-output/planning-artifacts/ux-designs/ux-impeachment-watch-2026-06-19/mockups/chat-answer.html": {
+    "mtime": 1781959944.41,
+    "ast_hash": "530ed68cc7609554fbf44cc40a19d00c",
+    "semantic_hash": "530ed68cc7609554fbf44cc40a19d00c"
+  },
+  "/Volumes/One Touch/impeach/_bmad-output/planning-artifacts/ux-designs/ux-impeachment-watch-2026-06-19/mockups/._chat-answer.html": {
+    "mtime": 1781959944.42,
+    "ast_hash": "852ec923542ae437819e94031d11d749",
+    "semantic_hash": "852ec923542ae437819e94031d11d749"
+  },
+  "/Volumes/One Touch/impeach/_bmad-output/planning-artifacts/ux-designs/ux-impeachment-watch-2026-06-19/mockups/evidence-compare.html": {
+    "mtime": 1781959944.43,
+    "ast_hash": "09eab4fe23557bd583b6cdabde412496",
+    "semantic_hash": "09eab4fe23557bd583b6cdabde412496"
+  },
+  "/Volumes/One Touch/impeach/_bmad-output/planning-artifacts/ux-designs/ux-impeachment-watch-2026-06-19/mockups/._evidence-compare.html": {
+    "mtime": 1781959944.43,
+    "ast_hash": "852ec923542ae437819e94031d11d749",
+    "semantic_hash": "852ec923542ae437819e94031d11d749"
+  },
+  "/Volumes/One Touch/impeach/_bmad-output/planning-artifacts/ux-designs/ux-impeachment-watch-2026-06-19/mockups/senator-dashboard.html": {
+    "mtime": 1781959944.44,
+    "ast_hash": "8a35c55aaadeef62afe905226d96f03f",
+    "semantic_hash": "8a35c55aaadeef62afe905226d96f03f"
+  },
+  "/Volumes/One Touch/impeach/_bmad-output/planning-artifacts/ux-designs/ux-impeachment-watch-2026-06-19/mockups/._senator-dashboard.html": {
+    "mtime": 1781959944.44,
+    "ast_hash": "852ec923542ae437819e94031d11d749",
+    "semantic_hash": "852ec923542ae437819e94031d11d749"
+  },
+  "/Volumes/One Touch/impeach/_bmad-output/implementation-artifacts/sprint-status.yaml": {
+    "mtime": 1782099806.85,
+    "ast_hash": "c5ada3a0d802192e2e1c1a7a0deaced3",
+    "semantic_hash": "c5ada3a0d802192e2e1c1a7a0deaced3"
+  },
+  "/Volumes/One Touch/impeach/_bmad-output/implementation-artifacts/._sprint-status.yaml": {
+    "mtime": 1782099806.84,
+    "ast_hash": "852ec923542ae437819e94031d11d749",
+    "semantic_hash": "852ec923542ae437819e94031d11d749"
+  },
+  "/Volumes/One Touch/impeach/_bmad/_config/manifest.yaml": {
+    "mtime": 1781839078.63,
+    "ast_hash": "371b430f2d9a1cc54cad5fdae721cd04",
+    "semantic_hash": "371b430f2d9a1cc54cad5fdae721cd04"
+  },
+  "/Volumes/One Touch/impeach/_bmad/_config/._manifest.yaml": {
+    "mtime": 1781839068.7,
+    "ast_hash": "852ec923542ae437819e94031d11d749",
+    "semantic_hash": "852ec923542ae437819e94031d11d749"
+  }
+}

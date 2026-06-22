@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>PRD Validation: IIP Internal-First PRD</title>
+<style>
+  :root {
+    --bg: #fafaf9;
+    --surface: #ffffff;
+    --border: #e7e5e4;
+    --text: #1c1917;
+    --muted: #78716c;
+    --verdict-strong: #16a34a;
+    --verdict-adequate: #65a30d;
+    --verdict-thin: #d97706;
+    --verdict-broken: #dc2626;
+    --sev-low: #64748b;
+    --sev-medium: #ca8a04;
+    --sev-high: #ea580c;
+    --sev-critical: #dc2626;
+    --grade-exc: #16a34a;
+    --grade-good: #65a30d;
+    --grade-fair: #d97706;
+    --grade-poor: #dc2626;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    font-size: 15px;
+  }
+  .container { max-width: 960px; margin: 0 auto; padding: 32px 24px 64px; }
+  header.report-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 24px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 24px;
+  }
+  .title h1 { margin: 0; font-size: 22px; font-weight: 600; letter-spacing: -0.01em; }
+  .title .subtitle { color: var(--muted); font-size: 13px; margin-top: 4px; font-family: ui-monospace, "SF Mono", Menlo, monospace; }
+  .grade {
+    padding: 10px 18px;
+    border-radius: 8px;
+    font-weight: 600;
+    color: white;
+    font-size: 15px;
+    white-space: nowrap;
+  }
+  .grade-fair { background: var(--grade-fair); }
+  .synthesis {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--muted);
+    border-radius: 8px;
+    padding: 18px 22px;
+    margin-bottom: 24px;
+    font-size: 15.5px;
+  }
+  .synthesis p { margin: 0 0 10px; }
+  .synthesis p:last-child { margin-bottom: 0; }
+  .dimension-summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 10px;
+    margin-bottom: 24px;
+  }
+  .dim-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 14px;
+  }
+  .dim-card .dim-name { font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+  .dim-card .dim-verdict { font-size: 14px; font-weight: 600; }
+  section.dimension, section.reviewer-section { margin-bottom: 14px; }
+  section.dimension details, section.reviewer-section details {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  section summary {
+    padding: 14px 20px;
+    cursor: pointer;
+    user-select: none;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  section summary::-webkit-details-marker { display: none; }
+  section summary::before {
+    content: "▸";
+    display: inline-block;
+    color: var(--muted);
+    transition: transform 0.15s ease;
+  }
+  section details[open] summary::before { transform: rotate(90deg); }
+  section summary h2 {
+    display: inline;
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: -0.005em;
+    flex: 1;
+  }
+  .verdict-pill {
+    font-size: 11px;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: white;
+  }
+  .verdict-strong { background: var(--verdict-strong); }
+  .verdict-adequate { background: var(--verdict-adequate); }
+  .verdict-thin { background: var(--verdict-thin); }
+  .verdict-broken { background: var(--verdict-broken); }
+  .dim-body { padding: 4px 20px 18px; }
+  .dim-judgment { color: var(--text); font-size: 14.5px; }
+  .dim-judgment p { margin: 0 0 10px; }
+  .findings-list { padding: 0 20px 4px; }
+  article.finding {
+    padding: 14px 0;
+    border-top: 1px solid var(--border);
+  }
+  article.finding:first-child { border-top: none; }
+  article.finding header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 6px;
+  }
+  .badge {
+    font-size: 10.5px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    line-height: 1.4;
+  }
+  .badge-sev-low { background: rgba(100, 116, 139, 0.12); color: var(--sev-low); }
+  .badge-sev-medium { background: rgba(202, 138, 4, 0.14); color: var(--sev-medium); }
+  .badge-sev-high { background: rgba(234, 88, 12, 0.14); color: var(--sev-high); }
+  .badge-sev-critical { background: rgba(220, 38, 38, 0.14); color: var(--sev-critical); }
+  .finding-title { margin: 0; font-size: 15px; font-weight: 500; flex: 1; min-width: 200px; }
+  .finding-location { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 12.5px; color: var(--muted); }
+  .finding-note, .finding-fix { margin-top: 6px; font-size: 14px; }
+  .finding-fix strong { color: var(--muted); font-weight: 500; }
+  .reviewer-source {
+    font-size: 12px;
+    color: var(--muted);
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  }
+  .mechanical {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin-top: 24px;
+    font-size: 14px;
+  }
+  .mechanical h3 { margin: 0 0 10px; font-size: 14px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+  .mechanical ul { margin: 0; padding-left: 20px; }
+  .mechanical li { margin-bottom: 4px; color: var(--text); }
+  footer.report-footer {
+    margin-top: 40px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+    font-size: 12px;
+    color: var(--muted);
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  }
+  footer .meta { display: flex; gap: 24px; flex-wrap: wrap; }
+</style>
+</head>
+<body>
+  <div class="container">
+
+    <header class="report-header">
+      <div class="title">
+        <h1>IIP Internal-First PRD — Validation Report</h1>
+        <div class="subtitle">_bmad-output/planning-artifacts/prds/prd-impeachment-watch-2026-06-19/prd.md</div>
+      </div>
+      <div class="grade grade-fair">Fair</div>
+    </header>
+
+    <div class="synthesis">
+      <p>The PRD is structurally strong — all seven rubric dimensions land at <em>strong</em> or <em>adequate</em>, with no <em>thin</em> or <em>broken</em> dimensions. The thesis (citation-or-silence) is genuinely load-bearing, the Finalize cycle (D-014…D-028) resolved the hard governance/legal/omission problems, and the document is decision-ready and downstream-usable.</p>
+      <p>The risk is not structural; it is definitional. Two binding requirements use terms that are never operationally defined — "served assertion" (EI-1) and "independent sources" (EI-2) — which makes the headline 100% citation-coverage and fact-vs-claim claims enforcement-soft rather than mechanically enforced. The adversarial and editorial-integrity reviewers independently surfaced the same pattern: the integrity invariants are strong on <em>coverage</em> (everything has a tag, a citation, a substring check) and weak on <em>correctness</em> (is the tag right? is the citation the right one? is the gate manned?).</p>
+      <p>Additionally, the Pre-External Presentation Gate — the load-bearing governance control for external presentation — is mandatory in form but has no assigned counsel (OQ-4), making it a phantom gate today. None of this is fatal; all of it is fixable without restructuring the PRD. But the PRD currently presents these as resolved when they are open.</p>
+    </div>
+
+    <div class="dimension-summary">
+      <div class="dim-card"><div class="dim-name">Decision-readiness</div><div class="dim-verdict" style="color: var(--verdict-strong)">strong</div></div>
+      <div class="dim-card"><div class="dim-name">Substance over theater</div><div class="dim-verdict" style="color: var(--verdict-strong)">strong</div></div>
+      <div class="dim-card"><div class="dim-name">Strategic coherence</div><div class="dim-verdict" style="color: var(--verdict-strong)">strong</div></div>
+      <div class="dim-card"><div class="dim-name">Done-ness clarity</div><div class="dim-verdict" style="color: var(--verdict-adequate)">adequate</div></div>
+      <div class="dim-card"><div class="dim-name">Scope honesty</div><div class="dim-verdict" style="color: var(--verdict-adequate)">adequate</div></div>
+      <div class="dim-card"><div class="dim-name">Downstream usability</div><div class="dim-verdict" style="color: var(--verdict-strong)">strong</div></div>
+      <div class="dim-card"><div class="dim-name">Shape fit</div><div class="dim-verdict" style="color: var(--verdict-strong)">strong</div></div>
+    </div>
+
+    <!-- Decision-readiness -->
+    <section class="dimension">
+      <details>
+        <summary>
+          <h2>Decision-readiness</h2>
+          <span class="verdict-pill verdict-strong">strong</span>
+        </summary>
+        <div class="dim-body">
+          <div class="dim-judgment">
+            <p>Decisions are stated as decisions, not buried as considerations. Trade-offs name what was given up: conservative merge accepts "a duplicate node is a cosmetic defect; an incorrect merge corrupts every downstream answer" (§6.1 EI-5); local-first is "a binding v1 constraint, not a preference" (§9.7 NFR-D-1); governance is "engineering-enforced day-to-day + a mandatory Pre-External Presentation Gate" rather than either pole alone (§6.2, D-014). Open Questions carry owners and triggers — OQ-1 is a <code>[PRE-BUILD GATE]</code> with owner: tech lead and trigger: "before building the vector index" (§13.1); OQ-4 is a <code>[PRE-EXTERNAL ASSIGNMENT]</code> whose gate is mandatory even while the assignment is open.</p>
+            <p>The §13.3 "Resolved during Finalize" block is honest about what was decided and why (OQ-3 → D-015; governance → D-014; senator phasing → D-016). A reader pushing back on "why is there no human editorial owner full-time?" finds the answer acknowledged.</p>
+            <p>The one tension that reads as smoothed: the Philippine Data Privacy Act posture (NFR-L-2) says "a formal compliance review is an open item before any launch beyond the internal period," but v1 explicitly includes external presentation (SM-8, §11). The boundary between "internal period" and "launch" is never defined, and a reader could reasonably conclude the DPA review lands <em>after</em> the Pre-External Gate — which would be too late for a tool surfacing named-public-figure material to external journalists.</p>
+          </div>
+        </div>
+        <div class="findings-list">
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-medium">medium</span>
+              <h3 class="finding-title">DPA review trigger blurriness</h3>
+              <span class="finding-location">§9.4 NFR-L-2</span>
+            </header>
+            <div class="finding-note">"formal compliance review is an open item before any launch beyond the internal period" sits uneasily with SM-8's external presentation occurring <em>during</em> v1. The trigger is undefined when v1 itself straddles internal operation and external presentation.</div>
+            <div class="finding-fix"><strong>Fix:</strong> State explicitly whether the DPA compliance review is part of the Pre-External Gate (FR-5.5) or a separate gate, and name its trigger condition.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-low">low</span>
+              <h3 class="finding-title">OQ-5 retention classified non-blocking despite defamation adjacency</h3>
+              <span class="finding-location">§13.2</span>
+            </header>
+            <div class="finding-note">Retention of retracted raw snapshots is legal-existential for a cyberlibel-aware tool. Classified non-blocking but ties to NFR-L-4 ("right-to-be-forgotten boundary").</div>
+            <div class="finding-fix"><strong>Fix:</strong> Note that OQ-5 and OQ-10 must be resolved before the Pre-External Gate if retained snapshots contain retracted/superseded defamatory material.</div>
+          </article>
+        </div>
+      </details>
+    </section>
+
+    <!-- Substance over theater -->
+    <section class="dimension">
+      <details>
+        <summary>
+          <h2>Substance over theater</h2>
+          <span class="verdict-pill verdict-strong">strong</span>
+        </summary>
+        <div class="dim-body">
+          <div class="dim-judgment">
+            <p>The differentiator is not theater — "citation-or-silence" appears as EI-1, FR-3.1, NFR-EI-1, SM-1, CM-1, RK-1, RK-2, and DR-2. It drives feature priority (integrity core in v1; narrative/contradiction deferred), NFR thresholds (100% citation coverage, 0 allegation-as-fact), and demo design (DR-2 adversarial script). The single non-negotiable — "an allegation stated as a fact is a P0 defect, equal in severity to a crash" (§2) — is concrete and load-bearing.</p>
+            <p>NFRs carry product-specific thresholds, not boilerplate: p95 &lt; 10s, ≥500 documents / ≥3 tier-1 / ≥3 tier-2, refutes-edge recall ≥70%, groundedness ≥0.95 with hard/soft CI gates. The vision ("Political Intelligence Operating System… most comprehensive, explainable, and evidence-backed… in the Philippines") is category-specific enough that it could not swap into an unrelated PRD without change.</p>
+            <p>Personas are deliberately moved to addendum and used inline in UJs — the right call. The one soft persona is P-5 Engaged Citizen: acknowledged as secondary, "the integrity bar does not drop," yet it drives no decision in the PRD.</p>
+          </div>
+        </div>
+        <div class="findings-list">
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-low">low</span>
+              <h3 class="finding-title">P-5 Engaged Citizen persona is light furniture</h3>
+              <span class="finding-location">§4.2, addendum §Personas P-5</span>
+            </header>
+            <div class="finding-note">Acknowledged as secondary but drives no FR, NFR, SM, or UJ. Reads as completeness rather than load-bearing.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Either drop P-5 from v1 scope or name one decision it drives (e.g., a plain-language answer mode toggle).</div>
+          </article>
+        </div>
+      </details>
+    </section>
+
+    <!-- Strategic coherence -->
+    <section class="dimension">
+      <details>
+        <summary>
+          <h2>Strategic coherence</h2>
+          <span class="verdict-pill verdict-strong">strong</span>
+        </summary>
+        <div class="dim-body">
+          <div class="dim-judgment">
+            <p>The thesis is stated, repeated, and prioritized: "the integrity core comes first and the flashier capabilities (narrative generation, contradiction engine) are deliberately deferred until that core is proven" (§2). Feature scope in §5.1 follows from the thesis — ingestion, extraction, Q&A with citations, graph/timeline/evidence views, editorial invariants — while §5.2 defers narrative, media comparison, contradiction engine, influence analytics, streaming, and SaaS. This is not a backlog with section headings; the prioritization logic is visible.</p>
+            <p>Success metrics validate the thesis rather than measuring activity: SM-1 (citation 100%), SM-2 (allegation-as-fact 0), SM-3 (merge-error ≈0), SM-4b (refutes recall ≥70%), SM-7 (adversarial demo 100%). Counter-metrics are named — CM-1 against SM-1 ("over-silence is a failure mode"), CM-2 against SM-5 ("latency is never bought by dropping the citation gate"). The MVP scope kind is coherent: problem-solving + experience.</p>
+            <p>The one soft spot: SM-4 ("Extraction accuracy >85%") and SM-4a ("Query answer accuracy >90%") are marked "per north-star PRD" — inherited targets, not earned here. No eval methodology is referenced for v1 beyond NFR-O-2's CI gates, and the thresholds read as round-number inheritance.</p>
+          </div>
+        </div>
+        <div class="findings-list">
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-low">low</span>
+              <h3 class="finding-title">SM-4 / SM-4a thresholds inherited unearned</h3>
+              <span class="finding-location">§10.1</span>
+            </header>
+            <div class="finding-note">"&gt;85%" and "&gt;90%" are "per north-star PRD" with no v1 eval methodology referenced. A downstream engineer won't know what "extraction accuracy" operationally means without chasing the north-star PRD.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Reference the v1 eval fixture methodology (NFR-O-2) that will measure these, or mark them as inherited targets to be validated before they gate anything.</div>
+          </article>
+        </div>
+      </details>
+    </section>
+
+    <!-- Done-ness clarity -->
+    <section class="dimension">
+      <details open>
+        <summary>
+          <h2>Done-ness clarity</h2>
+          <span class="verdict-pill verdict-adequate">adequate</span>
+        </summary>
+        <div class="dim-body">
+          <div class="dim-judgment">
+            <p>Many FRs are crisp and testable: "deduplicate by content checksum" (FR-1.3), "substring-validated at extraction time… drops are counted" (FR-2.1), "p95 &lt; 10s" (NFR-P-1), "100% of served assertions" (EI-2, NFR-EI-7), "drop + replay reproduces an isomorphic graph" (FR-2.4). An engineer can write a story for these without coming back.</p>
+            <p>But several FRs have soft edges that will force clarification during story creation — the dimension downstream leans on hardest. FR-4.2 "early/lightweight senator/entity view" is not bounded. FR-3.3 names 5 intent types with no accuracy threshold or fallback. FR-3.5 "performant" is an adjective. FR-5.7 "flags affected served answers" — flag as UI badge? Operator alert? Suppress serving? NFR-R-1 "graceful degradation" — what does degradation look like for a single-node read-only API?</p>
+            <p>The editorial-integrity FRs (FG5, EI-1…EI-8) are the exception — they are the most done-ness-clear section in the PRD, with hard gates and 100% / 0% thresholds. The integrity core will source-extract cleanly; the temporal/entity and query-intent FRs will not.</p>
+          </div>
+        </div>
+        <div class="findings-list">
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-high">high</span>
+              <h3 class="finding-title">Senator dashboard boundary undefined</h3>
+              <span class="finding-location">FR-4.2</span>
+            </header>
+            <div class="finding-note">"Early/lightweight" is not bounded. D-016 resolved that an early view exists but did not define which fields (statements? votes? participation? personal timeline?) are v1 vs. Phase 2. Story creation will stall on the first day.</div>
+            <div class="finding-fix"><strong>Fix:</strong> List the specific v1 read-model fields in FR-4.2, or cross-reference the TDD's senator read-model spec by section.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-medium">medium</span>
+              <h3 class="finding-title">Intent detection done-ness undefined</h3>
+              <span class="finding-location">FR-3.3</span>
+            </header>
+            <div class="finding-note">5 intent types named, no accuracy threshold, no coverage requirement, no fallback behavior for unrecognized intent.</div>
+            <div class="finding-fix"><strong>Fix:</strong> State done-ness: e.g., "all 5 intent types detectable on the eval fixture with ≥X% accuracy; unrecognized intent falls back to factual lookup with a logged signal."</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-medium">medium</span>
+              <h3 class="finding-title">Graph rendering "performant" unbounded</h3>
+              <span class="finding-location">FR-3.5</span>
+            </header>
+            <div class="finding-note">NFR-P-3 gives hop/count caps but no render-latency bound. "Performant" is an adjective.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Add a render bound (e.g., "first paint &lt; 2s for ≤N nodes") or cross-reference a UX performance NFR.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-medium">medium</span>
+              <h3 class="finding-title">Retraction flag behavior undefined</h3>
+              <span class="finding-location">FR-5.7</span>
+            </header>
+            <div class="finding-note">"flags affected served answers" — UI badge, operator alert, serving suppression, or all three? The user-visible behavior is unspecified.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Specify the flag's user-visible rendering and the operator notification path; cross-reference DR-6's live scenario.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-low">low</span>
+              <h3 class="finding-title">"Graceful degradation" unbounded</h3>
+              <span class="finding-location">NFR-R-1</span>
+            </header>
+            <div class="finding-note">"single-node best-effort with graceful degradation if a worker is down" for a read-only API. What does degradation look like?</div>
+            <div class="finding-fix"><strong>Fix:</strong> State the behavior: e.g., "query path remains live; ingestion pauses and resumes on worker recovery; operator notified via dashboard."</div>
+          </article>
+        </div>
+      </details>
+    </section>
+
+    <!-- Scope honesty -->
+    <section class="dimension">
+      <details open>
+        <summary>
+          <h2>Scope honesty</h2>
+          <span class="verdict-pill verdict-adequate">adequate</span>
+        </summary>
+        <div class="dim-body">
+          <div class="dim-judgment">
+            <p>Omissions are explicit where it matters. §5.2 is a detailed Non-Goals list (narrative, media comparison, contradiction engine, AI debate, influence analytics, streaming, SaaS, opinion authoring, prediction). §6.3 "What v1 does <em>not</em> claim" is excellent — it names the misleading-by-omission trap, the no-verification-claims boundary, and the absence-of-contradiction limitation. <code>[ASSUMPTION]</code> tags are present inline and indexed in §13.5 with a clean roundtrip.</p>
+            <p>The gap: there are no <code>[NOTE FOR PM]</code> callouts anywhere in the PRD body. The rubric names these as signals at "deferred decisions and unresolved tensions." The DPA/retention tension (NFR-L-2, OQ-5, OQ-10) is exactly the kind of defamation-adjacent deferral that benefits from a <code>[NOTE FOR PM]</code> flag — not because it's unresolved, but because classifying it as "non-blocking" is a judgment call that a future reader should be able to trace. Two non-blocking OQs (OQ-5 retention, OQ-10 takedown) tie to legal/defamation concerns and are gated only implicitly by the Pre-External Gate — their non-blocking status deserves a louder flag.</p>
+          </div>
+        </div>
+        <div class="findings-list">
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-medium">medium</span>
+              <h3 class="finding-title">No [NOTE FOR PM] callouts at deferred-decision tensions</h3>
+              <span class="finding-location">throughout</span>
+            </header>
+            <div class="finding-note">The DPA trigger ambiguity (NFR-L-2) and the retention/takedown defamation adjacency (OQ-5, OQ-10) are exactly where the rubric expects a [NOTE FOR PM]. Their absence makes these deferrals read more routine than they are.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Add <code>[NOTE FOR PM]</code> at NFR-L-2 (DPA trigger boundary) and at OQ-5/OQ-10 (retention/takedown must resolve before Pre-External Gate if material is defamatory).</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-low">low</span>
+              <h3 class="finding-title">OQ-5 and OQ-10 classified non-blocking despite defamation adjacency</h3>
+              <span class="finding-location">§13.2</span>
+            </header>
+            <div class="finding-note">Retention of retracted raw snapshots and takedown workflow are legal-existential for a cyberlibel-aware tool.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Note explicitly that both are blocking for the Pre-External Gate, even if not blocking for the build.</div>
+          </article>
+        </div>
+      </details>
+    </section>
+
+    <!-- Downstream usability -->
+    <section class="dimension">
+      <details>
+        <summary>
+          <h2>Downstream usability</h2>
+          <span class="verdict-pill verdict-strong">strong</span>
+        </summary>
+        <div class="dim-body">
+          <div class="dim-judgment">
+            <p>The Glossary (§14) defines every domain noun: citation-or-silence, attributed claim vs. fact, conservative merge, provenance, substring validation, trust tier, deterministic graph projection, refutes-edge recall, citation-quality floor, Pre-External Presentation Gate, cyberlibel/republication. Usage is consistent across FRs, UJs, and SM definitions. ID continuity is clean: FR-1.1 through FR-5.7 (contiguous), NFR-EI-1…8, all sub-families contiguous, cross-references resolve.</p>
+            <p>UJs have named protagonists: §7.1's Intake Operator (by role, appropriate for an internal-tool operator) and §7.2's Maya Reyes (by name, with a concrete scenario). Both are load-bearing. For a chain-top PRD feeding UX, the gap is that P-3 (Researcher) and P-4 (Legal/Civil-Society) have no UJ — UX downstream will need to derive journeys from addendum persona notes rather than source-extracting them. Given that these are future-user personas for a v1 that is internally operated, one representative future-user UJ (Maya) is defensible, but UX should be told explicitly that more UJs are its job.</p>
+          </div>
+        </div>
+        <div class="findings-list">
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-low">low</span>
+              <h3 class="finding-title">UJ coverage gap for P-3/P-4</h3>
+              <span class="finding-location">§7</span>
+            </header>
+            <div class="finding-note">Only 2 UJs (operator + journalist). UX downstream for researcher and legal/civil-society personas has no journey to source-extract.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Add a lightweight UJ for P-3 or P-4 in addendum §Personas, or add a note in §7 that UX should derive additional UJs from persona notes.</div>
+          </article>
+        </div>
+      </details>
+    </section>
+
+    <!-- Shape fit -->
+    <section class="dimension">
+      <details>
+        <summary>
+          <h2>Shape fit</h2>
+          <span class="verdict-pill verdict-strong">strong</span>
+        </summary>
+        <div class="dim-body">
+          <div class="dim-judgment">
+            <p>The PRD matches its shape precisely. Stakes calibration (D-003) = "internal tool, presented to future users," with integrity/defamation at launch-grade rigor and feature scope at MVP discipline. The PRD delivers exactly that: §6 (editorial integrity) is the most rigorous section — 8 binding invariants, a governance gate, a cyberlibel posture, explicit non-claims — while §5 (scope) and §8 (FRs) carry MVP discipline.</p>
+            <p>UJ density is appropriate, not overhead. The rubric notes "Internal tool, single-operator role → capability spec shape; UJs may be overhead" — but this PRD straddles internal operation and external presentation, so 2 UJs are load-bearing rather than formalized theater. SMs are correctly mixed: operational (SM-1…SM-5) + presentation-readiness (SM-6…SM-8). The chain-top shape is honored: technology choices deferred to addendum + TDD, the PRD body states capabilities and constraints, and FR/NFR/SM IDs are stable and source-extractable. Not over-formalized, not under-formalized.</p>
+          </div>
+        </div>
+        <div class="findings-list">
+          <p><em>No findings — this dimension is clean.</em></p>
+        </div>
+      </details>
+    </section>
+
+    <!-- Adversarial review -->
+    <section class="reviewer-section">
+      <details>
+        <summary>
+          <h2>Adversarial review</h2>
+          <span class="reviewer-source">review-adversarial-general.md</span>
+        </summary>
+        <div class="dim-body">
+          <div class="dim-judgment">
+            <p>A PRD that is unusually disciplined on coverage but quietly soft on correctness — the hardest invariants are either self-graded, circular, or tests of a weaker property than they advertise, and the mandatory legal gate has no one to man it.</p>
+          </div>
+        </div>
+        <div class="findings-list">
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-critical">critical</span>
+              <h3 class="finding-title">Refutes-edge recall is circular/self-graded</h3>
+              <span class="finding-location">§9.1 NFR-EI-5, SM-4b</span>
+            </header>
+            <div class="finding-note">The team builds the eval fixture that defines the denominator, so ≥70% measures "did we find what we already knew was there," not "did we find what we missed." A self-authored ground truth cannot detect evidence the team didn't think to look for.</div>
+            <div class="finding-fix"><strong>Fix:</strong> The refutes-edge eval fixture must be authored or double-annotated by someone independent who reads the source corpus to determine ground truth — not the extractor's builder.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-critical">critical</span>
+              <h3 class="finding-title">Allegation-as-fact gate measures coverage, not correctness</h3>
+              <span class="finding-location">§9.1 NFR-EI-7, SM-2, SM-7</span>
+            </header>
+            <div class="finding-note">NFR-EI-7 enforces that <em>a</em> tag exists, not the <em>right</em> tag. The defamation-grade P0 only fires on curated questions the team already wrote. Coverage ≠ correctness — the PRD conflates the two.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Separate tag-coverage (100%, mechanical) from tag-correctness (sampled audit on non-curated live queries, with a floor and owner).</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-critical">critical</span>
+              <h3 class="finding-title">Mandatory legal gate is a phantom</h3>
+              <span class="finding-location">§13.1 OQ-4, FR-5.5, NFR-L-3</span>
+            </header>
+            <div class="finding-note">The Pre-External Gate is "mandatory" but counsel is an unassigned open item. A mandatory gate with no assigned reviewer cannot fire. Today the gate is an intention, not a control.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Make retained cyberlibel counsel a pre-build gate, or name a fallback (defer presentation until counsel is retained). Treat "assignment open" as a P0 scheduling risk.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-critical">critical</span>
+              <h3 class="finding-title">Fact/claim tag correctness depends on extraction; gate only checks coverage</h3>
+              <span class="finding-location">§9.1 NFR-EI-7, FR-2.5</span>
+            </header>
+            <div class="finding-note">The fact/claim boundary rule is presented as deterministic but is a classifier output gated by a presence check. The hard gate verifies a tag exists, not that it's right. This is the single most dangerous conflation in the document.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Rename NFR-EI-7 to "fact/claim tag coverage 100%." Add a separate, sampled correctness metric audited on non-curated queries.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-high">high</span>
+              <h3 class="finding-title">"≥2 independent sources" is undefined and a hard research problem</h3>
+              <span class="finding-location">§6.1 EI-2</span>
+            </header>
+            <div class="finding-note">Two outlets citing the same Senate press release are not independent. Wire-syndicated stories (Reuters → PNA republish) are the same source twice. Determining independence requires source-derivation analysis the extractor is not specified to perform.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Define "independent" operationally; require the extractor to record the independence basis; default to "attributed" when independence can't be established.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-high">high</span>
+              <h3 class="finding-title">No rule for tier-1-vs-tier-1 source conflict</h3>
+              <span class="finding-location">§6.1 EI-2, §6.3</span>
+            </header>
+            <div class="finding-note">Under the current rule, each side independently satisfies "fact = tier-1," so two contradictory facts can both be served as established. House vs Senate framing of the Duterte impeachment is core contested material.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Add an explicit rule: when ≥2 tier-1 sources conflict on the same assertion, neither is served as "fact" — both are attributed claims with the conflict visible.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-high">high</span>
+              <h3 class="finding-title">Local-model quality thresholds asserted without evidence; NFR-D-2 may be fiction</h3>
+              <span class="finding-location">§9.7 NFR-D-1/D-2, §9.8 NFR-O-2</span>
+            </header>
+            <div class="finding-note">No cited evidence that Qwen2.5-14B or Llama-3.1-8B can hit groundedness ≥0.95 or answer accuracy >90% on Philippine political/legal English. If only the cloud tier clears the hard gate, "cloud never required" is a polite fiction.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Run a pre-build feasibility check on a pilot corpus slice; if local models can't hit the gates, either lower the gates or acknowledge the cloud tier is required for some tasks.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-high">high</span>
+              <h3 class="finding-title">Substring gate over-presented as "anti-hallucination backstop"</h3>
+              <span class="finding-location">§6.1 EI-6, FR-3.2</span>
+            </header>
+            <div class="finding-note">Substring validation catches fabricated quotes. It does not catch misattribution, wrong-document lift, or context-stripping ("alleged X" → "X"). A reader would reasonably conclude "100% quote-validity" means "no hallucinated content reaches the user," which is false.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Rename EI-6 to "quote-existence validation"; name what it does not catch; add uncaught failure modes to RK.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-high">high</span>
+              <h3 class="finding-title">DPA compliance review deferred but external presentation authorized</h3>
+              <span class="finding-location">§9.4 NFR-L-2, FR-5.5</span>
+            </header>
+            <div class="finding-note">The DPA review is deferred to "beyond the internal period," but external presentation to journalists is authorized within v1. The boundary is undefined; the cyberlibel review does not cover data-privacy posture for presenting aggregated personal data to third parties.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Fold a DPA posture review into the Pre-External Gate, or explicitly classify external presentation as "internal" for DPA purposes and say why.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-medium">medium</span>
+              <h3 class="finding-title">SM-8's "presentation landed" signal rigged toward easy disjunct</h3>
+              <span class="finding-location">§10.3 SM-8</span>
+            </header>
+            <div class="finding-note">"A concrete follow-up request" from a single audience member is a very low bar OR'd with the harder ≥50% spot-verification. The first presentation is graded against placeholder thresholds — the bar is set after the jump.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Make conjunctive for first presentation (both interest and verification), or name the easy disjunct as a minimum-viable-interest signal.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-medium">medium</span>
+              <h3 class="finding-title">"Independent reviewers" independence is aspirational, not structural</h3>
+              <span class="finding-location">§9.8 NFR-O-2, SM-7, D-024</span>
+            </header>
+            <div class="finding-note">"Where feasible" and "at least in part" are hedges. Nothing structurally prevents reviewers from being adjacent to the build team (same org, same funding). "Rotating" addresses bias drift, not capture.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Define "independent"; make at least one reviewer structurally external (contracted, not volunteered); drop "where feasible."</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-medium">medium</span>
+              <h3 class="finding-title">Retraction hook is a stub presented as a v1 feature</h3>
+              <span class="finding-location">FR-5.7, NFR-L-5, DR-6, OQ-10</span>
+            </header>
+            <div class="finding-note">The platform flags, but what it does with a flagged answer is undefined. The legal review that defines behavior hasn't been commissioned. The demo will show something, but that something is not yet designed.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Define v1 retraction behavior fully before demoing it, or remove DR-6 from v1 demo readiness.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-medium">medium</span>
+              <h3 class="finding-title">Determinism gate tests reproducibility, not correctness</h3>
+              <span class="finding-location">§9.8 NFR-O-2, FR-2.4</span>
+            </header>
+            <div class="finding-note">Projection-determinism verifies same inputs → same graph, not that the graph is correct. Reproducibly incorrect passes the gate. A reader could conclude "deterministic = trustworthy," which is false.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Label as rebuildability/reproducibility gate; pair with a correctness metric on the graph (edge precision/recall on a sampled subgraph).</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-medium">medium</span>
+              <h3 class="finding-title">Corpus targets are "indicative" with no floor</h3>
+              <span class="finding-location">§10.3 SM-6</span>
+            </header>
+            <div class="finding-note">No floor below which the demo is cancelled. "Operator confirms actuals" means the targets are vibes with numbers next to them.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Set a hard floor (e.g., "demo does not proceed below N docs / M entities") distinct from the indicative target.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-medium">medium</span>
+              <h3 class="finding-title">Filipino coverage defaulting to English-only is a credibility risk</h3>
+              <span class="finding-location">addendum §Demo targets, OQ-9</span>
+            </header>
+            <div class="finding-note">English-only silence looks like integrity but is a coverage gap to the target audience. A journalist who asks a Filipino-language question and gets "no sourced answer" because the corpus isn't extracted in Filipino will not experience that silence as integrity.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Name the risk in RK; state in DR-4 that v1 is English-only and Filipino coverage is deferred.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-medium">medium</span>
+              <h3 class="finding-title">SM-4a "answer accuracy >90%" has no methodology</h3>
+              <span class="finding-location">§10.1 SM-4a</span>
+            </header>
+            <div class="finding-note">Sample size, sampling frame, correctness rubric, and reviewer independence unspecified. N=5 spot-checks is an anecdote, not a metric.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Specify sample size, sampling frame, correctness rubric, and reviewer independence for SM-4a.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-low">low</span>
+              <h3 class="finding-title">Single-workstation demo has no degraded/offline fallback</h3>
+              <span class="finding-location">NFR-D-1, DR-1…DR-6</span>
+            </header>
+            <div class="finding-note">If Ollama hangs or OOMs on stage, the entire pitch collapses with no fallback. A live demo that dies on stage is worse than no demo.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Add a cached/pre-rendered fallback path; name "demo dies live" as a risk in RK.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-low">low</span>
+              <h3 class="finding-title">Model/version drift not named as a determinism risk</h3>
+              <span class="finding-location">NFR-A-2</span>
+            </header>
+            <div class="finding-note">A model weight update breaks reproducibility even with the same extractor_version string. The PRD asserts determinism without naming that the model is part of the determinism contract.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Name model-weight pinning as part of the determinism guarantee, or acknowledge a model update may require a re-extraction version bump.</div>
+          </article>
+        </div>
+      </details>
+    </section>
+
+    <!-- Editorial integrity review -->
+    <section class="reviewer-section">
+      <details>
+        <summary>
+          <h2>Editorial integrity review</h2>
+          <span class="reviewer-source">review-editorial-integrity.md</span>
+        </summary>
+        <div class="dim-body">
+          <div class="dim-judgment">
+            <p>The editorial-integrity architecture is genuinely strong — citation-or-silence as a code-path absence, the Pre-External Gate, the honest evidence split, and the cyberlibel acknowledgment are better than most products in this space attempt. But two critical definitional gaps — "served assertion" and "independent sources" — make the headline 100% claims enforcement-soft; the substring gate is a quote-integrity check, not a claim-accuracy check; and several binding requirements use undefined terms or structurally unfalsifiable metrics.</p>
+          </div>
+        </div>
+        <div class="findings-list">
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-critical">critical</span>
+              <h3 class="finding-title">"Served assertion" boundary is undefined</h3>
+              <span class="finding-location">§6.1 EI-1, §9.1 NFR-EI-1, §10 SM-1</span>
+            </header>
+            <div class="finding-note">100% citation coverage is answer-level, not assertion-level. Uncited clauses can leak through LLM framing prose. An LLM-generated answer's synthesizing/connective language about a named public figure is the exact failure mode the product exists to prevent.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Define "served assertion" as every declarative clause making a factual/attributed claim; enforce per-clause citation via a post-generation parser; add a CI test for uncited declarative clauses in generated answers.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-critical">critical</span>
+              <h3 class="finding-title">"Independent sources" is undefined — wire-story propagation makes fact threshold gameable</h3>
+              <span class="finding-location">§6.1 EI-2</span>
+            </header>
+            <div class="finding-note">In Philippine media, wire stories propagate across multiple outlets. Without a provenance-de-duplication rule, a single-origin wire allegation republished by multiple outlets gets tagged as established fact — defamation-grade and invisible to the substring gate.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Define independence operationally (distinct original reporting, not republishing the same wire/agency feed); track upstream feed provenance per source; de-duplicate by origin, not outlet count.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-high">high</span>
+              <h3 class="finding-title">Substring validation catches fabricated quotes, not fabricated or mischaracterized claims</h3>
+              <span class="finding-location">§6.1 EI-6, §8 FR-3.2</span>
+            </header>
+            <div class="finding-note">Does not catch: mischaracterization (real quote, wrong framing), unquoted fabrication (paraphrased claim with real citation that doesn't support it), or misattribution (real quote, wrong speaker). The gate is a quote-integrity gate, not a claim-accuracy gate.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Acknowledge EI-6's scope; name uncovered modes; add a misattribution check and a claim-to-passage consistency check to the eval harness.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-high">high</span>
+              <h3 class="finding-title">"Corroboration signal" is undefined in a binding requirement</h3>
+              <span class="finding-location">§6.1 EI-8, §8 FR-5.6, §9.1 NFR-EI-8</span>
+            </header>
+            <div class="finding-note">"Corroboration signal" is not defined. What counts? A second tier-3 source? A tier-2 mentioning the same allegation? Without a definition, the citation-quality floor is a guideline, not a gate.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Define corroboration operationally; add an eval case for a lone tier-3 defamatory allegation with no corroboration.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-high">high</span>
+              <h3 class="finding-title">Refutes-recall denominator is eval-fixture-dependent and potentially unrepresentative</h3>
+              <span class="finding-location">§9.1 NFR-EI-5, §10 SM-4b</span>
+            </header>
+            <div class="finding-note">The denominator is only knowable for the curated fixture, not the live corpus. No minimum fixture size, source-type diversity, or adversarial-case composition is specified. A 70% on an easy fixture is worse than honest silence.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Specify minimum fixture requirements; report fixture composition alongside the metric; add a stretch target on the adversarial subset.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-medium">medium</span>
+              <h3 class="finding-title">Merge-error rate is structurally unfalsifiable as stated</h3>
+              <span class="finding-location">§9.1 NFR-EI-3, §10 SM-3</span>
+            </header>
+            <div class="finding-note">Conservative merging produces few merge errors by construction — you don't make the merges you're unsure about. The ≈0 target is nearly tautological. The real risk (unbounded duplicate rate) is "accepted as the tradeoff" but not bounded.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Measure merge precision/recall on a held-out labeled set; bound the duplicate rate rather than accepting it unboundedly.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-medium">medium</span>
+              <h3 class="finding-title">Retraction interim behavior underspecified</h3>
+              <span class="finding-location">FR-5.7, NFR-L-5, OQ-10</span>
+            </header>
+            <div class="finding-note">Under Philippine cyberlibel, continued surfacing of a retracted allegation (even with a marker) may be republication. The hook detects the problem; the response should be conservative by default.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Default to suppression of retracted defamatory content until the legal-review-defined workflow is in place; the conservative default is suppression, not downgrade.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-medium">medium</span>
+              <h3 class="finding-title">"Where feasible" weakens external independence for the adversarial set</h3>
+              <span class="finding-location">SM-4a, SM-7, RK-14</span>
+            </header>
+            <div class="finding-note">"Where feasible" / "at least in part" are soft qualifiers. If external authorship is infeasible (inconvenient), the adversarial set is self-authored — the exact self-grading bias RK-14 names.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Make external authorship a requirement with a defined fallback gate; specify minimum external portion (e.g., ≥30%).</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-low">low</span>
+              <h3 class="finding-title">Filipino-language model-quality risk understated; no fallback defined</h3>
+              <span class="finding-location">§13.2 OQ-9</span>
+            </header>
+            <div class="finding-note">Local models are not Filipino-specialized. The gate is rigorous in form but may pass without proving real-world extraction quality. If fil fails the gate, the product is English-only — a material coverage gap for a Philippine corpus.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Acknowledge model-quality risk; define fallback (English-only with stated coverage gap disclosed in demo per DR-4).</div>
+          </article>
+        </div>
+      </details>
+    </section>
+
+    <!-- Mechanical notes -->
+    <div class="mechanical">
+      <h3>Mechanical notes</h3>
+      <ul>
+        <li><strong>Assumptions Index roundtrip:</strong> Clean for the PRD body (8 inline <code>[ASSUMPTION]</code> tags indexed in §13.5). One gap: addendum §Demo targets carries inline <code>[ASSUMPTION]</code> tags (addendum lines 79, 92) not indexed in §13.5 — boundary ambiguous since SM-6 cross-references into addendum.</li>
+        <li><strong>ID continuity:</strong> No gaps or duplicates. OQ-3's absence is explained (§13.3: resolved → D-015). All FR, NFR, SM, RK, OQ IDs present and cross-referenced correctly.</li>
+        <li><strong>Glossary drift:</strong> Cosmetic only. "Fact vs. attributed claim" (§6.1 EI-2) vs. "Attributed claim vs. fact" (§14 Glossary) — ordering differs, meaning identical. "Deterministic graph projection" aligns after D-020 correction.</li>
+        <li><strong>UJ protagonist naming:</strong> §7.1 names by role (Intake Operator) — acceptable for internal-tool operator UJ. §7.2 names "Maya Reyes" by person with inline context. Both carry context inline; no floating UJs.</li>
+        <li><strong>Required sections present:</strong> All expected sections present for an internal-first, chain-top PRD at these stakes. No missing required section.</li>
+      </ul>
+    </div>
+
+    <footer class="report-footer">
+      <div class="meta">
+        <span>Rubric: .claude/skills/bmad-prd/assets/prd-validation-checklist.md</span>
+        <span>Generated: 2026-06-21T00:00:00Z</span>
+      </div>
+    </footer>
+  </div>
+</body>
+</html>

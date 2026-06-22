@@ -1,0 +1,290 @@
+sources:
+  - name: Official Gazette
+    source_type: government
+    trust_tier: 1
+    base_url: https://www.gov.ph
+    crawl_strategy: sitemap
+    enabled: true
+    robots_respect: true
+    robots_txt_url: https://www.gov.ph/robots.txt
+    access_status: intermittent
+    access_notes: >-
+      WordPress sitemaps confirmed public earlier, but direct page fetches now
+      return 403/Cloudflare from the IIP environment due to high-traffic
+      throttling or bot detection. Requires polite, low-frequency dry-run from
+      actual IIP host before relying on automation.
+    config:
+      sitemap_urls:
+        - http://www.gov.ph/post.xml
+        - http://www.gov.ph/archive_yearly.xml
+        - http://www.gov.ph/archive_monthly.xml
+        - http://www.gov.ph/taxonomy_category.xml
+      url_filter_regex: (?i)impeachment|sara.?duterte|articles.?of.?impeachment|vice.?president|house.?of.?representatives|senate
+      crawl_delay_sec: 10
+      max_concurrent_requests: 1
+      max_pages_per_run: 200
+      fallback_to_manual: true
+    document_type_hint: press_release|proclamation|official_statement
+    phase: A
+
+  - name: GMA News
+    source_type: media
+    trust_tier: 2
+    base_url: https://www.gmanetwork.com/news
+    crawl_strategy: sitemap
+    enabled: true
+    robots_respect: true
+    robots_txt_url: https://www.gmanetwork.com/robots.txt
+    access_status: ready
+    access_notes: >-
+      Sitemap public; robots.txt explicitly allows general crawlers. Search page
+      is JS-heavy; avoid as primary.
+    config:
+      sitemap_urls:
+        - https://www.gmanetwork.com/news/sitemap-news.xml
+        - https://www.gmanetwork.com/news/news-sections.xml
+      url_filter_regex: (?i)impeachment|sara.?duterte|duterte|vice.?president
+      crawl_delay_sec: 3
+      max_concurrent_requests: 1
+      max_pages_per_run: 1000
+    document_type_hint: news_article
+    phase: A
+
+  - name: Rappler
+    source_type: media
+    trust_tier: 2
+    base_url: https://www.rappler.com
+    crawl_strategy: sitemap
+    enabled: true
+    robots_respect: true
+    robots_txt_url: https://www.rappler.com/robots.txt
+    access_status: ready_with_care
+    access_notes: >-
+      Sitemap public. robots.txt blocks named AI bots (ClaudeBot, GPTBot,
+      PerplexityBot, etc.). Use self-hosted Firecrawl with non-AI-identifying
+      user-agent. Search page is noindex/JS-rendered; use only for operator
+      discovery.
+    config:
+      sitemap_urls:
+        - https://www.rappler.com/post-sitemap.xml
+        - https://www.rappler.com/sitemap_index.xml
+      url_filter_regex: (?i)impeachment|sara.?duterte|duterte|vice.?president
+      crawl_delay_sec: 3
+      max_concurrent_requests: 1
+      max_pages_per_run: 1000
+      user_agent_hint: IIP-Collector/1.0 (private-research; contact: operator@example.com)
+    document_type_hint: news_article
+    phase: A
+
+  - name: Reuters
+    source_type: media
+    trust_tier: 2
+    base_url: https://www.reuters.com
+    crawl_strategy: rss
+    enabled: true
+    robots_respect: true
+    robots_txt_url: https://www.reuters.com/robots.txt
+    access_status: ready
+    access_notes: >-
+      RSS endpoints for Asia-Pacific and world coverage. Mark upstream
+      wire_service=Reuters for independence tracking.
+    config:
+      discover_rss_from:
+        - https://www.reuters.com/world/asia-pacific/
+        - https://www.reuters.com/world/
+      rss_url_candidates:
+        - https://www.reuters.com/world/asia-pacific/rss.xml
+        - https://www.reuters.com/tools/rss
+      url_filter_regex: (?i)philippines|duterte|impeachment
+      crawl_delay_sec: 3
+      max_concurrent_requests: 1
+      max_items_per_run: 200
+    document_type_hint: news_article
+    upstream_feed:
+      wire_service: Reuters
+      original_publisher: Reuters
+    phase: A
+
+  - name: House of Representatives
+    source_type: government
+    trust_tier: 1
+    base_url: https://www.congress.gov.ph
+    crawl_strategy: manual
+    enabled: false
+    robots_respect: true
+    robots_txt_url: https://www.congress.gov.ph/robots.txt
+    access_status: blocked_automation
+    access_notes: >-
+      Cloudflare blocks automated access to press-release pages from the IIP
+      environment. robots.txt blocks named AI bots. No discoverable public PDF
+      repository for impeachment articles/reports found via search. Ingest via
+      manual operator upload from a normal browser.
+    config:
+      manual_upload_enabled: true
+      operator_discovery_sources:
+        - https://www.congress.gov.ph/media/press-releases/
+      sample_document_url: >-
+        https://www.congress.gov.ph/media/press-releases/view/?content=9753&title=House+panel+unanimously+approves+VP+Sara+impeachment+report%2C+articles%3B+elevates+case+to+plenary
+      url_filter_regex: (?i)impeachment|sara.?duterte|articles.?of.?impeachment|vice.?president|hr.?2346|committee.?on.?justice
+      pdf_attachment_priority: true
+    document_type_hint: press_release|transcript|official_document
+    phase: B
+
+  - name: Senate of the Philippines
+    source_type: government
+    trust_tier: 1
+    base_url: https://www.senate.gov.ph
+    crawl_strategy: manual
+    enabled: false
+    robots_respect: true
+    robots_txt_url: https://www.senate.gov.ph/robots.txt
+    access_status: blocked_automation
+    access_notes: >-
+      Current senate.gov.ph is a Cloudflare-protected React/SPA;
+      /media/news-release is blocked. legacy.senate.gov.ph is in maintenance
+      (403). No stable public URL pattern for transcripts or press releases.
+      Ingest via manual operator upload or partnership.
+    config:
+      manual_upload_enabled: true
+      operator_discovery_sources:
+        - https://senate.gov.ph/
+        - https://senate.gov.ph/media/news-release
+      url_filter_regex: (?i)impeachment|sara.?duterte|transcript|hearing|session|committee.?on.?justice|blue.?ribbon
+      pdf_attachment_priority: true
+    document_type_hint: transcript|press_release|official_document
+    phase: B
+
+  - name: Supreme Court of the Philippines
+    source_type: court
+    trust_tier: 1
+    base_url: https://sc.judiciary.gov.ph
+    crawl_strategy: manual
+    enabled: false
+    robots_respect: true
+    robots_txt_url: https://sc.judiciary.gov.ph/robots.txt
+    access_status: pending_recon
+    access_notes: >-
+      robots.txt could not be fetched (connection issue or network-level block
+      from IIP environment). Requires manual recon from a different
+      network/location. Do not enable automated crawl until access status and
+      robots policy are confirmed.
+    config:
+      manual_upload_enabled: true
+      operator_discovery_sources:
+        - https://sc.judiciary.gov.ph/
+        - https://sc.judiciary.gov.ph/category/news/
+        - https://sc.judiciary.gov.ph/decisions/
+      url_filter_regex: (?i)impeachment|sara.?duterte|certiorari|prohibition|temporary.?restraining.?order|tro|en.?banc|order|resolution
+    document_type_hint: court_order|decision|notice
+    phase: B
+
+  - name: Philstar
+    source_type: media
+    trust_tier: 2
+    base_url: https://www.philstar.com
+    crawl_strategy: list_page
+    enabled: false
+    robots_respect: true
+    robots_txt_url: https://www.philstar.com/robots.txt
+    access_status: partially_ready
+    access_notes: >-
+      Search page works but query-based pagination unknown. robots.txt minimal.
+      Likely requires careful rate-limiting. Premium/paywalled articles must be
+      skipped.
+    config:
+      list_page_urls:
+        - https://www.philstar.com/search?query=Sara%20Duterte%20impeachment
+      url_filter_regex: (?i)impeachment|sara.?duterte|duterte|vice.?president
+      crawl_delay_sec: 5
+      max_concurrent_requests: 1
+      max_pages_per_run: 200
+      skip_paywalled: true
+    document_type_hint: news_article
+    phase: C
+
+  - name: ABS-CBN News
+    source_type: media
+    trust_tier: 2
+    base_url: https://news.abs-cbn.com
+    crawl_strategy: manual
+    enabled: false
+    robots_respect: true
+    robots_txt_url: https://news.abs-cbn.com/robots.txt
+    access_status: blocked_automation
+    access_notes: >-
+      robots.txt and search page both return 403. Automated ingestion is not
+      lawful. Use manual operator upload or partnership feed.
+    config:
+      manual_upload_enabled: true
+      url_filter_regex: (?i)impeachment|sara.?duterte|duterte|vice.?president
+      operator_discovery_sources:
+        - https://news.abs-cbn.com/search?q=Sara%20Duterte%20impeachment
+    document_type_hint: news_article
+    phase: C
+
+  - name: Philippine News Agency
+    source_type: media
+    trust_tier: 2
+    base_url: https://www.pna.gov.ph
+    crawl_strategy: manual
+    enabled: false
+    robots_respect: true
+    robots_txt_url: https://www.pna.gov.ph/robots.txt
+    access_status: blocked_automation
+    access_notes: >-
+      robots.txt and direct article fetch both return 403/Cloudflare challenge.
+      Automated ingestion blocked. Ingest PNA content indirectly through
+      syndicated copies on crawlable tier-2 outlets and mark upstream
+      wire_service=PNA. Operator may also manually upload high-value originals.
+    config:
+      manual_upload_enabled: true
+      sample_article_url: https://www.pna.gov.ph/articles/1272927
+      url_filter_regex: (?i)impeachment|sara.?duterte|duterte|vice.?president
+      operator_discovery_sources:
+        - https://www.pna.gov.ph/
+    document_type_hint: news_article
+    upstream_feed:
+      wire_service: PNA
+      original_publisher: PNA
+    phase: C
+
+  - name: Lawphil House Impeachment Rules
+    source_type: government
+    trust_tier: 1
+    base_url: https://lawphil.net
+    crawl_strategy: manual
+    enabled: false
+    robots_respect: true
+    robots_txt_url: https://lawphil.net/robots.txt
+    access_status: ready_for_manual_seed
+    access_notes: >-
+      Static reference document: House impeachment rules mirror. Loads cleanly; no
+      Cloudflare. Creative Commons Attribution-NonCommercial 4.0. Register as a
+      single manual document, not a recurring crawl.
+    config:
+      manual_urls:
+        - https://lawphil.net/congress/house/impeachment_2010.html
+      document_type_hint: reference_document
+      license: CC BY-NC 4.0
+    document_type_hint: reference_document
+    phase: B
+
+common_policies:
+  user_agent_default: IIP-Collector/1.0 (private-research; contact: operator@example.com)
+  ai_bot_user_agents_never_used:
+    - ClaudeBot
+    - GPTBot
+    - PerplexityBot
+    - Google-Extended
+    - anthropic-ai
+    - OAI-SearchBot
+  max_concurrent_requests_per_domain: 1
+  min_crawl_delay_sec: 3
+  no_bypass:
+    - paywalls
+    - logins
+    - captchas
+    - 403 blocks
+    - robots disallow
+  coverage_gap_disclosure: true
+  perplexity_role: operator_discovery_only

@@ -1,0 +1,437 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=1280, initial-scale=1" />
+<title>Impeachment Watch — /chat · Sourced answer + Silence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=Geist:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  /*
+    Governing spine sections:
+      DESIGN.md → Colors, Typography, Layout & Spacing, Components
+        (citation-chip / citation-chip-active, trust-badge-*, source-verb-tag,
+         claim-fact / claim-attributed / claim-dashed, answer-block,
+         answer-block-silence, answer-block-essence, empty-state-*)
+      EXPERIENCE.md → IA (Chat surface), Component Patterns (Chat answer,
+        Citation compound, Claim, Trust badge, Source-verb tag),
+        State Patterns (Empty — no sourced answer, No-prediction response,
+        Error — query timeout, Error — backing service degraded),
+        Voice and Tone (verbatim copy), Key Flows (Flow 1 — Maya, climax)
+      Decision Log → Journey 1 climax verbatim: "No sourced answer found.";
+        essence sentence verbatim; confidential funds query (Maya step 1);
+        "alleged" framing (EI-3); source-verb preservation.
+  */
+
+  :root{
+    --primary:#1E3A5F; --primary-fg:#FFFFFF;
+    --accent:#B8761E; --accent-active:#8F5A12; --accent-fg:#FBF8F2;
+    --base:#FBF8F2; --raised:#FFFFFF; --sunken:#F0EDE6;
+    --border:#E3DED1; --muted:#F0EDE6; --muted-fg:#6B6258;
+    --trust-verified:#2A6B5E; --trust-contradicted:#9B3A2E; --trust-caution:#8F5A12;
+    --claim-fact:#1B1C19; --claim-attributed:#6B6258; --claim-dashed:#736B5E;
+    --defamation-risk:#8B2C1F;
+    --r-sm:3px; --r-md:5px; --r-lg:8px; --r-full:9999px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    font-family:'Geist','Inter',system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+    color:var(--claim-fact); background:#0c0d10; -webkit-font-smoothing:antialiased;
+    font-size:14px; line-height:1.6;
+  }
+  .mono{font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,monospace}
+  .serif{font-family:'Source Serif 4',Georgia,'Times New Roman',serif}
+  .caps{font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase}
+
+  /* Two stacked device frames to show both states */
+  .stack{display:flex;flex-direction:column;align-items:center;gap:28px;padding:24px 0}
+
+  .device{width:960px;background:var(--base);border-radius:10px;
+    box-shadow:0 24px 60px rgba(0,0,0,.45),0 2px 6px rgba(0,0,0,.4);overflow:hidden;
+    border:1px solid #1d1f23}
+  .device .label{background:#15171a;color:#9a918a;text-align:center;padding:5px;font-size:10.5px;
+    letter-spacing:.12em;text-transform:uppercase;font-weight:600}
+
+  .chrome{background:#2b2d31;color:#e8e6e1;display:flex;align-items:center;
+    padding:8px 10px;font-size:12px;gap:8px;border-bottom:1px solid #15171a}
+  .dots{display:flex;gap:6px}
+  .dot{width:11px;height:11px;border-radius:50%;background:#46494f}
+  .dot.r{background:#e0635a} .dot.y{background:#e0a34d} .dot.g{background:#5dba60}
+  .addr{flex:1;background:#15171a;border-radius:6px;padding:5px 10px;color:#c7c4be;
+    font-family:'IBM Plex Mono',monospace;font-size:11.5px;display:flex;align-items:center;gap:8px}
+  .lock{color:#6b6258}
+  .cr-btn{width:14px;height:14px;border-radius:3px;background:#46494f}
+  .chrome-r{display:flex;gap:10px}
+
+  /* App shell — single centered column (max-w-2xl) */
+  .app{display:grid;grid-template-columns:56px 1fr;min-height:560px}
+  .sidebar{width:56px;background:var(--sunken);border-right:1px solid var(--border);
+    display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 0}
+  .nav-item{width:38px;height:38px;border-radius:var(--r-md);display:flex;
+    align-items:center;justify-content:center;color:var(--muted-fg);font-size:14px;text-decoration:none}
+  .nav-item.active{background:var(--primary);color:#fff}
+  .brand-glyph{width:30px;height:30px;border-radius:var(--r-sm);background:var(--primary);
+    color:#fff;display:flex;align-items:center;justify-content:center;font-family:'Source Serif 4',serif;
+    font-weight:600;font-size:15px;margin-bottom:12px}
+
+  .main{display:flex;flex-direction:column;min-width:0}
+  .topbar{display:flex;align-items:center;justify-content:space-between;
+    padding:8px 16px;border-bottom:1px solid var(--border);background:var(--raised);min-height:40px}
+  .essence{font-size:11.5px;color:var(--muted-fg);font-style:italic;
+    font-family:'Source Serif 4',serif}
+  .essence b{color:var(--primary);font-style:normal;font-weight:600}
+  .top-r{display:flex;align-items:center;gap:12px}
+  .case-badge{display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--muted-fg);
+    border:1px solid var(--border);border-radius:var(--r-full);padding:2px 8px;background:var(--sunken)}
+  .case-badge .b-dot{width:6px;height:6px;border-radius:50%;background:var(--accent)}
+
+  /* Chat surface */
+  .chat{flex:1;padding:28px 0 0;display:flex;flex-direction:column;align-items:center}
+  .col{width:640px;max-width:640px}
+  .surface-h{margin-bottom:20px}
+  .surface-h h1{font-family:'Source Serif 4',serif;font-size:26px;font-weight:400;
+    letter-spacing:-.01em;color:var(--claim-fact);margin:0 0 4px}
+  .surface-h p{font-size:13px;color:var(--muted-fg);margin:0}
+
+  .query{background:var(--raised);border:1px solid var(--border);border-radius:var(--r-lg);
+    padding:14px 18px;margin-bottom:28px;box-shadow:0 1px 2px rgba(30,58,95,.04)}
+  .query .q-lbl{color:var(--muted-fg);margin-bottom:6px;display:flex;align-items:center;gap:8px}
+  .query .q-lbl .av{width:18px;height:18px;border-radius:50%;background:var(--primary);
+    color:#fff;font-size:10px;display:flex;align-items:center;justify-content:center;font-weight:600}
+  .query .q-text{font-size:15px;color:var(--claim-fact);line-height:1.5}
+
+  /* Answer block (sourced) */
+  .answer{background:var(--raised);border-left:3px solid var(--primary);
+    border-top:1px solid var(--border);border-right:1px solid var(--border);
+    border-bottom:1px solid var(--border);border-radius:var(--r-md);
+    padding:20px;margin-bottom:14px}
+  .answer-meta{display:flex;align-items:center;justify-content:space-between;
+    margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--border)}
+  .answer-meta .l{display:flex;align-items:center;gap:8px}
+  .answer-meta .l .glyph{width:22px;height:22px;border-radius:var(--r-sm);background:var(--primary);
+    color:#fff;font-family:'Source Serif 4',serif;font-weight:600;font-size:12px;
+    display:flex;align-items:center;justify-content:center}
+  .answer-meta .l .ttl{font-size:12px;color:var(--muted-fg)}
+  .answer-meta .l .ttl b{color:var(--claim-fact);font-weight:600}
+  .answer-meta .r{display:flex;align-items:center;gap:8px}
+  .meta-chip{font-size:10.5px;color:var(--muted-fg);font-family:'IBM Plex Mono',monospace;
+    border:1px solid var(--border);border-radius:var(--r-sm);padding:1px 6px;background:var(--sunken)}
+
+  .answer-body{font-size:15px;line-height:1.65;color:var(--claim-fact)}
+  .answer-body p{margin:0 0 14px}
+
+  /* Claim component — fact vs attributed */
+  .claim{padding:2px 0 2px 12px;margin:4px 0}
+  .claim.fact{color:var(--claim-fact);border-left:3px solid var(--claim-fact)}
+  .claim.attributed{color:var(--claim-attributed);border-left:3px dashed var(--claim-attributed);font-style:italic}
+  .claim.dashed{color:var(--claim-dashed);border-left:3px dashed var(--claim-dashed);
+    text-decoration:line-through}
+
+  /* Citation chip */
+  .chip{display:inline-flex;align-items:center;gap:4px;background:var(--sunken);
+    color:var(--claim-attributed);border:1px solid var(--border);border-radius:var(--r-full);
+    padding:1px 8px;font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;
+    cursor:pointer;vertical-align:baseline;line-height:1.4}
+  .chip sup{font-size:8.5px;opacity:.7}
+  .chip.on{background:var(--accent-active);color:var(--accent-fg);border-color:var(--accent-active)}
+  .chip:hover{border-color:var(--accent)}
+
+  /* Source verb tag */
+  .verb{color:var(--primary);font-size:10px;font-weight:600;letter-spacing:.12em;
+    text-transform:uppercase}
+  .verb.risk{color:var(--defamation-risk)}
+
+  /* Trust badge */
+  .trust{display:inline-flex;align-items:center;gap:4px;font-size:9px;font-weight:600;
+    letter-spacing:.1em;text-transform:uppercase;border-radius:var(--r-sm);padding:1px 5px;color:#fff}
+  .trust.v{background:var(--trust-verified)} .trust.c{background:var(--trust-contradicted)}
+  .trust.k{background:var(--sunken);color:var(--trust-caution);border:1px solid var(--trust-caution)}
+
+  /* Citation sources block */
+  .sources{margin-top:18px;border-top:1px dashed var(--border);padding-top:14px}
+  .sources .sh{color:var(--muted-fg);margin-bottom:10px}
+  .src-row{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:flex-start;
+    padding:8px 0;border-bottom:1px solid var(--border);font-size:12.5px}
+  .src-row:last-child{border-bottom:none}
+  .src-num{font-family:'IBM Plex Mono',monospace;color:var(--muted-fg);font-size:11px;width:18px}
+  .src-body{display:flex;flex-direction:column;gap:4px}
+  .src-title{color:var(--claim-fact);font-weight:500}
+  .src-title .mono{font-size:11.5px;color:var(--muted-fg)}
+  .src-tags{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+  .src-quote{font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--claim-attributed);
+    background:var(--sunken);border:1px solid var(--border);border-radius:var(--r-sm);
+    padding:6px 8px;margin-top:4px;line-height:1.5}
+  .src-link{font-size:11px;color:var(--primary);text-decoration:none}
+  .src-link:hover{text-decoration:underline}
+
+  /* Essence sentence */
+  .essence-line{font-size:13px;color:var(--muted-fg);font-style:italic;
+    font-family:'Source Serif 4',serif;text-align:center;padding:12px 20px 0;line-height:1.45}
+
+  /* Silence state */
+  .silence{background:var(--sunken);border-left:3px solid var(--muted-fg);
+    border-top:1px solid var(--border);border-right:1px solid var(--border);
+    border-bottom:1px solid var(--border);border-radius:var(--r-md);
+    padding:24px 20px;margin-bottom:14px;text-align:left}
+  .silence .h{font-family:'Source Serif 4',serif;font-size:26px;font-weight:400;
+    letter-spacing:-.01em;color:var(--muted-fg);line-height:1.2;margin:0 0 10px}
+  .silence .b{font-size:14px;color:var(--muted-fg);line-height:1.6;max-width:540px}
+  .silence .b b{color:var(--claim-attributed);font-weight:500}
+
+  /* No-prediction variant shown as a third block */
+  .nopred{background:var(--sunken);border-left:3px solid var(--muted-fg);
+    border-top:1px solid var(--border);border-right:1px solid var(--border);
+    border-bottom:1px solid var(--border);border-radius:var(--r-md);
+    padding:20px;margin-bottom:14px}
+  .nopred .h{font-family:'Source Serif 4',serif;font-size:18px;font-weight:400;
+    color:var(--muted-fg);line-height:1.3;margin:0 0 10px}
+  .nopred .raw{font-size:13.5px;color:var(--claim-fact);line-height:1.6}
+
+  /* Input bar (bottom) */
+  .bar{border-top:1px solid var(--border);background:var(--raised);padding:12px 20px;
+    display:flex;align-items:center;gap:10px}
+  .bar .input{flex:1;background:var(--sunken);border:1px solid var(--border);border-radius:var(--r-md);
+    padding:8px 12px;color:var(--muted-fg);font-size:13px}
+  .bar .send{background:var(--primary);color:#fff;border:none;border-radius:var(--r-md);
+    padding:8px 16px;font-size:12px;font-weight:600;letter-spacing:.06em;cursor:pointer}
+
+  .aria-live{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
+</style>
+</head>
+<body>
+<div class="stack">
+
+  <!-- DEVICE 1 — sourced answer -->
+  <div class="device">
+    <div class="label">State A · Sourced answer with inline citation chips</div>
+    <div class="chrome">
+      <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+      <div class="addr"><span class="lock">🔒</span> impeachmentwatch.ph/chat?q=what-allegations-confidential-funds-who-made-them</div>
+      <div class="chrome-r"><div class="cr-btn"></div><div class="cr-btn"></div><div class="cr-btn"></div></div>
+    </div>
+    <div class="app">
+      <aside class="sidebar">
+        <div class="brand-glyph">I</div>
+        <a class="nav-item active" href="#">💬</a>
+        <a class="nav-item" href="#">📄</a>
+        <a class="nav-item" href="#">🕸</a>
+        <a class="nav-item" href="#">🗓</a>
+        <a class="nav-item" href="#">⚖</a>
+        <a class="nav-item" href="#">🏛</a>
+        <a class="nav-item" href="#">📑</a>
+      </aside>
+      <div class="main">
+        <div class="topbar">
+          <div class="essence">Every claim IIP shows you cites a source you can open — or IIP shows you <b>nothing.</b></div>
+          <div class="top-r"><div class="case-badge"><span class="b-dot"></span>Duterte impeachment · v1</div></div>
+        </div>
+
+        <div class="chat">
+          <div class="col">
+            <div class="surface-h">
+              <h1>Chat</h1>
+              <p>Ask a question — every answer cites a source or shows nothing.</p>
+            </div>
+
+            <!-- User query -->
+            <div class="query">
+              <div class="q-lbl"><span class="av">M</span><span class="caps">Maya Reyes · journalist</span></div>
+              <div class="q-text">What allegations have been made about the confidential funds, and who made them?</div>
+            </div>
+
+            <!-- Answer block -->
+            <div class="answer" aria-live="polite">
+              <div class="answer-meta">
+                <div class="l">
+                  <div class="glyph">I</div>
+                  <div class="ttl">IIP · <b>Sourced answer</b> · 4 citations</div>
+                </div>
+                <div class="r">
+                  <span class="meta-chip">p95 · 2.3s</span>
+                  <span class="meta-chip">2026-06-19</span>
+                </div>
+              </div>
+
+              <div class="answer-body">
+                <p>The following allegations concerning the Office of the Vice President's confidential funds have been made on the record:</p>
+
+                <p class="claim attributed">
+                  Rep. France Castro <span class="verb">ALLEGED</span> that the Office of the Vice President disbursed ₱125 million in confidential funds to personnel not authorized under the General Appropriations Act, including members of the Vice President's personal security detail.
+                  <span class="chip on">¹ ALLEGED</span>
+                </p>
+
+                <p class="claim fact">
+                  The Commission on Audit <span class="verb">REPORTED</span> that ₱125 million in confidential funds disbursed in 2022 lacked supporting documentation. The Audit Report is a tier-1 primary record.
+                  <span class="chip">² REPORTED</span>
+                  <span class="trust v" style="margin-left:4px">✓ T1</span>
+                </p>
+
+                <p class="claim attributed">
+                  Sen. Risa Hontiveros <span class="verb">STATED</span> during a Senate Blue Ribbon Committee hearing that the disbursement "bears the hallmarks of misapplication of public funds." She called for the Ombudsman to investigate.
+                  <span class="chip">³ STATED</span>
+                </p>
+
+                <p class="claim fact">
+                  The House of Representatives Committee on Good Government <span class="verb">FILED</span> a committee report recommending the drafting of Articles of Impeachment on the basis of betrayal of public trust, citing the confidential funds disbursement as a central allegation.
+                  <span class="chip">⁴ FILED</span>
+                  <span class="trust v" style="margin-left:4px">✓ T1</span>
+                </p>
+              </div>
+
+              <!-- Sources -->
+              <div class="sources">
+                <div class="caps sh">Sources — 4 citations</div>
+
+                <div class="src-row">
+                  <div class="src-num">¹</div>
+                  <div class="src-body">
+                    <div class="src-title">Rep. France Castro — Affidavit in support of verified complaint <span class="mono">· AKN:castro-aff-2025-10-12#para-7</span></div>
+                    <div class="src-tags">
+                      <span class="verb">ALLEGED</span>
+                      <span class="trust k">◉ TIER 3 · single manual</span>
+                    </div>
+                    <div class="src-quote">"…the Office of the Vice President disbursed ₱125 million in confidential funds to personnel not authorized under the General Appropriations Act…"</div>
+                    <a class="src-link" href="#">View full document →</a>
+                  </div>
+                  <div></div>
+                </div>
+
+                <div class="src-row">
+                  <div class="src-num">²</div>
+                  <div class="src-body">
+                    <div class="src-title">Commission on Audit — Annual Audit Report, OVP, CY 2022 <span class="mono">· COA-AR-2022-OVP</span></div>
+                    <div class="src-tags">
+                      <span class="verb">REPORTED</span>
+                      <span class="trust v">✓ TIER 1 · primary</span>
+                    </div>
+                    <div class="src-quote">"Disbursements totaling ₱125,000,000.00 under Confidential Expenses were not supported by required documents…"</div>
+                    <a class="src-link" href="#">View full document →</a>
+                  </div>
+                  <div></div>
+                </div>
+
+                <div class="src-row">
+                  <div class="src-num">³</div>
+                  <div class="src-body">
+                    <div class="src-title">Senate Blue Ribbon Committee hearing transcript <span class="mono">· SBC-2026-03-14</span></div>
+                    <div class="src-tags">
+                      <span class="verb">STATED</span>
+                      <span class="trust v">✓ TIER 1 · primary</span>
+                    </div>
+                    <div class="src-quote">"…the disbursement bears the hallmarks of misapplication of public funds…"</div>
+                    <a class="src-link" href="#">View full document →</a>
+                  </div>
+                  <div></div>
+                </div>
+
+                <div class="src-row">
+                  <div class="src-num">⁴</div>
+                  <div class="src-body">
+                    <div class="src-title">House Committee on Good Government — Report No. 2025-CG-014 <span class="mono">· HR-CG-014</span></div>
+                    <div class="src-tags">
+                      <span class="verb">FILED</span>
+                      <span class="trust v">✓ TIER 1 · primary</span>
+                    </div>
+                    <div class="src-quote">"…recommends the drafting of Articles of Impeachment for betrayal of public trust…"</div>
+                    <a class="src-link" href="#">View full document →</a>
+                  </div>
+                  <div></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="essence-line">Every claim IIP shows you cites a source you can open — or IIP shows you nothing.</div>
+          </div>
+        </div>
+
+        <div class="bar">
+          <div class="input">Ask another question…</div>
+          <button class="send">ASK</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DEVICE 2 — silence state -->
+  <div class="device">
+    <div class="label">State B · No sourced answer found (silence) + no-prediction honesty</div>
+    <div class="chrome">
+      <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+      <div class="addr"><span class="lock">🔒</span> impeachmentwatch.ph/chat?q=is-the-vice-president-secretly-transferring-funds-to-foreign-accounts</div>
+      <div class="chrome-r"><div class="cr-btn"></div><div class="cr-btn"></div><div class="cr-btn"></div></div>
+    </div>
+    <div class="app">
+      <aside class="sidebar">
+        <div class="brand-glyph">I</div>
+        <a class="nav-item active" href="#">💬</a>
+        <a class="nav-item" href="#">📄</a>
+        <a class="nav-item" href="#">🕸</a>
+        <a class="nav-item" href="#">🗓</a>
+        <a class="nav-item" href="#">⚖</a>
+        <a class="nav-item" href="#">🏛</a>
+        <a class="nav-item" href="#">📑</a>
+      </aside>
+      <div class="main">
+        <div class="topbar">
+          <div class="essence">Every claim IIP shows you cites a source you can open — or IIP shows you <b>nothing.</b></div>
+          <div class="top-r"><div class="case-badge"><span class="b-dot"></span>Duterte impeachment · v1</div></div>
+        </div>
+
+        <div class="chat">
+          <div class="col">
+            <div class="surface-h">
+              <h1>Chat</h1>
+              <p>Ask a question — every answer cites a source or shows nothing.</p>
+            </div>
+
+            <!-- User query (adversarial, unsupportable) -->
+            <div class="query">
+              <div class="q-lbl"><span class="av">M</span><span class="caps">Maya Reyes · journalist</span></div>
+              <div class="q-text">Is the Vice President secretly transferring confidential funds to foreign bank accounts?</div>
+            </div>
+
+            <!-- Silence state -->
+            <div class="silence" aria-live="assertive">
+              <div class="h">No sourced answer found.</div>
+              <div class="b">IIP does not serve assertions it cannot cite. No primary-source or corroborated record in the current corpus supports the specific claim as phrased. The silence is the answer — not a failure of search, and not an implication that the question is wrong.</div>
+            </div>
+
+            <div class="essence-line">Every claim IIP shows you cites a source you can open — or IIP shows you nothing.</div>
+
+            <!-- No-prediction state (separate query, shown for completeness) -->
+            <div style="height:18px"></div>
+            <div class="query" style="margin-bottom:14px">
+              <div class="q-lbl"><span class="av" style="background:var(--accent);color:var(--accent-fg)">R</span><span class="caps">Renz Aquino · analyst</span></div>
+              <div class="q-text">Will Sen. X vote to convict?</div>
+            </div>
+
+            <div class="nopred" aria-live="assertive">
+              <div class="h">IIP does not make predictions.</div>
+              <div class="raw">
+                Here is what is on record:
+                <div style="margin-top:8px">
+                  <p class="claim attributed" style="font-size:13px">Sen. X <span class="verb">STATED</span> on 2026-04-02 that "the evidence must be weighed on its merits." <span class="chip">¹ STATED</span></p>
+                  <p class="claim fact" style="font-size:13px;margin-top:6px">Sen. X <span class="verb">VOTED</span> to concur in the committee report (Roll call 2026-05-20). <span class="chip">² VOTED</span> <span class="trust v" style="margin-left:4px">✓ T1</span></p>
+                  <p class="claim attributed" style="font-size:13px;margin-top:6px">Sen. X is a member of the Senate Blue Ribbon Committee and the Justice and Human Rights Committee.</p>
+                </div>
+                <div style="margin-top:10px;color:var(--muted-fg);font-style:italic;font-size:13px">Draw your own inference.</div>
+              </div>
+            </div>
+
+            <div class="essence-line">Every claim IIP shows you cites a source you can open — or IIP shows you nothing.</div>
+          </div>
+        </div>
+
+        <div class="bar">
+          <div class="input">Ask another question…</div>
+          <button class="send">ASK</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

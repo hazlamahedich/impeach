@@ -1,0 +1,521 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=1280, initial-scale=1" />
+<title>Impeachment Watch — /graph · Trace</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=Geist:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  /*
+    Governing spine sections:
+      DESIGN.md → Colors, Typography, Layout & Spacing, Shapes, Components
+        (graph-node-*, graph-edge-*, timeline-scrubber-*, citation-chip,
+         trust-badge-*, source-verb-tag, senator-card, claim-*)
+      EXPERIENCE.md → IA (Graph surface), Component Patterns (Graph explorer,
+        Timeline scrubber, Citation compound), State Patterns (Focus, Graph
+        capped-rendering, Timeline imprecise date), Interaction Primitives
+        (Graph interactions, Mode switch), Accessibility Floor (Graph a11y,
+        screen reader announcements, keyboard operability)
+      Decision Log → Graph default mode = Trace (centered on respondent,
+        immediate neighbors, persistent temporal scrubber); four modes;
+        Sara Duterte v1 seed case; ochre accent = "you are here" marker.
+  */
+
+  :root{
+    --primary:#1E3A5F; --primary-fg:#FFFFFF;
+    --accent:#B8761E; --accent-active:#8F5A12; --accent-fg:#FBF8F2;
+    --base:#FBF8F2; --raised:#FFFFFF; --sunken:#F0EDE6;
+    --border:#E3DED1; --muted:#F0EDE6; --muted-fg:#6B6258;
+    --trust-verified:#2A6B5E; --trust-contradicted:#9B3A2E; --trust-caution:#8F5A12;
+    --claim-fact:#1B1C19; --claim-attributed:#6B6258; --claim-dashed:#736B5E;
+    --r-sm:3px; --r-md:5px; --r-lg:8px; --r-xl:12px; --r-full:9999px;
+    --shadow-warm: 0 1px 2px rgba(30,58,95,.08), 0 6px 18px rgba(30,58,95,.06);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    font-family:'Geist','Inter',system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+    color:var(--claim-fact); background:#0c0d10; -webkit-font-smoothing:antialiased;
+    font-size:14px; line-height:1.55;
+  }
+  .mono{font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,monospace}
+  .serif{font-family:'Source Serif 4',Georgia,'Times New Roman',serif}
+  .caps{font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase}
+  .skip{position:absolute;left:-9999px}
+  .skip:focus{position:fixed;left:8px;top:8px;background:#fff;padding:8px 12px;border-radius:var(--r-sm);z-index:99}
+
+  /* Browser chrome */
+  .device{width:1280px;margin:24px auto;background:var(--base);border-radius:10px;
+    box-shadow:0 24px 60px rgba(0,0,0,.45), 0 2px 6px rgba(0,0,0,.4); overflow:hidden;
+    border:1px solid #1d1f23}
+  .chrome{background:#2b2d31;color:#e8e6e1;display:flex;align-items:center;
+    padding:8px 10px;font-size:12px;gap:8px;border-bottom:1px solid #15171a}
+  .dots{display:flex;gap:6px}
+  .dot{width:11px;height:11px;border-radius:50%;background:#46494f}
+  .dot.r{background:#e0635a} .dot.y{background:#e0a34d} .dot.g{background:#5dba60}
+  .addr{flex:1;background:#15171a;border-radius:6px;padding:5px 10px;color:#c7c4be;
+    font-family:'IBM Plex Mono',monospace;font-size:11.5px;display:flex;align-items:center;gap:8px}
+  .lock{color:#6b6258}
+  .chrome-r{display:flex;align-items:center;gap:10px;color:#8a827b}
+  .cr-btn{width:14px;height:14px;border-radius:3px;background:#46494f}
+
+  /* App shell */
+  .app{display:grid;grid-template-columns:auto 1fr;min-height:760px}
+  .sidebar{width:56px;background:var(--sunken);border-right:1px solid var(--border);
+    display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 0}
+  .nav-item{width:38px;height:38px;border-radius:var(--r-md);display:flex;
+    align-items:center;justify-content:center;color:var(--muted-fg);font-size:14px;
+    text-decoration:none;position:relative}
+  .nav-item.active{background:var(--primary);color:#fff}
+  .nav-item .tip{position:absolute;left:48px;background:var(--raised);border:1px solid var(--border);
+    padding:4px 8px;border-radius:var(--r-sm);font-size:11px;color:var(--claim-fact);
+    white-space:nowrap;opacity:0;pointer-events:none;box-shadow:var(--shadow-warm)}
+  .nav-item:hover .tip{opacity:1}
+  .sidebar .brand{margin-bottom:12px}
+  .sidebar .brand-glyph{width:30px;height:30px;border-radius:var(--r-sm);background:var(--primary);
+    color:#fff;display:flex;align-items:center;justify-content:center;font-family:'Source Serif 4',serif;
+    font-weight:600;font-size:15px}
+  .sidebar-foot{margin-top:auto}
+
+  /* Main */
+  .main{display:grid;grid-template-rows:auto 1fr auto;min-width:0}
+  .topbar{display:flex;align-items:center;justify-content:space-between;
+    padding:8px 16px;border-bottom:1px solid var(--border);background:var(--raised);min-height:40px}
+  .essence{font-size:11.5px;color:var(--muted-fg);font-style:italic;
+    font-family:'Source Serif 4',serif;letter-spacing:.005em}
+  .essence b{color:var(--primary);font-style:normal;font-weight:600;letter-spacing:.02em}
+  .top-r{display:flex;align-items:center;gap:12px}
+  .cmd{display:flex;align-items:center;gap:6px;background:var(--sunken);border:1px solid var(--border);
+    border-radius:var(--r-md);padding:4px 8px;color:var(--muted-fg);font-size:11.5px;cursor:text}
+  .cmd .kbd{font-family:'IBM Plex Mono',monospace;background:var(--raised);border:1px solid var(--border);
+    border-radius:3px;padding:0 4px;font-size:10px}
+  .toggle{display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--muted-fg)}
+  .toggle .sw{width:28px;height:16px;border-radius:var(--r-full);background:var(--border);position:relative}
+  .toggle .sw::after{content:"";position:absolute;left:2px;top:2px;width:12px;height:12px;
+    border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.2)}
+  .case-badge{display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--muted-fg);
+    border:1px solid var(--border);border-radius:var(--r-full);padding:2px 8px;background:var(--sunken)}
+  .case-badge .b-dot{width:6px;height:6px;border-radius:50%;background:var(--accent)}
+
+  /* Graph surface */
+  .graph{display:grid;grid-template-columns:320px 1fr;min-height:640px;position:relative}
+  .panel{background:var(--raised);border-right:1px solid var(--border);overflow-y:auto;
+    display:flex;flex-direction:column}
+  .panel-sec{padding:14px 16px;border-bottom:1px solid var(--border)}
+  .panel-sec:last-child{border-bottom:none}
+  .panel-h{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+  .panel-h .lbl{color:var(--muted-fg)}
+  .panel-h .act{font-size:10.5px;color:var(--accent-active);letter-spacing:.08em}
+
+  /* Mode tabs */
+  .modes{display:grid;grid-template-columns:repeat(4,1fr);gap:2px;background:var(--sunken);
+    border:1px solid var(--border);border-radius:var(--r-md);padding:2px}
+  .mode{padding:6px 4px;text-align:center;font-size:10.5px;font-weight:600;letter-spacing:.06em;
+    text-transform:uppercase;color:var(--muted-fg);border-radius:var(--r-sm);cursor:pointer}
+  .mode.on{background:var(--primary);color:#fff}
+  .mode:not(.on):hover{color:var(--primary)}
+
+  /* Selected node context */
+  .node-ctx{display:flex;flex-direction:column;gap:10px}
+  .node-ctx .kind{display:inline-flex;align-items:center;gap:6px}
+  .kind-dot{width:9px;height:9px;border-radius:50%;border:2px solid var(--accent);background:var(--accent)}
+  .node-ctx h2{font-family:'Source Serif 4',serif;font-size:22px;font-weight:600;line-height:1.2;
+    color:var(--claim-fact);margin:0}
+  .node-ctx .role{font-size:12.5px;color:var(--muted-fg)}
+  .claim-box{border-left:3px dashed var(--claim-attributed);padding:6px 0 6px 10px;
+    color:var(--claim-attributed);font-style:italic;font-size:13px;line-height:1.5}
+  .ctx-cites{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:6px}
+
+  /* Citation chip */
+  .chip{display:inline-flex;align-items:center;gap:5px;background:var(--sunken);
+    color:var(--claim-attributed);border:1px solid var(--border);border-radius:var(--r-full);
+    padding:2px 9px;font-size:10.5px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;
+    cursor:pointer}
+  .chip sup{font-size:9px;opacity:.7}
+  .chip.on{background:var(--accent-active);color:var(--accent-fg);border-color:var(--accent-active)}
+  .chip.on sup{opacity:.85}
+  .chip:hover{border-color:var(--accent)}
+
+  /* Source verb tag */
+  .verb{color:var(--primary);font-size:10px;font-weight:600;letter-spacing:.12em;
+    text-transform:uppercase;font-family:'Geist',sans-serif;background:transparent;border:none}
+  .verb.risk{color:var(--trust-caution)}
+
+  /* Trust badge */
+  .trust{display:inline-flex;align-items:center;gap:5px;font-size:9.5px;font-weight:600;
+    letter-spacing:.1em;text-transform:uppercase;border-radius:var(--r-sm);padding:2px 6px;color:#fff}
+  .trust.v{background:var(--trust-verified)} .trust.c{background:var(--trust-contradicted)}
+  .trust.k{background:var(--sunken);color:var(--trust-caution);border:1px solid var(--trust-caution)}
+  .trust svg{width:11px;height:11px}
+
+  /* Filters */
+  .filter-row{display:flex;flex-direction:column;gap:7px;margin-top:4px}
+  .fchk{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--claim-fact);cursor:pointer}
+  .fchk .swatch{width:12px;height:12px;border-radius:3px;flex-shrink:0}
+  .fchk .swatch.p{border-radius:50%;background:var(--primary);border:2px solid var(--primary)}
+  .fchk .swatch.r{border-radius:50%;background:var(--accent);border:2px solid var(--accent)}
+  .fchk .swatch.d{background:var(--sunken);border:1px solid var(--border);border-radius:var(--r-md)}
+  .fchk .swatch.c{background:var(--raised);border:1px solid var(--claim-attributed);border-radius:var(--r-sm)}
+  .fchk .swatch.e{background:var(--trust-verified);border-radius:var(--r-sm);border:1px solid var(--trust-verified)}
+  .fchk .box{width:13px;height:13px;border:1.5px solid var(--border);border-radius:3px;background:#fff}
+  .fchk.on .box{background:var(--primary);border-color:var(--primary);position:relative}
+  .fchk.on .box::after{content:"";position:absolute;left:3px;top:0px;width:4px;height:8px;
+    border-right:1.5px solid #fff;border-bottom:1.5px solid #fff;transform:rotate(45deg)}
+  .fchk .count{margin-left:auto;color:var(--muted-fg);font-size:11px;font-family:'IBM Plex Mono',monospace}
+  .filter-sub{font-size:10.5px;color:var(--muted-fg);letter-spacing:.06em;text-transform:uppercase;
+    margin:8px 0 4px}
+
+  /* Canvas */
+  .canvas{position:relative;background:var(--base);overflow:hidden;
+    background-image:radial-gradient(circle at 1px 1px, rgba(107,98,88,.12) 1px, transparent 0);
+    background-size:22px 22px}
+  .canvas-ann{position:absolute;top:10px;left:50%;transform:translateX(-50%);
+    background:var(--raised);border:1px solid var(--border);border-radius:var(--r-full);
+    padding:3px 10px;font-size:11px;color:var(--muted-fg);display:flex;gap:8px;align-items:center}
+  .canvas-ann .b-dot{width:6px;height:6px;border-radius:50%;background:var(--accent)}
+  .list-link{position:absolute;bottom:10px;right:12px;font-size:11px;color:var(--primary);
+    background:var(--raised);border:1px solid var(--border);border-radius:var(--r-sm);
+    padding:3px 8px;text-decoration:none}
+  .list-link:hover{border-color:var(--primary)}
+  .cap-banner{position:absolute;top:44px;left:50%;transform:translateX(-50%);
+    background:var(--raised);border:1px solid var(--border);border-radius:var(--r-md);
+    padding:5px 10px;font-size:11px;color:var(--muted-fg);max-width:320px;text-align:center}
+
+  /* SVG edges */
+  .edges{position:absolute;inset:0;pointer-events:none}
+  .edges line{transition:opacity .2s}
+  .edges .e-def{stroke:var(--muted-fg);stroke-width:1}
+  .edges .e-sup{stroke:var(--trust-verified);stroke-width:1.5}
+  .edges .e-att{stroke:var(--trust-contradicted);stroke-width:1.5;stroke-dasharray:4 3}
+  .edges .e-pre{stroke:var(--primary);stroke-width:2}
+  .edges .e-faded{stroke:var(--border);opacity:.4;stroke-width:1;stroke-dasharray:none}
+  .edge-l{font-family:'IBM Plex Mono',monospace;font-size:9.5px;fill:var(--muted-fg);
+    letter-spacing:.04em;text-transform:uppercase}
+
+  /* Nodes */
+  .nd{position:absolute;transform:translate(-50%,-50%);display:flex;flex-direction:column;
+    align-items:center;gap:4px;cursor:pointer}
+  .nd .disc{display:flex;align-items:center;justify-content:center;color:#fff;text-align:center;
+    font-size:11px;font-weight:600;line-height:1.1;box-shadow:0 1px 3px rgba(30,58,95,.12)}
+  .nd.person .disc{width:52px;height:52px;border-radius:50%;background:var(--primary);
+    border:2px solid var(--primary)}
+  .nd.respondent .disc{width:74px;height:74px;border-radius:50%;background:var(--accent);
+    border:3px solid var(--accent);color:var(--accent-fg);font-size:12px}
+  .nd.doc .disc{width:60px;height:42px;border-radius:var(--r-md);background:var(--sunken);
+    border:1px solid var(--border);color:var(--muted-fg)}
+  .nd.claim .disc{width:54px;height:38px;border-radius:var(--r-sm);background:var(--raised);
+    border:1px solid var(--claim-attributed);color:var(--claim-attributed);font-size:10px;
+    font-style:italic;padding:4px}
+  .nd.evidence .disc{width:46px;height:32px;border-radius:var(--r-sm);background:var(--trust-verified);
+    border:1px solid var(--trust-verified);color:#fff;font-size:9.5px}
+  .nd.sel .disc{border:3px solid var(--accent);box-shadow:0 0 0 3px rgba(184,118,30,.18),var(--shadow-warm)}
+  .nd .lab{font-size:11px;color:var(--claim-fact);background:rgba(251,248,242,.92);
+    padding:1px 6px;border-radius:var(--r-sm);white-space:nowrap;font-weight:500;
+    border:1px solid var(--border)}
+  .nd.respondent .lab{font-weight:600}
+  .nd .sub{font-size:9.5px;color:var(--muted-fg);font-family:'IBM Plex Mono',monospace}
+
+  /* Legend */
+  .legend{position:absolute;bottom:14px;left:14px;background:var(--raised);border:1px solid var(--border);
+    border-radius:var(--r-md);padding:8px 10px;font-size:10.5px;display:flex;flex-direction:column;gap:5px}
+  .legend .lg-row{display:flex;align-items:center;gap:7px;color:var(--muted-fg)}
+  .legend .lg-sw{width:14px;height:10px;flex-shrink:0;border-radius:2px}
+  .legend .lg-sw.p{border-radius:50%;width:10px;height:10px;background:var(--primary)}
+  .legend .lg-sw.r{border-radius:50%;width:10px;height:10px;background:var(--accent)}
+  .legend .lg-sw.d{background:var(--sunken);border:1px solid var(--border)}
+  .legend .lg-sw.c{background:var(--raised);border:1px solid var(--claim-attributed)}
+  .legend .lg-sw.e{background:var(--trust-verified)}
+  .legend .lg-line{width:16px;height:0;border-top-width:2px}
+  .legend .lg-line.sup{border-top:1.5px solid var(--trust-verified)}
+  .legend .lg-line.att{border-top:1.5px dashed var(--trust-contradicted)}
+  .legend .lg-line.pre{border-top:2px solid var(--primary)}
+  .legend .lg-line.faded{border-top:1px solid var(--border);opacity:.6}
+
+  /* Scrubber */
+  .scrubber{border-top:1px solid var(--border);background:var(--raised);padding:8px 16px 10px}
+  .scr-h{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+  .scr-h .l{font-size:11px;color:var(--muted-fg);letter-spacing:.08em;text-transform:uppercase}
+  .scr-h .r{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted-fg)}
+  .scr-h .r b{color:var(--primary);font-weight:500}
+  .track{position:relative;height:34px;margin:0 8px}
+  .track-bg{position:absolute;top:14px;left:0;right:0;height:6px;background:var(--sunken);
+    border-radius:var(--r-full)}
+  .win{position:absolute;top:12px;height:10px;background:var(--accent);opacity:.15;border-radius:var(--r-full)}
+  .handle{position:absolute;top:8px;width:14px;height:14px;border-radius:50%;background:var(--accent);
+    border:2px solid var(--raised);box-shadow:0 1px 3px rgba(0,0,0,.2);transform:translateX(-50%);cursor:grab}
+  .marker{position:absolute;top:13px;width:8px;height:8px;border-radius:50%;background:var(--primary);
+    transform:translateX(-50%)}
+  .marker.beat{background:var(--accent);box-shadow:0 0 0 3px rgba(184,118,30,.18)}
+  .marker-l{position:absolute;top:24px;transform:translateX(-50%);font-family:'IBM Plex Mono',monospace;
+    font-size:9px;color:var(--muted-fg);white-space:nowrap}
+  .marker-l.beat{color:var(--accent-active);font-weight:500}
+  .axis-l{position:absolute;bottom:-2px;transform:translateX(-50%);font-family:'IBM Plex Mono',monospace;
+    font-size:9px;color:var(--muted-fg)}
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to main content</a>
+<div class="device">
+  <!-- Browser chrome -->
+  <div class="chrome">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="addr"><span class="lock">🔒</span> impeachmentwatch.ph/graph?seed=respondent&amp;mode=trace&amp;active=claim-cf-allegation&amp;from=2025-10&amp;to=2026-09</div>
+    <div class="chrome-r"><div class="cr-btn"></div><div class="cr-btn"></div><div class="cr-btn"></div></div>
+  </div>
+
+  <div class="app">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="brand"><div class="brand-glyph">I</div></div>
+      <a class="nav-item" href="#">💬<span class="tip">Chat · /chat</span></a>
+      <a class="nav-item" href="#">📄<span class="tip">Claim · /claim/[id]</span></a>
+      <a class="nav-item active" href="#">🕸<span class="tip">Graph · /graph</span></a>
+      <a class="nav-item" href="#">🗓<span class="tip">Timeline · /timeline</span></a>
+      <a class="nav-item" href="#">⚖<span class="tip">Evidence · /evidence/compare</span></a>
+      <a class="nav-item" href="#">🏛<span class="tip">Senators · /senators/[id]</span></a>
+      <a class="nav-item" href="#">📑<span class="tip">Documents · /documents/[id]</span></a>
+      <div class="sidebar-foot">
+        <div class="nav-item" href="#">⚙<span class="tip">Operator (internal)</span></div>
+      </div>
+    </aside>
+
+    <main id="main" class="main">
+      <!-- Top bar -->
+      <div class="topbar">
+        <div class="essence">Every claim IIP shows you cites a source you can open — or IIP shows you <b>nothing.</b></div>
+        <div class="top-r">
+          <div class="case-badge"><span class="b-dot"></span>Duterte impeachment · v1</div>
+          <div class="cmd">Search or ask…<span class="kbd">⌘K</span></div>
+          <div class="toggle">Dark <span class="sw"></span></div>
+        </div>
+      </div>
+
+      <!-- Graph surface -->
+      <div class="graph">
+        <!-- Side panel -->
+        <aside class="panel" aria-label="Graph controls and selected node context">
+          <div class="panel-sec">
+            <div class="panel-h"><span class="caps lbl">Graph mode</span></div>
+            <div class="modes">
+              <div class="mode on">Trace</div>
+              <div class="mode">Explore</div>
+              <div class="mode">Query</div>
+              <div class="mode">Temporal</div>
+            </div>
+          </div>
+
+          <div class="panel-sec">
+            <div class="panel-h"><span class="caps lbl">Selected node</span><span class="caps act">?active=</span></div>
+            <div class="node-ctx">
+              <div class="kind"><span class="kind-dot"></span><span class="caps" style="color:var(--accent-active)">Claim · attributed</span></div>
+              <h2>Confidential funds were diverted to personal security staff</h2>
+              <div class="role">Allegation · attributed to Rep. France Castro</div>
+
+              <div class="claim-box">"…the Office of the Vice President disbursed ₱125 million in confidential funds to personnel not authorized under the General Appropriations Act, including members of the Vice President's personal security detail."</div>
+
+              <div class="ctx-cites">
+                <span class="chip on">¹ ALLEGED<sup> Castro</sup></span>
+                <span class="trust v" title="tier-1 primary">✓ TIER&nbsp;1</span>
+                <span class="verb">ALLEGED</span>
+              </div>
+              <div class="ctx-cites" style="margin-top:4px">
+                <span class="chip">² FILED<sup> COA&nbsp;AUDIT</sup></span>
+                <span class="trust k" title="tier-3 / single manual">◉ TIER&nbsp;3</span>
+                <span class="verb">FILED</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel-sec">
+            <div class="panel-h"><span class="caps lbl">Filters</span><span class="caps act">?filters=</span></div>
+
+            <div class="filter-sub">Entity type</div>
+            <div class="filter-row">
+              <label class="fchk on"><span class="box"></span><span class="swatch p"></span>Person<span class="count">5</span></label>
+              <label class="fchk on"><span class="box"></span><span class="swatch r"></span>Respondent<span class="count">1</span></label>
+              <label class="fchk on"><span class="box"></span><span class="swatch d"></span>Document<span class="count">3</span></label>
+              <label class="fchk on"><span class="box"></span><span class="swatch c"></span>Claim<span class="count">2</span></label>
+              <label class="fchk"><span class="box"></span><span class="swatch e"></span>Evidence<span class="count">2</span></label>
+            </div>
+
+            <div class="filter-sub">Relationship</div>
+            <div class="filter-row">
+              <label class="fchk on"><span class="box"></span><svg width="16" height="2"><line x1="0" y1="1" x2="16" y2="1" stroke="#2A6B5E" stroke-width="1.5"/></svg>Support</label>
+              <label class="fchk on"><span class="box"></span><svg width="16" height="2"><line x1="0" y1="1" x2="16" y2="1" stroke="#9B3A2E" stroke-width="1.5" stroke-dasharray="4 3"/></svg>Attack</label>
+              <label class="fchk on"><span class="box"></span><svg width="16" height="2"><line x1="0" y1="1" x2="16" y2="1" stroke="#1E3A5F" stroke-width="2"/></svg>Premise</label>
+            </div>
+
+            <div class="filter-sub">Trust tier</div>
+            <div class="filter-row">
+              <label class="fchk on"><span class="box"></span><span class="trust v" style="padding:1px 4px;font-size:8.5px">✓ T1</span>Tier&nbsp;1 (primary)<span class="count">4</span></label>
+              <label class="fchk on"><span class="box"></span><span class="trust k" style="padding:1px 4px;font-size:8.5px">◉ T3</span>Tier&nbsp;3 (caution)<span class="count">2</span></label>
+            </div>
+          </div>
+
+          <div class="panel-sec">
+            <div class="panel-h"><span class="caps lbl">Neighbors</span></div>
+            <div style="font-size:12px;color:var(--claim-fact);line-height:1.5">
+              9 nodes · 14 edges visible. Hop depth: 1 (Trace default). <a href="#" style="color:var(--primary)">Expand one hop</a> — capped at NFR-P-3.
+            </div>
+          </div>
+        </aside>
+
+        <!-- Canvas -->
+        <div class="canvas" role="application" aria-label="Graph, Trace mode, centered on respondent Sara Duterte, 9 neighbors visible. Selected: claim cf-allegation.">
+          <div class="canvas-ann"><span class="b-dot"></span>Trace · centered on <b style="color:var(--primary)">Sara Duterte</b> (respondent)</div>
+
+          <div class="cap-banner">Showing immediate neighbors. Explore mode for further expansion.</div>
+
+          <!-- Edges -->
+          <svg class="edges" width="100%" height="100%" viewBox="0 0 900 600" preserveAspectRatio="none">
+            <!-- respondent <-> castro (person, premise) -->
+            <line class="e-pre" x1="450" y1="300" x2="210" y2="150"/>
+            <!-- respondent <-> claim (premise) -->
+            <line class="e-pre" x1="450" y1="300" x2="650" y2="170"/>
+            <!-- claim <-> evidence1 (support) -->
+            <line class="e-sup" x1="650" y1="170" x2="790" y2="290"/>
+            <!-- claim <-> evidence2 (support) -->
+            <line class="e-sup" x1="650" y1="170" x2="770" y2="420"/>
+            <!-- castro <-> claim (support — alleged) -->
+            <line class="e-sup" x1="210" y1="150" x2="650" y2="170"/>
+            <!-- hontiveros <-> claim (attack) -->
+            <line class="e-att" x1="250" y1="450" x2="650" y2="170"/>
+            <!-- respondent <-> hontiveros -->
+            <line class="e-def" x1="450" y1="300" x2="250" y2="450"/>
+            <!-- respondent <-> aquino (senator) -->
+            <line class="e-def" x1="450" y1="300" x2="150" y2="320"/>
+            <!-- aquino <-> claim (attack) -->
+            <line class="e-att" x1="150" y1="320" x2="650" y2="170"/>
+            <!-- respondent <-> COA doc -->
+            <line class="e-def" x1="450" y1="300" x2="470" y2="500"/>
+            <!-- COA doc <-> evidence2 (premise) -->
+            <line class="e-pre" x1="470" y1="500" x2="770" y2="420"/>
+            <!-- respondent <-> house-res (person) faded (outside window) -->
+            <line class="e-faded" x1="450" y1="300" x2="330" y2="80"/>
+            <!-- house-res <-> castro (support) faded -->
+            <line class="e-faded" x1="330" y1="80" x2="210" y2="150"/>
+
+            <!-- edge labels -->
+            <text class="edge-l" x="335" y="218">FILED</text>
+            <text class="edge-l" x="540" y="228" fill="#6B6258">ALLEGED</text>
+            <text class="edge-l" x="715" y="225" fill="#2A6B5E">SUPPORTS</text>
+            <text class="edge-l" x="705" y="298" fill="#2A6B5E">SUPPORTS</text>
+            <text class="edge-l" x="445" y="305" fill="#9B3A2E">ATTACKS</text>
+            <text class="edge-l" x="390" y="410" fill="#6B6258">VOTED_AGAINST</text>
+            <text class="edge-l" x="395" y="400" fill="#9B3A2E">ATTACKS</text>
+            <text class="edge-l" x="465" y="405">CITED_IN</text>
+            <text class="edge-l" x="605" y="465" fill="#1E3A5F">PREMISE</text>
+          </svg>
+
+          <!-- Nodes -->
+          <div class="nd respondent" style="left:50%;top:50%">
+            <div class="disc">Sara<br/>Duterte</div>
+            <div class="lab">Sara Duterte</div>
+            <div class="sub">RESPONDENT · VP</div>
+          </div>
+
+          <div class="nd person" style="left:23%;top:25%">
+            <div class="disc">FC</div>
+            <div class="lab">Rep. France Castro</div>
+            <div class="sub">PERSON · HOUSE</div>
+          </div>
+
+          <div class="nd claim sel" style="left:72%;top:28%">
+            <div class="disc">CF<br/>diversion</div>
+            <div class="lab">CF diversion allegation</div>
+            <div class="sub">CLAIM · ATTRIBUTED</div>
+          </div>
+
+          <div class="nd evidence" style="left:88%;top:48%">
+            <div class="disc">COA<br/>SARO</div>
+            <div class="lab">COA SARO 2023</div>
+            <div class="sub">EVIDENCE · T1</div>
+          </div>
+
+          <div class="nd evidence" style="left:86%;top:70%">
+            <div class="disc">Bank<br/>cert</div>
+            <div class="lab">DBP bank cert.</div>
+            <div class="sub">EVIDENCE · T1</div>
+          </div>
+
+          <div class="nd person" style="left:28%;top:75%">
+            <div class="disc">RH</div>
+            <div class="lab">Sen. Risa Hontiveros</div>
+            <div class="sub">PERSON · SENATOR</div>
+          </div>
+
+          <div class="nd person" style="left:17%;top:53%">
+            <div class="disc">PA</div>
+            <div class="lab">Sen. Ping Aquino</div>
+            <div class="sub">PERSON · SENATOR</div>
+          </div>
+
+          <div class="nd doc" style="left:52%;top:83%">
+            <div class="disc">COA<br/>Audit<br/>Rep.</div>
+            <div class="lab">COA Audit Report</div>
+            <div class="sub">DOC · G.R.-REF</div>
+          </div>
+
+          <div class="nd person" style="left:37%;top:13%;opacity:.5">
+            <div class="disc" style="border:2px solid var(--border);background:var(--sunken);color:var(--muted-fg)">HR</div>
+            <div class="lab" style="color:var(--muted-fg)">Rep. House Res.</div>
+            <div class="sub">FADED · OUT&nbsp;OF&nbsp;WINDOW</div>
+          </div>
+
+          <!-- Legend -->
+          <div class="legend" aria-hidden="true">
+            <div class="lg-row"><span class="lg-sw p"></span>Person</div>
+            <div class="lg-row"><span class="lg-sw r"></span>Respondent</div>
+            <div class="lg-row"><span class="lg-sw d"></span>Document</div>
+            <div class="lg-row"><span class="lg-sw c"></span>Claim (attributed)</div>
+            <div class="lg-row"><span class="lg-sw e"></span>Evidence</div>
+            <div class="lg-row"><span class="lg-line sup"></span>Support (AIF)</div>
+            <div class="lg-row"><span class="lg-line att"></span>Attack (AIF, dashed)</div>
+            <div class="lg-row"><span class="lg-line pre"></span>Premise (AIF, bold)</div>
+            <div class="lg-row"><span class="lg-line faded"></span>Faded (outside window)</div>
+          </div>
+
+          <a class="list-link" href="#">View as list (a11y)</a>
+        </div>
+      </div>
+
+      <!-- Temporal scrubber -->
+      <div class="scrubber" aria-label="Temporal scrubber. Window: October 2025 to September 2026.">
+        <div class="scr-h">
+          <span class="caps l">Temporal window</span>
+          <span class="r"><b>Oct 2025</b> — <b>Sep 2026</b> · date_precision: month</span>
+        </div>
+        <div class="track">
+          <div class="track-bg"></div>
+          <div class="win" style="left:34%;right:6%"></div>
+          <div class="handle" style="left:34%" aria-label="from handle"></div>
+          <div class="handle" style="left:94%" aria-label="to handle"></div>
+
+          <!-- narrative beat markers -->
+          <div class="marker beat" style="left:38%" title="Filed"></div>
+          <div class="marker-l beat" style="left:38%">FILED</div>
+          <div class="marker beat" style="left:48%" title="Endorsement threshold"></div>
+          <div class="marker-l beat" style="left:48%">ENDORSE</div>
+          <div class="marker" style="left:58%" title="Sufficiency tests"></div>
+          <div class="marker-l" style="left:58%">SUFFICIENCY</div>
+          <div class="marker" style="left:70%" title="Service on Senate"></div>
+          <div class="marker-l" style="left:70%">SERVICE</div>
+          <div class="marker" style="left:82%" title="Swearing-in"></div>
+          <div class="marker-l" style="left:82%">OATH</div>
+
+          <!-- axis -->
+          <div class="axis-l" style="left:2%">Jul&nbsp;2025</div>
+          <div class="axis-l" style="left:20%">Oct&nbsp;2025</div>
+          <div class="axis-l" style="left:40%">Jan&nbsp;2026</div>
+          <div class="axis-l" style="left:60%">Apr&nbsp;2026</div>
+          <div class="axis-l" style="left:80%">Jul&nbsp;2026</div>
+          <div class="axis-l" style="left:98%">Oct&nbsp;2026</div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+</body>
+</html>

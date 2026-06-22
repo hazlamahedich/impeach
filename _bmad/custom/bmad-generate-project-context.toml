@@ -1,0 +1,11 @@
+# Graphify integration override for bmad-generate-project-context
+# This file is merged with the skill's customize.toml by BMad on activation.
+
+[workflow]
+
+persistent_facts = [
+  "file:{project-root}/_bmad/custom/graphify-integration.md",
+  "file:{project-root}/graphify-out/GRAPH_REPORT.md",
+  "file:{project-root}/graphify-out/graph.json",
+  "A graphify knowledge graph exists at {project-root}/graphify-out/. Treat GRAPH_REPORT.md as a pre-condensed map of the project: include god nodes, community summaries, and surprising connections in the generated project-context.md.",
+]
