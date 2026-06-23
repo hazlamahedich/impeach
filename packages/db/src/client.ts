@@ -45,7 +45,7 @@ function validateAgeSearchPath(connectionUrl: string): void {
  * @rules AC-1
  * @adr ADR-002
  */
-export function createDb(connectionUrl: string, opts?: PoolOptions): DbHandle {
+export function createDb(connectionUrl: string, opts?: Partial<PoolOptions>): DbHandle {
   if (!connectionUrl.startsWith('postgres://') && !connectionUrl.startsWith('postgresql://')) {
     throw new Error('createDb expects a postgres:// or postgresql:// URL');
   }

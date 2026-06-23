@@ -161,6 +161,53 @@ Two facts forced this ADR:
 | 2 | Should the Kùzu/networkx analytics sidecar be a v1 or v1.x deliverable? | Architect/PM | When centrality algorithms become a product requirement |
 | 3 | Is a graph-aware replication check needed beyond standard PG streaming replication? | Architect | Pre-PD-3 launch gate (VAL-7) |
 
+## RC0 Risk Acceptance and GA Upgrade Plan
+
+> **Added 2026-06-23** per Foundation Action Plan B-13 (Party Mode adversarial
+> review). Documents the accepted risk of running a release candidate in the
+> production path and defines the GA upgrade response.
+
+### Risk Accepted
+
+IIP accepts the risk of running Apache AGE `PG16/v1.6.0-rc0` (release
+candidate, not GA) as the graph layer of a defamation-grade platform. This
+decision is forced: AGE has **no GA release** — every upstream artifact is
+an `-rc0`. The only valid PG16 artifact is `PG16/v1.6.0-rc0` (commit
+`2db2f060a0c2d66c0683d6cf1e2a9af40a0c5f87`, 04 Sep 2024). There is no
+alternative.
+
+### GA Upgrade Triggers
+
+When any of the following occurs, the upgrade owner must evaluate and
+file a superseding ADR within **5 business days**:
+
+| Trigger | Response | Severity |
+|---------|----------|----------|
+| AGE 1.6.0 **GA** released for PG16 | Evaluate stability; pin to GA tag; rebuild image; run full integration suite | High |
+| AGE 1.6.0 **GA** released but **not** for PG16 | Stay on rc0; document in ADR; evaluate PG18 migration path | Medium |
+| CVE or security advisory affecting AGE 1.6.0-rc0 | Evaluate patch availability; if patch exists only in newer rc, upgrade; file ADR same day | Critical |
+| AGE 1.7.0+ adds RLS support for graph tables | Evaluate PG17+ migration (currently blocked — AGE 1.6.0-rc0 lacks RLS) | Medium |
+| Breaking Cypher semantics change between rc tags | Pin current behavior; document divergence; file ADR | High |
+
+### Upgrade Owner
+
+**Winston (Architect)** is the named upgrade owner. If unavailable, the
+**Tech Lead** inherits. The owner is responsible for:
+1. Monitoring `github.com/apache/age/releases` monthly
+2. Triage of breaking changes against IIP's Cypher usage
+3. Filing superseding ADRs when triggers fire
+4. Coordinating image rebuild + integration test validation
+
+### Upgrade Procedure (when triggered)
+
+1. Pin the new AGE tag/commit SHA in `infra/docker/Dockerfile.pg16-age-vector`
+2. Rebuild the custom Docker image
+3. Run `pnpm test:integration` — all 9+ tests must pass
+4. Run the AGE boot migration ordering test (`tests/contract/age-boot-ordering.test.ts`)
+5. Verify graph projection determinism (FR-2.4 — when implemented)
+6. Update this ADR's evidence array with the new tag URL
+7. Update `docs/glossary.md` T-013 if the version changes
+
 ## Implementation Notes
 
 - `infra/docker/Dockerfile.pg16-age-vector` builds from `pgvector/pgvector:pg16`,
