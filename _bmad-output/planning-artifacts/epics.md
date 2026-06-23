@@ -327,6 +327,17 @@ The build team, named editorial owner, and cyberlibel-aware legal counsel can ex
 
 The build team can stand up the full Docker Compose stack, develop against a reproducible Turborepo scaffold, and verify the platform's integrity spine exists — with design tokens, stubbed editorial-integrity components, navigation shell, state management foundation, accessibility baseline, the render-gate ESLint boundary, the polyglot eval seam, 19 seeded ADRs, and a RED contract test for the citation-or-silence invariant.
 
+> **REORDER NOTICE 2026-06-23 (Foundation Action Plan P4):** The citation-or-silence
+> invariant (Story 1.12) is the **product spine** — the first testable user-value
+> artifact in Epic 1. It is now PARTIALLY IMPLEMENTED (RED contract test exists at
+> `tests/contract/citation-or-silence.test.ts`, 6 tests failing by design). Stories
+> should be read with 1.12 as the **anchor** that all other stories serve, not the
+> capstone. The Docker proof (1.3) is support infrastructure for the invariant, not
+> the invariant itself. Per ADR-021, the process topology is **6 processes** (not 5).
+>
+> **Traceability:** Each story enables specific FRs/NFRs. See the
+> [Epic 1 Traceability Table](#epic-1-traceability-table) at the end of this epic.
+
 ### Story 1.1: Turborepo Scaffold & Process Stubs
 
 As a developer,
@@ -521,6 +532,15 @@ So that hard gates block merge and gate-time re-runs are content-addressed.
 
 ### Story 1.12: Citation-or-Silence Contract Test (RED) — The Invariant Spine
 
+> **PARTIALLY IMPLEMENTED 2026-06-23 (Foundation Action Plan P1):**
+> RED contract test exists at `tests/contract/citation-or-silence.test.ts` —
+> 6 tests, all failing by design (renderGate throws "NOT IMPLEMENTED").
+> Contract schemas in `packages/contracts/src/citation.ts` and `render.ts`.
+> Render gate stub in `packages/render/src/gate.ts`. Invariant ledger seeded
+> at `docs/invariant-ledger.yaml` (INV-001). The test goes GREEN when the
+> render gate is wired in Epic 2 (Story 2.1).
+> **Traces to:** EI-1, AC-2, SEC-5, PC-9, NFR-EI-1, NFR-EI-2, ADR-001
+
 As a developer,
 I want a contract test for the citation-or-silence invariant with both positive and negative assertions,
 So that the invariant is documented, visible, bidirectionally tested, and ready to activate when the render gate is wired in Epic 2.
@@ -537,6 +557,26 @@ So that the invariant is documented, visible, bidirectionally tested, and ready 
 **And** the test will be ACTIVATED (un-skipped) in Epic 2 when the render gate is wired as a live call site
 **And** from Epic 2 onward, the test must stay GREEN or CI blocks
 **And** any PR touching packages/render/ or packages/ingest/extract/ must re-run the contract as a merge gate (regression net)
+
+### Epic 1 Traceability Table
+
+| Story | Enables (FR) | Enables (EI/NFR) | Enables (AR) | Status |
+|-------|-------------|-------------------|--------------|--------|
+| 1.1 Scaffold | (foundation — enables all) | — | AR-1 | done-local-only |
+| 1.2 PG+AGE+pgvector | (foundation — enables all) | — | AR-2 | done-local-only |
+| 1.3 Docker Compose | (foundation — enables all) | NFR-D-1, NFR-O-1 | AR-8, AR-20 | draft-blocked |
+| 1.4 Render Gate ESLint | FR-5.2, FR-5.4 | EI-1, EI-2, EI-7 | AR-4 | pending |
+| 1.5 Polyglot Eval | — | NFR-O-2 | AR-6 | pending |
+| 1.6 Citation Package | FR-1.5, FR-3.2 | EI-4, NFR-A-1 | AR-5 | pending |
+| 1.7 Design Tokens | — | — | UX-DR1-8 | pending |
+| 1.8 EI Components | FR-5.1, FR-5.2, FR-5.3 | EI-1, EI-2, EI-7 | UX-DR9-12/18/20 | pending |
+| 1.9 State + Nav | — | — | UX-DR28-34/43 | pending |
+| 1.10 19 ADRs | — | — | AR-7 | pending |
+| 1.11 CI + Gate Store | — | NFR-O-2 | AR-20, AR-22 | pending |
+| **1.12 Invariant Test** | **FR-3.1, FR-5.3** | **EI-1, EI-2, EI-7** | **AR-4** | **partial (RED)** |
+
+> **ADR-021 correction:** Epic 1 enables a **6-process** topology, not 5.
+> `web` (Next.js 15) is process #6 with its own failure domain.
 
 ## Epic 2: Provenance & Invariants
 
