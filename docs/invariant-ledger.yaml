@@ -1,0 +1,128 @@
+# Invariant Ledger
+#
+# Authority: AC-1 (eval harness = 8th architectural plane), SC-6 (chaos at F1),
+# SEC-8 (mutation suite), VAL-9 (gate-invocation-per-served-response),
+# PC-9 (test-pattern completeness).
+#
+# Each entry is an architectural invariant the system MUST maintain.
+# Severity: T1 = defamation exposure | T2 = credibility | T3 = operational
+# Gate: pr-check | nightly | promotion (PD-3)
+#
+# Created per Foundation Action Plan P4. Seeded from ADR-001 (defamation-grade).
+
+- id: INV-001
+  invariant: "Every served claim resolves to a source citation (citation-or-silence)"
+  rules: [EI-1, AC-2, SEC-5]
+  adr: ADR-001
+  technique: [contract-test, property-test, chaos]
+  severity: T1
+  assertion_signature: "citation-or-silence.test.ts — POSITIVE + NEGATIVE + PC-9 invariant"
+  fixtures: [golden/v1/, fixtures/citation/]
+  gate: promotion
+  status: red
+  red_reason: "renderGate not implemented — Epic 2 Story 2.1"
+  owner: Amelia
+
+- id: INV-002
+  invariant: "Allegation-as-fact incidents in served answers: 0"
+  rules: [NFR-EI-2, EI-2, EI-7]
+  adr: ADR-001
+  technique: [red-team, mutation-test, eval]
+  severity: T1
+  assertion_signature: "render/gate.ts Stryker 100% — pending implementation"
+  fixtures: [fixtures/libel-injection/, fixtures/republication-framing/]
+  gate: promotion
+  status: pending
+  pending_reason: "render/gate.ts does not exist yet — Epic 2"
+  owner: Murat
+
+- id: INV-003
+  invariant: "Every served assertion resolves to stored raw snapshot + character span"
+  rules: [NFR-EI-4, NFR-A-1, FR-1.4, FR-1.5]
+  adr: ADR-001
+  technique: [integration-test, eval]
+  severity: T1
+  assertion_signature: "audit-test — served assertion → raw snapshot + span retrieval"
+  fixtures: [fixtures/provenance-chain/]
+  gate: promotion
+  status: pending
+  pending_reason: "Ingestion pipeline not built — Epic 3"
+  owner: Winston
+
+- id: INV-004
+  invariant: "Hash-chained editorial log: 100% of editorial actions logged, chain unbroken"
+  rules: [AC-11, SEC-6]
+  adr: ADR-001
+  technique: [unit-test, integration-test, mutation-test]
+  severity: T1
+  assertion_signature: "hash-chain integrity test on every append"
+  fixtures: [fixtures/editorial-log/]
+  gate: pr-check
+  status: pending
+  pending_reason: "Editorial log package stubbed — Epic 2"
+  owner: Amelia
+
+- id: INV-005
+  invariant: "Lone tier-3 allegation about named person never served as established"
+  rules: [NFR-EI-8, SEC-3]
+  adr: ADR-001
+  technique: [eval, red-team]
+  severity: T1
+  assertion_signature: "render gate asserts corroboration signal for tier-3-named-person"
+  fixtures: [fixtures/trust-tier-edge-cases/]
+  gate: promotion
+  status: pending
+  pending_reason: "Render gate not implemented — Epic 2"
+  owner: Murat
+
+- id: INV-006
+  invariant: "Projection determinism: graph rebuild from relational tables is isomorphic"
+  rules: [FR-2.4, NFR-A-2]
+  adr: ADR-001
+  technique: [integration-test]
+  severity: T2
+  assertion_signature: "determinism hard gate — replay relational → compare graph"
+  fixtures: [fixtures/graph-rebuild/]
+  gate: promotion
+  status: pending
+  pending_reason: "Graph projection not built — Epic 4"
+  owner: Winston
+
+- id: INV-007
+  invariant: "Gate-invocation-per-served-response under queue pressure (VAL-9)"
+  rules: [VAL-9, SEC-5]
+  adr: ADR-001
+  technique: [chaos, integration-test]
+  severity: T1
+  assertion_signature: "OTel span count == served response count under BullMQ backpressure"
+  fixtures: [fixtures/chaos/]
+  gate: promotion
+  status: pending
+  pending_reason: "OTel pipeline not wired — Foundation P5"
+  owner: Murat
+
+- id: INV-008
+  invariant: "Mutation score 100% on render/gate.ts and auth/verify.ts (SEC-8)"
+  rules: [SEC-8, NFR-O-2]
+  adr: ADR-001
+  technique: [mutation-test]
+  severity: T1
+  assertion_signature: "Stryker { high: 100, low: 100, break: 100 }"
+  fixtures: []
+  gate: pr-check
+  status: pending
+  pending_reason: "Target files do not exist yet — Epic 2"
+  owner: Murat
+
+- id: INV-009
+  invariant: "Citation-invariant under 500 RPS sustained with fault injection (SC-6)"
+  rules: [SC-6, EI-1]
+  adr: ADR-001
+  technique: [chaos, load-test]
+  severity: T1
+  assertion_signature: "k6 custom metric citations_rendered rate==1 under toxiproxy faults"
+  fixtures: [fixtures/chaos/]
+  gate: promotion
+  status: pending
+  pending_reason: "Chaos infrastructure not built — Foundation P5 / later stories"
+  owner: Murat

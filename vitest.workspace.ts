@@ -12,4 +12,12 @@ export default defineWorkspace([
       exclude: ['**/node_modules/**', '**/dist/**', '**/._*'],
     },
   },
+  {
+    test: {
+      name: 'contract',
+      environment: 'node',
+      include: ['tests/contract/**/*.test.ts'],
+      exclude: ['**/node_modules/**', '**/dist/**', '**/._*'],
+    },
+  },
 ]);

@@ -4,8 +4,8 @@ baseline_commit: 3c432a60147ac4ff65f50e69b4beaaea1d4f4b39
 
 # Story 1.1: Turborepo Scaffold & Process Stubs
 
-Status: done
-Revision: 2026-06-22 — Adversarial review roundtable (Winston/Amelia/Murat/Mary/John/Paige). AC-F1-04 re-tagged; VAL-3 placeholders demoted to PH-F1-01..04; AC-F1-08 (lint) + AC-F1-09 (CI) added; worker runtime mandated per-app (all Node 22 — AGE native bindings constraint); Murat's 4 anti-hollow teeth baked in as Single-PR Protocol; Winston's 3 hard blockers promoted to mandated guardrails. See CHANGELOG at end of file.
+Status: done-local-only
+Revision: 2026-06-23 — Re-baselined from `done` to `done-local-only` per Foundation Action Plan (Party Mode adversarial review, 6-agent panel). CI has never executed on GitHub Actions; AC-F1-09 unverified in execution context. Returns to `done` when CI executes green on a real PR. See `_bmad-output/planning-artifacts/foundation-action-plan-2026-06-23.md`. — Adversarial review roundtable (Winston/Amelia/Murat/Mary/John/Paige). AC-F1-04 re-tagged; VAL-3 placeholders demoted to PH-F1-01..04; AC-F1-08 (lint) + AC-F1-09 (CI) added; worker runtime mandated per-app (all Node 22 — AGE native bindings constraint); Murat's 4 anti-hollow teeth baked in as Single-PR Protocol; Winston's 3 hard blockers promoted to mandated guardrails. See CHANGELOG at end of file.
 
 ## Story
 
