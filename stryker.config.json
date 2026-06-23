@@ -1,0 +1,25 @@
+{
+  "$schema": "https://raw.githubusercontent.com/StrykerMutator/stryker/master/packages/api/schema/stryker-core.json",
+  "_comment": "EMPTY HULL — Foundation Action Plan P5. Target files do not exist yet. When packages/render/src/gate.ts and packages/auth/src/verify.ts are created (Epic 2), this config activates.",
+  "packageManager": "npm",
+  "reporters": ["html", "clear-text", "progress"],
+  "testRunner": "vitest",
+  "coverageAnalysis": "perTest",
+  "concurrency": 1,
+  "_concurrency_note": "concurrency:1 for AC-11 hash-chain tests — parallelism masks mutants under concurrent writers",
+  "thresholds": {
+    "high": 100,
+    "low": 100,
+    "break": 100
+  },
+  "mutate": [
+    "packages/render/src/gate.ts",
+    "packages/auth/src/verify.ts"
+  ],
+  "_mutate_pending": [
+    "packages/citation/src/verify.ts!{90}",
+    "packages/intake/src/state.ts!{90}",
+    "apps/ingest-worker/src/extract/worker.ts!{90}"
+  ],
+  "_mutate_pending_note": "Files above will be added when they exist. ≥90% threshold (not 100%) per SEC-8."
+}
