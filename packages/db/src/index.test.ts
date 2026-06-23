@@ -1,9 +1,13 @@
 import { describe, it, expect } from 'vitest';
-import { hello, packageName } from '@iip/db';
+import { createDb, compatibilityProbe } from '@iip/db';
 
 describe('@iip/db', () => {
-  it('hello() reports alive from the package entry point (AC-F1-03)', () => {
-    expect(packageName).toBe('@iip/db');
-    expect(hello()).toBe('alive: @iip/db');
+  it('exports the Drizzle schema and client factory (AC #4)', () => {
+    expect(typeof createDb).toBe('function');
+    // Drizzle pgTable returns an object with the column map + table config
+    expect(compatibilityProbe).toBeDefined();
+    expect(compatibilityProbe.id).toBeDefined();
+    expect(compatibilityProbe.label).toBeDefined();
+    expect(compatibilityProbe.createdAt).toBeDefined();
   });
 });

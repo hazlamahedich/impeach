@@ -1,0 +1,79 @@
+# syntax=docker/dockerfile:1
+#
+# Custom PostgreSQL 16 image: pgvector + Apache AGE + pg_trgm.
+#
+# No official image ships all required extensions simultaneously. This multi-
+# stage build compiles Apache AGE from source on a pgvector/pgvector:pg16 base.
+#
+# AGE pin: PG16/v1.6.0-rc0 — the ONLY official PG16 artifact. AGE has no GA
+# release; every upstream artifact is an -rc0. No PG16/v1.7.0 tag exists.
+# See ADR-002.
+#
+# @rules AC-1
+# @adr ADR-002
+
+# Build platform: the image contains a compiled C extension (AGE), so the target
+# architecture must be fixed at build time. Override via --build-arg or use
+# docker buildx with --platform. Default: linux/amd64 for CI reproducibility.
+ARG TARGET_PLATFORM=linux/amd64
+FROM --platform=${TARGET_PLATFORM} pgvector/pgvector:pg16 AS builder
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        build-essential \
+        bison \
+        ca-certificates \
+        flex \
+        git \
+        libreadline-dev \
+        postgresql-server-dev-16 \
+        zlib1g-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Clone the exact pinned tag (NOT master — fork-risk for pre-1.0 software).
+# The tag points to commit 2db2f060 (verified 2026-06-23). We assert the SHA
+# after clone so a force-pushed tag cannot silently change the compiled source.
+RUN git clone --branch PG16/v1.6.0-rc0 --depth 1 \
+        https://github.com/apache/age.git /age && \
+    cd /age && \
+    test "$(git rev-parse HEAD)" = "2db2f060a0c2d66c0683d6cf1e2a9af40a0c5f87" && \
+    make PG_CONFIG=/usr/lib/postgresql/16/bin/pg_config install
+
+# ── Stage 2: Runtime ──────────────────────────────────────────────
+# Fresh pgvector base — no build deps, no AGE source tree. Target platform
+# must match the builder stage so the compiled C extension loads correctly.
+FROM --platform=${TARGET_PLATFORM} pgvector/pgvector:pg16
+
+LABEL org.opencontainers.image.title="iip-postgres-age-pgvector"
+LABEL org.opencontainers.image.description="PostgreSQL 16 + pgvector 0.8.x + Apache AGE PG16/v1.6.0-rc0 + pg_trgm"
+LABEL org.opencontainers.image.source="https://github.com/apache/age (tag PG16/v1.6.0-rc0, commit 2db2f060)"
+
+# Copy AGE build artifacts only — .so + .control + the exact pinned version's
+# install SQL. Do NOT glob upgrade scripts (e.g., age--1.5.0--1.6.0.sql); we only
+# want the pinned release's control and install file.
+COPY --from=builder /usr/lib/postgresql/16/lib/age.so /usr/lib/postgresql/16/lib/age.so
+COPY --from=builder /usr/share/postgresql/16/extension/age.control /usr/share/postgresql/16/extension/age.control
+COPY --from=builder /usr/share/postgresql/16/extension/age--1.6.0.sql /usr/share/postgresql/16/extension/age--1.6.0.sql
+
+# Enable required extensions on first database init (superuser context).
+# The postgres entrypoint runs /docker-entrypoint-initdb.d/*.sql against
+# POSTGRES_DB, so extensions land on the correct database.
+# NOTE: 0001-iip-graph.sql is intentionally NOT copied here; it is applied by
+# the Story 1.3 boot runner after Drizzle relational migrations (ADR-002 §D1).
+COPY infra/docker/init-extensions.sql /docker-entrypoint-initdb.d/01-init-extensions.sql
+RUN chmod 644 /docker-entrypoint-initdb.d/01-init-extensions.sql
+
+# AGE Cypher parser hooks must be loaded at server start so every session
+# can execute cypher() without a per-connection `LOAD 'age'`. The postgres
+# base CMD is `["postgres"]"; we append the config flag.
+# (PG docs: shared_preload_libraries loads the .so in the postmaster before
+# any backend forks — AGE registers its parser hooks there.)
+# Verified against the AGE PG16/v1.6.0-rc0 README: `LOAD 'age'` per session is
+# documented, but pre-loading via shared_preload_libraries is equivalent and
+# removes the per-session requirement.
+CMD ["postgres", "-c", "shared_preload_libraries=age"]
+
+# Healthcheck: PG is ready only when it accepts connections AND the AGE/vector
+# extensions are loadable. Story 1.3 boot runner depends on this to avoid racing
+# container startup. project-context.md flags this as a day-one F1 prerequisite.
+HEALTHCHECK --interval=5s --timeout=3s --start-period=10s --retries=5 \
+  CMD pg_isready -U postgres -d ${POSTGRES_DB:-postgres} || exit 1

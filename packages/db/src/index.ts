@@ -1,5 +1,2 @@
-export const packageName = '@iip/db';
-
-export function hello(): string {
-  return `alive: ${packageName}`;
-}
+export { createDb, type Db, type DbHandle } from './client.js';
+export * from './schema.js';

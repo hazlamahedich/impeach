@@ -2,18 +2,28 @@
 id: ADR-002
 title: Apache AGE Version Pin and PostgreSQL 16 as the openCypher Path
 status: Accepted
-date: 2026-06-22
+date: 2026-06-23
 supersedes: null
 superseded_by: null
 deciders: [Winston (architect), user]
 related: [AC-3, SC-5, STR-12, D1, ADR-003, ADR-015]
 evidence:
   - _bmad-output/planning-artifacts/research/technical-graph-db-apache-age-evaluation-2026-06-19.md
-  - https://github.com/apache/age/releases (verified 2026-06-22)
+  - https://github.com/apache/age/releases (verified 2026-06-22; re-audited and corrected 2026-06-23 — the 2026-06-22 check erroneously claimed AGE v1.7.0 was GA and that a PG16/v1.7.0 tag existed; both claims were false)
+  - https://github.com/apache/age/releases/tag/PG16%2Fv1.6.0-rc0 (tag PG16/v1.6.0-rc0, commit 2db2f060a0c2d66c0683d6cf1e2a9af40a0c5f87, 04 Sep 2024)
   - _bmad-output/planning-artifacts/sprint-change-proposal-2026-06-19.md (amendment T1)
 ---
 
 # ADR-002: Apache AGE Version Pin and PostgreSQL 16 as the openCypher Path
+
+> **Amended 2026-06-23** — This ADR originally pinned Apache AGE to `1.7.0` and
+> claimed `PG16/v1.7.0` as the source tag. Both claims were false: AGE has **no
+> GA release at all** (every upstream artifact is an `-rc0` release candidate),
+> and **no `PG16/v1.7.0` tag exists**. The version pin has been corrected to
+> `PG16/v1.6.0-rc0` (the only official PG16 artifact). The decision (PG16 +
+> AGE, exact pin, no floating tags) stands; only the version number was wrong.
+> Correction follows adversarial review (Party Mode) by Winston (architect),
+> Murat (test architect), and Amelia (developer).
 
 ## Context
 
@@ -31,26 +41,38 @@ Two facts forced this ADR:
    stopgap.
 2. **An internal note (`project-context.md`) flagged the AGE version pin as
    unverified**, claiming "latest GA appears to be AGE 1.5.0 (Rhodes, Aug
-   2024)." Verification against `github.com/apache/age/releases` on 2026-06-22
-   shows **no such release exists**. The claim was stale. The current GA is
-   **v1.7.0**, and it is the version the architecture already cited.
+   2024)." A first verification against `github.com/apache/age/releases` on
+   2026-06-22 concluded the claim was stale and asserted "the current GA is
+   **v1.7.0**." **That 2026-06-22 verification was itself wrong.** A re-audit
+   on 2026-06-23 against the same source confirms:
+   - **AGE has NO GA release at all.** Every upstream artifact is a release
+     candidate (`-rc0`). There is no `v1.7.0` GA tag and no `v1.6.0` GA tag.
+   - **AGE 1.7.0-rc0 ships ONLY for PG17 and PG18.** There is no
+     `PG16/v1.7.0` tag — the tag the original ADR cited does not exist.
+   - **The only valid PG16 artifact is `PG16/v1.6.0-rc0`** (04 Sep 2024).
+   - The original "1.5.0 Rhodes" claim was indeed stale/non-existent, but the
+     "1.7.0 GA" claim that replaced it was equally incorrect.
 
 ## Decision
 
-1. **Pin Apache AGE to `1.7.0`** (exact major.minor.patch). AGE is pre-1.0 in
-   semantics; minor releases have changed label/graph behavior. Floating
-   `>=1.7.0` is not acceptable for a defamation-grade system — the pin is
-   exact, and upgrades are explicit ADR-level decisions.
+1. **Pin Apache AGE to `PG16/v1.6.0-rc0`** — the only official PG16 artifact.
+   AGE is pre-1.0 in semantics and has **no GA release at all**; every upstream
+   artifact is an `-rc0` release candidate. Pinning to the PG16-native `-rc0`
+   is the most conservative reproducible choice. Floating tags (`>=1.7.0`) and
+   building from `master` are rejected for a defamation-grade system — the pin
+   is exact, and upgrades are explicit ADR-level decisions.
 2. **Pin PostgreSQL to `16`** as the sole system of record (relational +
-   pgvector + AGE, per architecture.md §Data Layer). AGE 1.7.0 supports PG11–18;
-   PG16 is the target. Do **not** float to PG17/18 without a separate ADR —
-   pgvector HNSW `ef_search` defaults and AGE label-index behavior can shift
-   across PG majors.
-3. **The custom F1 Docker image** builds AGE 1.7.0 and pgvector 0.8.x **from
-   source** on a `pgvector/pgvector:pg16` base (NEITHER plain `postgres:16` nor
-   a floating tag), pins the resulting image by **digest**, and is shared by
-   `infra/docker-compose.yml` and the Testcontainers integration suite (same
-   image, tagged once).
+   pgvector + AGE, per architecture.md §Data Layer). The only PG16 AGE artifact
+   is `PG16/v1.6.0-rc0`; that is what we build. Do **not** float to PG17/18
+   without a separate ADR — pgvector HNSW `ef_search` defaults and AGE
+   label-index behavior can shift across PG majors. Moving to PG17/18 to reach
+   AGE 1.7.0-rc0 is a future ADR option, but both PG17 and PG18 AGE builds are
+   **also `-rc0`**, so there is no GA benefit — only PG-major-version churn.
+3. **The custom F1 Docker image** builds AGE `PG16/v1.6.0-rc0` and pgvector
+   0.8.x **from source** on a `pgvector/pgvector:pg16` base (NEITHER plain
+   `postgres:16` nor a floating tag), pins the resulting image by **digest**,
+   and is shared by `infra/docker-compose.yml` and the Testcontainers
+   integration suite (same image, tagged once).
 4. **SQL:PGQ is removed from the rationale** everywhere it appears. AGE is the
    committed single-path openCypher implementation, not a "strike" or stopgap.
    Neo4j Community remains excluded by AGPL + Commons Clause (ADR-003).
@@ -67,10 +89,11 @@ Two facts forced this ADR:
      feature violates the "no pre-build for unbuilt features" rule. AGE is the
      path now.
 2. **Apache AGE on PostgreSQL 18.**
-   - Rejected as the v1 default. AGE 1.7.0 supports PG18, but PG16 is the
-     mature, ops-conservative choice for a defamation-grade v1. PG18 upgrade is
-     a future ADR with its own compatibility cell. (PG18 is not forbidden; it
-     is simply not the default pin.)
+   - Rejected as the v1 default. AGE 1.7.0-rc0 ships for PG18 (and PG17), but
+     PG16 is the mature, ops-conservative choice for a defamation-grade v1 and
+     has its own native artifact (`PG16/v1.6.0-rc0`). PG18 upgrade is a future
+     ADR with its own compatibility cell. (PG18 is not forbidden; it is simply
+     not the default pin.)
 3. **Neo4j Community (separate graph engine).**
    - Rejected (ADR-003). AGPL + Commons Clause contamination; violates single-
      container + FOSS constraints.
@@ -79,17 +102,23 @@ Two facts forced this ADR:
      for centrality algorithms (PageRank, betweenness) that AGE lacks, writing
      computed scores back as AGE node properties. AGE remains the transactional
      store; Kùzu/networkx are read-side accelerators.
-5. **Floating `>=1.7.0`.**
+5. **Floating `>=1.7.0` (or any floating AGE tag).**
    - Rejected. AGE pre-1.0 semantics mean a minor bump can silently change
-     graph/label behavior. Exact pin + explicit upgrade ADRs only.
+     graph/label behavior. Exact pin (`PG16/v1.6.0-rc0`) + explicit upgrade
+     ADRs only.
 
 ## Consequences
 
 ### Positive
 - Single PostgreSQL engine satisfies graph + vector + relational in one
-  container — the conjunction no alternative clears (verified, see evidence).
-- AGE 1.7.0 brings RLS support, `COPY`-based CSV ingest, id-column indexes, and
-  the fix for the >41 vlabels drop crash — all load-bearing for IIP.
+   container — the conjunction no alternative clears (verified by building the
+   image and exercising cypher + vector in the Story 1.2 integration suite).
+- AGE `PG16/v1.6.0-rc0` provides id-column indexes, `COPY`-based CSV ingest,
+  and the fix for the >41 vlabels drop crash — load-bearing for IIP. **Note:**
+  AGE 1.6.0-rc0 does **NOT** include RLS support on graph tables; RLS landed in
+  1.7.0-rc0, which ships only for PG17/18 (also as `-rc0`). If RLS on graph
+  tables becomes a hard requirement, that triggers the PG17/18 upgrade ADR — it
+  is not available on the PG16 pin.
 - Lowest migration lock-in of any option: AGE stores graphs as normal PG tables;
   exit to Neo4j/Kùzu/recursive-CTE is mechanical.
 - SQL:PGQ non-existence is now a closed rationale, not a recurring question.
@@ -98,18 +127,25 @@ Two facts forced this ADR:
 - AGE has **no graph algorithm library** (PageRank, betweenness, connected
   components). Must run these via SQL over label tables or a Kùzu/networkx
   batch sidecar. Adds an analytics path to maintain.
-- AGE's Cypher compiles to SQL; deep unconstrained `*` traversals on dense hub
-  nodes can explode. All traversals **must be depth-capped** (`*1..3`) with hot
-  properties indexed — enforceable via `packages/graph/src/cypher.ts` wrapper
-  review (PC-1e).
-- AGE is outside Drizzle's awareness — every Cypher query is a raw
-  `sql\`...\`` template (untyped). Parameterization is mandatory via the
-  `cypher(graph, query, params)` wrapper (PC-1e) which catches the
-  `$id`-inside-`$$` positional-binding injection footgun.
-- In non-autocommit clients (psycopg v3, JDBC), graph DDL calls
-  (`create_graph`, `create_vlabel`) require an explicit `COMMIT` before they
-  are visible to other sessions — documented AGE behavior to bake into the boot
-  runner.
+  - AGE's Cypher compiles to SQL; deep unconstrained `*` traversals on dense hub
+   nodes can explode. All traversals **must be depth-capped** (`*1..3`) with hot
+   properties indexed — enforceable via `packages/graph/src/cypher.ts` wrapper
+   review (PC-1e).
+  - AGE is outside Drizzle's awareness — every Cypher query is a raw
+   `sql\`...\`` template (untyped). Parameterization is mandatory via the
+   `cypher(graph, query, params)` wrapper (PC-1e) which catches the
+   `$id`-inside-`$$` positional-binding injection footgun.
+  - In non-autocommit clients (psycopg v3, JDBC), graph DDL calls
+   (`create_graph`, `create_vlabel`) require an explicit `COMMIT` before they
+   are visible to other sessions — documented AGE behavior to bake into the boot
+   runner. The Story 1.2 integration suite includes a COMMIT-visibility test for
+   `create_graph('iip_graph')`.
+  - AGE parser hooks must be loaded per session. The Story 1.2 custom image bakes
+   `shared_preload_libraries=age` into the server CMD so hooks are available to
+   every backend without a per-session `LOAD 'age'`. This was verified manually
+   against the AGE PG16/v1.6.0-rc0 README (which documents `LOAD 'age'` per
+   session) and by the integration suite executing `cypher()` without an
+   explicit `LOAD`.
 
 ### Neutral
 - Custom Docker image build (~10–15 min for AGE from source) is a CI cost; cache
@@ -121,20 +157,26 @@ Two facts forced this ADR:
 
 | # | Question | Owner | Trigger |
 |---|----------|-------|---------|
-| 1 | When should IIP evaluate PostgreSQL 18 + AGE 1.7.0 PG18 branch? | Architect | Post-v1 stability review; separate ADR required |
+| 1 | When should IIP evaluate PostgreSQL 18 + AGE `PG18/v1.7.0-rc0`? | Architect | Post-v1 stability review; separate ADR required (no GA benefit — AGE 1.7.0-rc0 is also an RC) |
 | 2 | Should the Kùzu/networkx analytics sidecar be a v1 or v1.x deliverable? | Architect/PM | When centrality algorithms become a product requirement |
 | 3 | Is a graph-aware replication check needed beyond standard PG streaming replication? | Architect | Pre-PD-3 launch gate (VAL-7) |
 
 ## Implementation Notes
 
 - `infra/docker/Dockerfile.pg16-age-vector` builds from `pgvector/pgvector:pg16`,
-  compiles AGE 1.7.0 from the `PG16/v1.7.0` tag source, enables `age`,
-  `vector`, `pg_trgm`, `uuid-ossp`. Image pinned by digest in both
-  `infra/docker-compose.yml` and `packages/contracts/__fixtures__/containers.ts`.
+  compiles AGE from the `PG16/v1.6.0-rc0` tag source (commit `2db2f060`, the
+  only official PG16 artifact; **no `PG16/v1.7.0` tag exists upstream**),
+  enables `age`, `vector`, `pg_trgm`. `uuid-ossp` is intentionally omitted;
+  UUID generation is provided by the built-in `pgcrypto` function
+  `gen_random_uuid()` (PG13+). The resulting image is pinned by digest in both
+  `infra/docker-compose.yml` and `packages/contracts/__fixtures__/containers.ts`
+  (Story 1.3).
 - `infra/sql/age/migrations/0001-iip-graph.sql` runs `CREATE EXTENSION IF NOT
   EXISTS age; SELECT create_graph('iip_graph');` with an explicit `COMMIT`
-  boundary; applied by `scripts/age-migrate.ts` (the boot runner), ordered
-  after `pnpm db:migrate` in `turbo.json` task graph (STR-12).
+  boundary; applied by `scripts/age-migrate.ts` (the Story 1.3 boot runner),
+  ordered **after** `pnpm db:migrate` in `turbo.json` task graph (STR-12).
+  The migration is intentionally **not** copied into
+  `/docker-entrypoint-initdb.d/`; the image only bootstraps extensions.
 - All Cypher access via `packages/graph/src/cypher.ts → cypher(graph, query,
   params)` (PC-1e); `@iip/eslint-plugin` bans raw `ag_catalog.cypher(`
   outside that file.

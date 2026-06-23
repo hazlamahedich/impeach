@@ -1,7 +1,7 @@
 ---
-stepsCompleted: ['step-01-preflight-and-context', 'step-02-generation-mode', 'step-03-test-strategy', 'step-04-generate-tests']
-lastStep: 'step-04-generate-tests'
-lastSaved: '2026-06-22'
+stepsCompleted: ['step-01-preflight-and-context', 'step-02-generation-mode', 'step-03-test-strategy', 'step-04-generate-tests', 'step-05-adversarial-review-closure']
+lastStep: 'step-05-adversarial-review-closure'
+lastSaved: '2026-06-23'
 workflowType: 'testarch-atdd'
 storyId: '1.2'
 storyKey: '1-2-postgresql-pgvector-age-compatibility-proof'
@@ -16,13 +16,13 @@ inputDocuments:
 
 # ATDD Checklist — Epic 1, Story 1.2: PostgreSQL + pgvector + AGE Compatibility Proof
 
-**Date:** 2026-06-22 · **Primary Test Level:** integration (Testcontainers) · **Severity:** T2
+**Date:** 2026-06-23 · **Primary Test Level:** integration (Testcontainers) · **Severity:** T1 (reclassified from T2 after adversarial review — foundation layer, low detectability, high downstream coupling)
 
 ## Story Summary
 Verify PostgreSQL 16 with pgvector and Apache AGE coexist in one instance, so the single-system-of-record architecture is viable before building on it.
 
 ## Acceptance Criteria
-1. pgvector 0.8.x, Apache AGE ≥1.7.0, pg_trgm, uuid-ossp enabled
+1. pgvector 0.8.x, Apache AGE `PG16/v1.6.0-rc0` (the only official PG16 artifact; AGE has no GA release — all upstream are `-rc0`), pg_trgm, uuid-ossp enabled
 2. `SELECT * FROM cypher('iip_graph', $$ RETURN 1 $$) AS (a agtype)` succeeds
 3. A `vector(1024)` column is usable in the same schema
 4. Drizzle 0.35.x connects and runs a basic query
@@ -32,30 +32,42 @@ Verify PostgreSQL 16 with pgvector and Apache AGE coexist in one instance, so th
 **File:** `tests/integration/pg-age-pgvector.compat.test.ts` (6 tests)
 
 - ⏭️ pgvector 0.8.x extension — RED — image not built
-- ⏭️ AGE extension — RED — version pin unverified (ADR-002 open item)
+- ⏭️ AGE extension — RED — pin resolved to PG16/v1.6.0-rc0 (ADR-002 amended 2026-06-23); test now asserts /^1.6.0/
 - ⏭️ pg_trgm + uuid-ossp — RED — image not built
 - ⏭️ cypher('iip_graph') query — RED — image not built
 - ⏭️ vector(1024) column — RED — image not built
 - ⏭️ Drizzle connects — RED — packages/db absent
+- ⏭️ vector(1025) rejected — RED — dimension boundary
+- ⏭️ cypher() on non-existent graph errors — RED — predictability
 
 ## Implementation Checklist
 
 - [ ] Build custom Docker image `ghcr.io/iip/postgres-age-pgvector:pg16`:
       base `pgvector/pgvector:pg16` → build AGE from source (C extension, PG dev headers) → enable extensions
 - [ ] Pin exact image digest (not floating tag) — set `IIP_PG_AGE_VECTOR_IMAGE` in CI
-- [ ] Verify AGE version against ADR-002 (open item: ≥1.7.0 vs latest GA 1.5.0 — amend ADR-002 with resolved version)
+- [ ] AGE pin RESOLVED: PG16/v1.6.0-rc0 (ADR-002 amended 2026-06-23 after upstream audit confirmed no PG16/v1.7.0 tag exists; AGE has no GA release)
 - [ ] Drizzle `packages/db` minimal client connection
 - [ ] Wait strategy: `Wait.forLogMessage(/ready to accept connections.*\nready to accept connections/, 2)` (fires twice during init)
 - [ ] AGE requires `SET search_path = ag_catalog` per session — pools don't preserve; pass via DSN `?options=-c%20search_path%3Dag_catalog`
 - [ ] Parallel test files: `withEnv('POSTGRES_DB', randomUUID())` per container (avoid bind-mount collision)
-- [ ] Accept ADR-002 with `evidence: [this test passing on pinned image]` (PC-3: Proposed → Accepted requires evidence)
+- [ ] Accept ADR-002 amendment with evidence: [compat test GREEN against PG16/v1.6.0-rc0 pinned image] (PC-3)
 - [ ] Activate `test.skip` → GREEN
+- [ ] Wait strategy uses `Wait.forLogMessage(/database system is ready to accept connections.*\n.*database system is ready to accept connections/, 2)` (fires twice during init — NOT a stub)
+- [ ] POSTGRES_DB uses random name per container (randomUUID suffix) — NOT fixed 'iip_test'
+- [ ] AGE search_path set via DSN `?options=` parameter (mirrors pool semantics, NOT in-test SET)
+- [ ] beforeAll timeout = 240s (cold CI runners with AGE init push 90-150s)
+- [ ] AGE version assertion pins /^1.6.0/ — NOT .toBeTruthy()
+- [ ] Negative tests: vector(1025) rejected, cypher() on non-existent graph errors
+- [ ] Vector round-trip + ANN query (`<->` operator) — not just INSERT + count
+- [ ] Drizzle version asserted via package.json (^0.35.), not just SELECT 1
 
 **Estimated Effort:** 2 days (mostly image build)
 
 ## Notes
-- **Open item blocking:** AGE version pin unverified. Resolve before GREEN — do not bypass by loosening the version assertion.
+- AGE version pin RESOLVED 2026-06-23: PG16/v1.6.0-rc0 (only official PG16 artifact; no PG16/v1.7.0 tag exists; AGE has no GA release — all upstream are `-rc0`). See ADR-002 amendment.
 - This image is SHARED by `infra/docker-compose.yml` (1.3) AND Testcontainers (integration tests). One image, tagged once.
 - Apple Silicon host: pick Colima or OrbStack as Docker runtime (affects Testcontainers latency).
+- **Severity reclassified T2 → T1:** Foundation story with low test detectability and high downstream coupling. False greens on this layer propagate to every KG/citation story downstream. T1 shards abort on first failure.
 
 **Generated by BMad TEA Agent** — 2026-06-22
+**Amended after adversarial review (Party Mode: Winston/Murat/Amelia)** — 2026-06-23

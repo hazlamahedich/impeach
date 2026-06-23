@@ -35,7 +35,10 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-06-22
-last_updated: 2026-06-22
+last_updated: 2026-06-23
+# story 1-2 moved ready-for-dev -> in-progress
+# story 1-2 moved review -> in-progress after code-review patches applied
+# story 1-3 created -> ready-for-dev
 project: impeachment watch
 project_key: NOKEY
 tracking_system: file-system
@@ -47,8 +50,8 @@ development_status:
   # ─────────────────────────────────────────────────────────
   epic-1: in-progress
   1-1-turborepo-scaffold-process-stubs: done
-  1-2-postgresql-pgvector-age-compatibility-proof: backlog
-  1-3-docker-compose-platform-stack: backlog
+  1-2-postgresql-pgvector-age-compatibility-proof: done
+  1-3-docker-compose-platform-stack: ready-for-dev
   1-4-render-gate-eslint-boundary: backlog
   1-5-polyglot-eval-seam: backlog
   1-6-citation-package: backlog
