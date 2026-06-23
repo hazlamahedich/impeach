@@ -1,0 +1,21 @@
+# Grafana datasource provisioning
+#
+# @rules NFR-O-1
+# Auto-provisions Tempo + Prometheus datasources on Grafana startup.
+
+apiVersion: 1
+
+datasources:
+  - name: Tempo
+    type: tempo
+    access: proxy
+    url: http://tempo:3200
+    isDefault: true
+    editable: false
+
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: false
+    editable: false

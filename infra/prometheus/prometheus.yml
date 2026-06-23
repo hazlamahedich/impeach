@@ -1,0 +1,22 @@
+# Prometheus configuration
+#
+# @rules NFR-O-1
+# Scrapes: OTel collector metrics exporter, Prometheus self-monitoring.
+# App and infra service metrics are collected via OTLP in the collector; they are
+# not scraped directly here because the app stubs do not yet expose Prometheus
+# endpoints.
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  # OTel collector exposes metrics on port 8889
+  - job_name: 'otel-collector'
+    static_configs:
+      - targets: ['otel-collector:8889']
+
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']

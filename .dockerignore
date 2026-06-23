@@ -1,0 +1,25 @@
+# macOS resource forks
+._*
+
+# Build artifacts
+**/dist/
+**/.turbo/
+**/node_modules/
+coverage/
+*.tsbuildinfo
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+
+# Environment
+.env
+
+# Test/eval artifacts
+_bmad-output/
+graphify-out/
+eval/
+
+# Git
+.git/

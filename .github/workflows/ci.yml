@@ -52,3 +52,25 @@ jobs:
 
       - name: Test (AC-F1-03 / AC-F1-05)
         run: pnpm test
+
+      - name: RED contract test — citation-or-silence (P1, expected RED until Epic 2)
+        run: |
+          set +e
+          output=$(pnpm test:red 2>&1)
+          exit_code=$?
+          set -e
+
+          if [ "$exit_code" -eq 0 ]; then
+            echo "::warning::citation-or-silence RED test went GREEN — promote to main pipeline"
+          else
+            # Expected RED. Fail the step only if the output does not contain the
+            # expected RED marker (render gate not implemented), which would indicate
+            # an unexpected regression rather than the planned RED state.
+            if echo "$output" | grep -qiE 'rendergate|not implemented|function.*is not implemented|cannot find'; then
+              echo "✅ citation-or-silence contract test is RED as expected (renderGate pending Epic 2)"
+            else
+              echo "::error::citation-or-silence test failed with an unexpected error"
+              echo "$output"
+              exit 1
+            fi
+          fi

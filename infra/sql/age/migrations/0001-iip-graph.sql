@@ -19,6 +19,9 @@
 -- @rules AC-2, AC-6
 -- @adr ADR-002
 
+-- AGE extension version installed by the ADR-002 artifact (PG16/v1.6.0-rc0).
+-- PostgreSQL reports the installed extension version as '1.6.0' (the -rc0 suffix
+-- is upstream Git tag metadata, not the catalog version string).
 CREATE EXTENSION IF NOT EXISTS age WITH VERSION '1.6.0';
 
 -- Load AGE parser hooks for this session. shared_preload_libraries=age is

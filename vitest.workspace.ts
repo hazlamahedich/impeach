@@ -1,7 +1,11 @@
 import { defineWorkspace } from 'vitest/config';
 
 // Enumerates all 12 package workspaces (each carries its own vitest.config.ts
-// so `turbo run test` stays isolated per package) plus the root smoke suite.
+// so `turbo run test` stays isolated per package) plus the root suites.
+//
+// The citation-or-silence contract test (P1) is RED by design until Epic 2
+// Story 2.1 implements renderGate. It lives in a separate `contract-red`
+// project so the main `contract` project stays GREEN in CI.
 export default defineWorkspace([
   'packages/*',
   {
@@ -17,7 +21,32 @@ export default defineWorkspace([
       name: 'contract',
       environment: 'node',
       include: ['tests/contract/**/*.test.ts'],
+      exclude: [
+        '**/node_modules/**',
+        '**/dist/**',
+        '**/._*',
+        '**/citation-or-silence*',
+      ],
+    },
+  },
+  {
+    test: {
+      name: 'contract-red',
+      environment: 'node',
+      include: ['tests/contract/citation-or-silence.test.ts'],
       exclude: ['**/node_modules/**', '**/dist/**', '**/._*'],
+    },
+  },
+  {
+    test: {
+      name: 'integration',
+      environment: 'node',
+      include: ['tests/integration/**/*.test.ts'],
+      exclude: ['**/node_modules/**', '**/dist/**', '**/._*'],
+      pool: 'forks',
+      poolOptions: {
+        forks: { singleFork: true },
+      },
     },
   },
 ]);

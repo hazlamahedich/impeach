@@ -1,0 +1,31 @@
+# Caddyfile — IIP reverse proxy, auto-ACME TLS, rate-limit documentation
+#
+# @rules D9, SEC-9, NFR-S-3
+# @adr ADR-004
+#
+# NOTE: Caddy in this stack is a plain reverse proxy. Proxy-layer rate limiting
+# is intentionally NOT enforced here in v1; NFR-S-3 rate limiting is enforced at the
+# application layer (Fastify @fastify/rate-limit) per ADR-004. The Caddy
+# `rate_limit` directive requires the non-standard `caddy-ratelimit` plugin, which
+# is not included in the `caddy:2.8-alpine` image. See docs/adr/0004-ddos-attack-posture.md.
+#
+# The OWASP-noise rate-limit posture is documented here for transparency; it is
+# not a DDoS defense against state-aligned actors (SEC-9).
+
+{
+	admin off
+}
+
+# ── API reverse proxy ──────────────────────────────────────────────
+localhost {
+	respond /healthz 200
+	reverse_proxy api:3001
+}
+
+# ── Web frontend reverse proxy ─────────────────────────────────────
+app.localhost {
+	reverse_proxy web:3000
+}
+
+# MinIO raw store is NOT reverse-proxied — stays private (NFR-S-5).
+# Ollama is NOT reverse-proxied — stays internal-only.

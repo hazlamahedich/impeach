@@ -22,7 +22,9 @@
  */
 
 import { describe, it, expect } from 'vitest';
+import * as fc from 'fast-check';
 import { renderGate } from '@iip/render';
+import { RenderInput } from '@iip/contracts';
 import type {
   RenderInputType,
   RenderDocumentType,
@@ -181,9 +183,86 @@ describe('Citation-or-Silence Contract (EI-1, AC-2, SEC-5)', () => {
       };
 
       const output: RenderDocumentType = renderGate(input);
+
       const claim = output.spans.find((s) => s.is_claim);
       expect(claim).toBeDefined();
       expect(claim!.citation!.trust_tier).toBe(1);
+    });
+  });
+
+  describe('PC-9 PROPERTY TEST (fast-check): no uncited claim served across 1000 random inputs', () => {
+    const citationRefArb = fc.record({
+      citation_id: fc.string({ minLength: 1 }).noShrink(),
+      source_id: fc
+        .uuid({ version: 4 })
+        .noShrink(),
+      trust_tier: fc.constantFrom(1, 2, 3),
+      tuple: fc.record({
+        source_doc_id: fc.uuid({ version: 4 }).noShrink(),
+        span_start: fc.nat({ max: 10000 }),
+        span_end: fc.nat({ max: 10000 }),
+        content_hash: fc.string({ minLength: 1 }).noShrink(),
+      }),
+    });
+
+    const spanInputArb = fc.record({
+      text: fc.string({ minLength: 1 }).noShrink(),
+      is_claim: fc.boolean(),
+      claim_type: fc.constantFrom('fact' as const, 'attributed' as const),
+      citation_ref: fc.oneof(
+        fc.constant(null),
+        citationRefArb,
+      ),
+    });
+
+    const renderInputArb = fc.record({
+      query: fc.string({ minLength: 1 }).noShrink(),
+      answer_text: fc.string({ minLength: 1 }).noShrink(),
+      spans: fc.array(spanInputArb, { maxLength: 10 }),
+    });
+
+    it('every emitted claim-bearing span has non-null citation.source_id', () => {
+      fc.assert(
+        fc.property(renderInputArb, (rawInput) => {
+          const typedInput = RenderInput.parse(rawInput);
+          const output: RenderDocumentType = renderGate(typedInput);
+
+          for (const span of output.spans) {
+            if (span.is_claim) {
+              if (span.citation === null) {
+                throw new Error(
+                  `Invariant violated: claim span emitted without citation: "${span.text}"`,
+                );
+              }
+              if (!span.citation.source_id) {
+                throw new Error(
+                  `Invariant violated: claim span emitted with empty source_id: "${span.text}"`,
+                );
+              }
+            }
+          }
+        }),
+        { numRuns: 1000 },
+      );
+    });
+
+    it('no span without citation is emitted as a claim', () => {
+      fc.assert(
+        fc.property(renderInputArb, (rawInput) => {
+          const typedInput = RenderInput.parse(rawInput);
+          const output: RenderDocumentType = renderGate(typedInput);
+
+          const uncited = output.spans.filter(
+            (s) => s.is_claim && (s.citation === null || s.citation.source_id === ''),
+          );
+          if (uncited.length > 0) {
+            throw new Error(
+              `Invariant violated: ${uncited.length} uncited claim(s) served`,
+            );
+          }
+        }),
+        { numRuns: 1000 },
+      );
     });
   });
 });
