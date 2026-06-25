@@ -28,6 +28,16 @@ jobs:
           node-version-file: '.nvmrc'
           cache: pnpm
 
+      - name: Setup Python (AC #10 — 3.12.x exact)
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install uv (AC #3)
+        uses: astral-sh/setup-uv@v6
+        with:
+          version: '0.9.17'
+
       - name: Install (frozen lockfile)
         run: pnpm install --frozen-lockfile
 
@@ -72,3 +82,34 @@ jobs:
             echo "$output"
             exit 1
           fi
+
+      # ─────────────────────────────────────────────────────────────
+      # Story 1.5 — Polyglot eval seam (SC-1, ADR-014)
+      # ─────────────────────────────────────────────────────────────
+
+      - name: Pydantic codegen drift check (SC-1 — committed models vs fresh generation)
+        run: |
+          set -e
+          pnpm exec tsx packages/contracts/scripts/gen-pydantic.ts
+          if ! git diff --exit-code tools/eval/src/eval/models.py; then
+            echo "::error::Pydantic models have drifted — regenerate with: pnpm exec tsx packages/contracts/scripts/gen-pydantic.ts"
+            git diff tools/eval/src/eval/models.py
+            exit 1
+          fi
+          echo "✅ Pydantic models up to date"
+
+      - name: uv.lock integrity check (AC #10)
+        run: uv lock --check --project tools/eval
+
+      - name: Python quality gates — ruff + mypy (AC #10)
+        run: |
+          uv run --project tools/eval --directory tools/eval ruff check src tests
+          uv run --project tools/eval --directory tools/eval mypy src/eval
+
+      - name: Python tests (AC #3)
+        run: uv run --project tools/eval --directory tools/eval pytest
+
+      - name: Polyglot eval integration test (AC #11, #12, #13)
+        run: |
+          pnpm vitest run tests/integration/polyglot-eval-roundtrip.test.ts \
+            --pool=forks --poolOptions.forks.singleFork=true

@@ -1,9 +1,11 @@
 [project]
 name = "iip-eval"
 version = "0.0.1"
-description = "Impeachment Intelligence Platform - polyglot eval harness (stub; logic owned by Story 1.5)."
+description = "Impeachment Intelligence Platform - polyglot eval harness (Story 1.5 seam)."
 requires-python = ">=3.12,<3.13"
-dependencies = []
+dependencies = [
+    "pydantic>=2.0",
+]
 
 [build-system]
 requires = ["hatchling"]
@@ -11,3 +13,39 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/eval"]
+
+# ─────────────────────────────────────────────────────────────
+# Dev dependencies (AC #3, AC #10)
+# ─────────────────────────────────────────────────────────────
+[dependency-groups]
+dev = [
+    "pytest>=8.0",
+    "ruff>=0.6",
+    "mypy>=1.10",
+    "datamodel-code-generator[http]>=0.26",
+]
+
+# ─────────────────────────────────────────────────────────────
+# Ruff — DTZ enabled (UTC timezone enforcement, AC #10, PC-8)
+# ─────────────────────────────────────────────────────────────
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "ANN", "PT", "S", "DTZ"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101"]  # assert allowed in tests only
+
+# ─────────────────────────────────────────────────────────────
+# Mypy — strict + pydantic plugin (AC #10)
+# ─────────────────────────────────────────────────────────────
+[tool.mypy]
+plugins = ["pydantic.mypy"]
+strict = true
+no_implicit_optional = true
+warn_unused_ignores = true
+disallow_untyped_defs = true
+disallow_any_generics = true

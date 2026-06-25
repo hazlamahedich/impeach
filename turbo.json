@@ -11,6 +11,17 @@
     },
     "lint": {
       "dependsOn": ["@iip/eslint-plugin#build"]
+    },
+    "py:lint": {
+      "outputs": []
+    },
+    "py:test": {
+      "dependsOn": ["py:lint", "^build"],
+      "outputs": []
+    },
+    "py:typecheck": {
+      "dependsOn": ["py:lint"],
+      "outputs": []
     }
   }
 }

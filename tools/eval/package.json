@@ -1,10 +1,14 @@
 {
+  "//": "shim — intentional non-standard layout (STR-12). NOT a pnpm workspace member. Scripts shell to `uv run` so Turborepo can discover py:* tasks without adding tools/* to pnpm-workspace.yaml (which would break `pnpm install`).",
   "name": "@iip/tools-eval",
   "version": "0.0.1",
   "private": true,
-  "description": "Python eval harness shim - NOT a pnpm workspace member (STR-12). Invoked via the root eval:uv script.",
+  "type": "module",
+  "description": "Python eval harness shim — NOT a pnpm workspace member (STR-12). Invoked via uv run.",
   "scripts": {
-    "eval": "uv run --project . python -m eval",
-    "test": "uv run --project . python -m unittest discover -s tests"
+    "lint": "uv run --project . --directory . ruff check src tests",
+    "typecheck": "uv run --project . --directory . mypy src/eval",
+    "test": "uv run --project . --directory . pytest",
+    "eval": "uv run --project . --directory . python -m eval"
   }
 }

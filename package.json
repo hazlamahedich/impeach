@@ -21,6 +21,10 @@
     "db:migrate": "pnpm --filter @iip/db exec drizzle-kit migrate",
     "db:age-boot": "tsx scripts/age-migrate.ts",
     "lint": "eslint .",
+    "py:lint": "uv run --project tools/eval --directory tools/eval ruff check src tests",
+    "py:typecheck": "uv run --project tools/eval --directory tools/eval mypy src/eval",
+    "py:test": "uv run --project tools/eval --directory tools/eval pytest",
+    "py:codegen": "tsx packages/contracts/scripts/gen-pydantic.ts",
     "eval:uv": "uv run --project tools/eval python -m eval"
   },
   "devDependencies": {
@@ -28,6 +32,7 @@
     "@iip/contracts": "workspace:*",
     "@iip/db": "workspace:*",
     "@iip/eslint-plugin": "workspace:*",
+    "@iip/eval": "workspace:*",
     "@iip/render": "workspace:*",
     "@types/node": "^22.10.5",
     "drizzle-orm": "0.35.3",
