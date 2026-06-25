@@ -90,7 +90,11 @@ importers:
 
   packages/auth: {}
 
-  packages/citation: {}
+  packages/citation:
+    dependencies:
+      '@iip/contracts':
+        specifier: workspace:*
+        version: link:../contracts
 
   packages/config: {}
 

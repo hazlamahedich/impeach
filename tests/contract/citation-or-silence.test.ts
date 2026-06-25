@@ -24,7 +24,7 @@
 import { describe, it, expect } from 'vitest';
 import * as fc from 'fast-check';
 import { renderGate } from '@iip/render';
-import { RenderInput } from '@iip/contracts';
+import { RenderInput, CitationTuple } from '@iip/contracts';
 import type {
   RenderInputType,
   RenderDocumentType,
@@ -37,12 +37,12 @@ function validCitation(overrides: Partial<CitationRefType> = {}): CitationRefTyp
     citation_id: 'cit-001',
     source_id: '00000000-0000-4000-8000-000000000001',
     trust_tier: 1,
-    tuple: {
+    tuple: CitationTuple.parse({
       source_doc_id: '00000000-0000-4000-8000-000000000002',
       span_start: 0,
       span_end: 100,
-      content_hash: 'sha256:abc123',
-    },
+      content_hash: 'a'.repeat(64),
+    }),
     ...overrides,
   };
 }

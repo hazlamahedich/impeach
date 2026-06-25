@@ -5,7 +5,7 @@ export function hello(): string {
 }
 
 export { CitationTuple, CitationRef } from './citation.js';
-export type { CitationTuple as CitationTupleType, CitationRef as CitationRefType } from './citation.js';
+export type { CitationTuple as CitationTupleType, CitationRef as CitationRefType, CorpusHash } from './citation.js';
 export {
   RenderSpan,
   RenderDocument,

@@ -37,6 +37,8 @@
 generated: 2026-06-22
   # story 1-3 re-promoted to in-progress (P0-P3 complete, dev started)
 last_updated: 2026-06-25
+  # story 1-6 moved review -> done after code-review patch applied + verified (CitationEmitError, all gates green)
+  # story 1-6 moved in-progress -> review (emit/verify async Web Crypto per ADR-010, fast-check property tests, CorpusHash-brand collateral fixes)
   # story 1-5 moved ready-for-dev -> in-progress
   # story 1-5 moved review -> done after verification gates passed (contract, bridge, python, integration, lint)
   # story 1-4 moved ready-for-dev -> in-progress
@@ -62,7 +64,7 @@ development_status:
   1-3-docker-compose-platform-stack: done
   1-4-render-gate-eslint-boundary: done
   1-5-polyglot-eval-seam: done
-  1-6-citation-package: backlog
+  1-6-citation-package: done
   1-7-design-token-system: backlog
   1-8-stubbed-compound-components: backlog
   1-9-state-management-foundation-navigation-shell: backlog
