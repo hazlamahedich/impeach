@@ -11,5 +11,8 @@
     "*.config.ts",
     "vitest.workspace.ts",
     "eslint.config.js"
+  ],
+  "exclude": [
+    "tests/lint-fixtures/**"
   ]
 }

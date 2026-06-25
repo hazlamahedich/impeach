@@ -1,0 +1,31 @@
+{
+  "name": "@iip/eslint-plugin",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "description": "Impeachment Intelligence Platform — custom ESLint rules that enforce package exports-map boundaries (STR-5, PC-1).",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "source": "./src/index.ts",
+  "//exports_default": "ESLint loads this plugin under plain Node, so default points to built JS while types stays at source. This is an intentional AC #10 exception documented in Story 1.4.",
+  "dependencies": {
+    "@typescript-eslint/utils": "^8.21.0",
+    "minimatch": "^3.1.2"
+  },
+  "devDependencies": {
+    "@types/minimatch": "^3.0.5"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run",
+    "lint": "eslint src"
+  },
+  "peerDependencies": {
+    "eslint": ">=9"
+  }
+}

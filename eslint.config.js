@@ -1,8 +1,36 @@
 import js from '@eslint/js';
 import tseslint from 'typescript-eslint';
+import importX from 'eslint-plugin-import-x';
+import { importBoundaryPreset } from '@iip/eslint-plugin';
 
-// AC-F1-08 — flat ESLint config at repo root. Foundational ruleset for the
-// scaffold; defamation-grade boundary/rule promotion lands in Story 1.4.
+/**
+ * Globs covering both the workspace path and the `node_modules/@iip/*` symlink
+ * path for a package, so resolution-based rules match regardless of whether
+ * the resolver returns a realpath or the symlink location (pnpm hoisted mode).
+ */
+const pkg = (name) => [`packages/${name}/**`, `**/node_modules/@iip/${name}/**`];
+
+/**
+ * Root flat ESLint config (AC-F1-08).
+ *
+ * Story 1.4 promotes the foundational ruleset to defamation-grade import
+ * boundaries:
+ *   - SC-3: `packages/render` imports ONLY `@iip/contracts`.
+ *   - STR-4: `@iip/render` is banned in `packages/rag/**` and the serve-worker
+ *            RAG processor (cross-process handoff via the render-queue).
+ *   - STR-5: `@iip/graph/writer` is write-only (see @iip/eslint-plugin preset).
+ *
+ * Layered enforcement:
+ *   1. `import/no-restricted-paths`  — structural zone bans (path resolution).
+ *   2. `no-restricted-imports`       — deterministic string-based module bans
+ *                                      (belt-and-suspenders; survives resolver gaps).
+ *   3. `import/no-relative-packages` — block `../../render/src/gate.ts` bypasses.
+ *   4. `@iip/no-internal-import`      — exports-map / internal-subtree reach (STR-5).
+ *
+ * Plugin choice: `eslint-plugin-import-x@4.17.0` — the ESM-first fork with
+ * first-class flat-config + TypeScript support (preferred over the CJS-bound
+ * `eslint-plugin-import@2.32.0`). Exact version pinned.
+ */
 export default tseslint.config(
   {
     ignores: [
@@ -23,6 +51,8 @@ export default tseslint.config(
       '.claude/**',
       '.opencode/**',
       '.git/**',
+      // Story 1.4: lint fixtures are intentionally illegal — excluded from lint.
+      'tests/lint-fixtures/**',
     ],
   },
   js.configs.recommended,
@@ -39,4 +69,138 @@ export default tseslint.config(
       ],
     },
   },
+  // Global: block cross-package relative-import bypasses (STR-4/SC-3).
+  // The TypeScript resolver lets import-x resolve workspace packages whose
+  // `exports` point at `.ts` source, so the resolution-based rules
+  // (no-restricted-paths / no-relative-packages) can match package zones.
+  {
+    name: 'iip/import-x-plugin',
+    plugins: { import: importX },
+    settings: {
+      'import-x/resolver': {
+        typescript: {
+          project: ['tsconfig.json', 'packages/*/tsconfig.json', 'apps/*/tsconfig.json'],
+          alwaysTryTypes: true,
+          noWarnOnMultipleProjects: true,
+        },
+      },
+    },
+    rules: {
+      'import/no-relative-packages': 'error',
+    },
+  },
+  // SC-3 / STR-4: RAG must not import @iip/render — emit RenderInput, push to queue.
+  {
+    name: 'iip/rag-bans-render',
+    files: [
+      'packages/rag/**/*.ts',
+      'apps/serve-worker/src/processors/rag/**/*.ts',
+    ],
+    plugins: { import: importX },
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            {
+              name: '@iip/render',
+              message:
+                'RAG must not import @iip/render — emit RenderInput and push to the render-queue (STR-4, SC-3).',
+            },
+          ],
+          patterns: [
+            {
+              group: ['@iip/render/**'],
+              message:
+                'RAG must not reach into @iip/render/** — emit RenderInput and push to the render-queue (STR-4, SC-3).',
+            },
+          ],
+        },
+      ],
+      'import/no-restricted-paths': [
+        'error',
+        {
+          basePath: '.',
+          zones: [
+            {
+              target: 'packages/rag/**',
+              from: pkg('render'),
+              message:
+                'RAG must not import from packages/render (STR-4, SC-3).',
+            },
+            {
+              target: 'apps/serve-worker/src/processors/rag/**',
+              from: pkg('render'),
+              message:
+                'serve-worker RAG processor must not import from packages/render (STR-4).',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  // SC-3: packages/render imports ONLY @iip/contracts.
+  {
+    name: 'iip/render-imports-only-contracts',
+    files: ['packages/render/**/*.ts'],
+    plugins: { import: importX },
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            {
+              name: '@iip/db',
+              message: 'packages/render may only import @iip/contracts (SC-3).',
+            },
+            {
+              name: '@iip/rag',
+              message: 'packages/render may only import @iip/contracts (SC-3).',
+            },
+            {
+              name: '@iip/llm',
+              message: 'packages/render may only import @iip/contracts (SC-3).',
+            },
+            {
+              name: '@iip/ingest',
+              message: 'packages/render may only import @iip/contracts (SC-3).',
+            },
+            {
+              name: '@iip/graph',
+              message: 'packages/render may only import @iip/contracts (SC-3).',
+            },
+          ],
+          patterns: [
+            {
+              group: ['@iip/{db,rag,llm,ingest,graph}/**'],
+              message: 'packages/render may only import @iip/contracts (SC-3).',
+            },
+          ],
+        },
+      ],
+      'import/no-restricted-paths': [
+        'error',
+        {
+          basePath: '.',
+          zones: [
+            {
+              target: 'packages/render/**',
+              from: [
+                ...pkg('rag'),
+                ...pkg('llm'),
+                ...pkg('ingest'),
+                ...pkg('db'),
+                ...pkg('graph'),
+                'apps/**',
+              ],
+              message:
+                'packages/render may only import @iip/contracts at the rag→render seam (SC-3).',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  // STR-5: @iip/graph/writer write-only restriction + internal-path reach.
+  importBoundaryPreset,
 );

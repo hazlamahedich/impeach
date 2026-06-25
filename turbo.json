@@ -6,7 +6,11 @@
       "outputs": ["dist/**"]
     },
     "typecheck": {},
-    "test": {},
-    "lint": {}
+    "test": {
+      "dependsOn": ["^build"]
+    },
+    "lint": {
+      "dependsOn": ["@iip/eslint-plugin#build"]
+    }
   }
 }

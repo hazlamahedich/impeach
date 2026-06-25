@@ -4,25 +4,66 @@
  * @rules AC-2, SEC-5, EI-1
  * @adr ADR-001
  *
- * STUB: This module will be implemented in Epic 2 (Story 2.1).
- * It currently throws to keep the contract test RED.
- */
-
-import type { RenderInputType, RenderDocumentType } from '@iip/contracts';
-
-/**
- * The render gate processes a RenderInput and produces a RenderDocument
- * where every claim-bearing span carries a valid citation. Uncited
- * claim-bearing spans are stripped (fail-closed).
+ * STUB (Story 1.4): Deterministic fail-closed placeholder.
+ * Real substring/NLI validation is Story 2.1.
  *
- * CONTRACT:
- * - Every span where is_claim=true MUST have non-null citation.
- * - If backing services degrade, the gate refuses to serve.
- * - The gate fires on EVERY render, internal or external.
+ * ENFORCES (this story):
+ *   - Claim spans with non-null citation_ref → preserved, citation mapped to output
+ *   - Claim spans with null citation_ref → stripped (fail-closed)
+ *   - Non-claim spans → passed through unchanged
+ *   - no_evidence flag set when zero cited claim spans remain
+ *
+ * DOES NOT ENFORCE (deferred to Story 2.1+):
+ *   - Citation factual accuracy or cross-reference validity
+ *   - Source document accessibility or chain-of-custody
+ *   - Trust-tier gating or corroboration requirements
+ *   - Expired/retracted citation detection
+ *   - Runtime enforcement when lint is bypassed
  */
-export function renderGate(_input: RenderInputType): RenderDocumentType {
-  throw new Error(
-    'renderGate: NOT IMPLEMENTED — Epic 2 Story 2.1 owns this. ' +
-    'Contract test is RED by design until the gate is wired.',
-  );
+
+import type { RenderInputType, RenderDocumentType, RenderSpanType } from '@iip/contracts';
+
+type InputSpan = RenderInputType['spans'][number];
+
+function mapSpan(span: InputSpan): RenderSpanType | null {
+  if (!span.is_claim) {
+    return {
+      text: span.text,
+      is_claim: false,
+      citation: null,
+    };
+  }
+
+  if (span.citation_ref === null) {
+    return null;
+  }
+
+  return {
+    text: span.text,
+    is_claim: true,
+    claim_type: span.claim_type,
+    citation: span.citation_ref,
+  };
+}
+
+export function renderGate(input: RenderInputType): RenderDocumentType {
+  const mapped = input.spans
+    .map(mapSpan)
+    .filter((s): s is RenderSpanType => s !== null);
+
+  const citedClaims = mapped.filter((s) => s.is_claim);
+  const noEvidence = citedClaims.length === 0;
+
+  if (noEvidence) {
+    return {
+      spans: mapped,
+      no_evidence: true,
+      essence_sentence: (input.answer_text ?? '').slice(0, 200),
+    };
+  }
+
+  return {
+    spans: mapped,
+    no_evidence: false,
+  };
 }

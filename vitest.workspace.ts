@@ -49,4 +49,12 @@ export default defineWorkspace([
       },
     },
   },
+  {
+    test: {
+      name: 'lint',
+      environment: 'node',
+      include: ['tests/lint/**/*.test.ts'],
+      exclude: ['**/node_modules/**', '**/dist/**', '**/._*'],
+    },
+  },
 ]);
