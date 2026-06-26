@@ -193,4 +193,14 @@
   --spacing-editorial-gap: var(--editorial-gap);
   --spacing-graph-panel: var(--graph-panel);
   --spacing-evidence-split-gap: var(--evidence-split-gap);
+
+  /* Typography scale (UX-DR5) — text-size utilities consumed by the
+     compound components (Story 1.8). Additive to the Story 1.7 surface. */
+  --text-display-sm: 1.875rem;
+  --text-display-sm--line-height: 1.15;
+  --text-body-md: 1rem;
+  --text-body-md--line-height: 1.6;
+
+  /* Label-caps font (UX-DR12) — sans stack rendered uppercase by utilities. */
+  --font-label-caps: var(--font-sans-loaded, "Geist Sans"), system-ui, sans-serif;
 }

@@ -37,6 +37,7 @@
 generated: 2026-06-22
   # story 1-3 re-promoted to in-progress (P0-P3 complete, dev started)
 last_updated: 2026-06-26
+  # story 1-8 moved in-progress -> review (6 compound components, source-verb registry, CitationProvenance; 33 web tests GREEN, full regression GREEN; fixed latent turbo self-recursion on root build/typecheck/test)
   # story 1-7 moved review -> done after code-review patches applied + verified (turbo outputs, ATDD checklist)
   # story 1-7 moved in-progress -> review (28 semantic tokens, Tailwind 4 @theme, next/font typography, 9/9 tests GREEN)
   # story 1-6 moved review -> done after code-review patch applied + verified (CitationEmitError, all gates green)
@@ -68,7 +69,7 @@ development_status:
   1-5-polyglot-eval-seam: done
   1-6-citation-package: done
   1-7-design-token-system: done
-  1-8-stubbed-compound-components: backlog
+  1-8-stubbed-compound-components: review
   1-9-state-management-foundation-navigation-shell: backlog
   1-10-19-adrs-seeded: backlog
   1-11-ci-pipeline-gate-artifact-store: backlog

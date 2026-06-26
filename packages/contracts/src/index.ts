@@ -4,8 +4,14 @@ export function hello(): string {
   return `alive: ${packageName}`;
 }
 
-export { CitationTuple, CitationRef } from './citation.js';
-export type { CitationTuple as CitationTupleType, CitationRef as CitationRefType, CorpusHash } from './citation.js';
+export { CitationTuple, CitationRef, SourceTier, CitationProvenance } from './citation.js';
+export type {
+  CitationTuple as CitationTupleType,
+  CitationRef as CitationRefType,
+  CorpusHash,
+  SourceTier as SourceTierType,
+  CitationProvenance as CitationProvenanceType,
+} from './citation.js';
 export {
   RenderSpan,
   RenderDocument,

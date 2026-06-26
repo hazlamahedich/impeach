@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 import { Source_Serif_4, Geist, IBM_Plex_Mono } from 'next/font/google';
+import { CitationProvider } from '@/components/iip/citation/citation-provider';
 import './styles/iip-tokens.css';
 
 /**
@@ -40,7 +41,14 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" className={`${fontDisplay.variable} ${fontSans.variable} ${fontMono.variable}`}>
-      <body className="bg-surface-base text-claim-fact font-sans antialiased">{children}</body>
+      <body className="bg-surface-base text-claim-fact font-sans antialiased">
+        {/*
+          CitationContext provider at the root (UX-DR9, AC-8). Defaults to null
+          (no provenance resolved at the shell); leaf citation surfaces resolve
+          and provide provenance where a source is available.
+        */}
+        <CitationProvider>{children}</CitationProvider>
+      </body>
     </html>
   );
 }

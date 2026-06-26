@@ -51,3 +51,44 @@ export const CitationRef = z.object({
 });
 
 export type CitationRef = z.infer<typeof CitationRef>;
+
+/**
+ * SourceTier — the editorial tier of a source (UX projection).
+ *
+ * Mirrors the `--source-tier-*` semantic tokens. Distinct from the numeric
+ * `trust_tier` on `CitationRef` (1/2/3): this is the human-readable tier label
+ * carried through the citation UX surface.
+ *
+ * @rules AC-4
+ */
+export const SourceTier = z.enum(['primary', 'secondary', 'tertiary']);
+export type SourceTier = z.infer<typeof SourceTier>;
+
+/**
+ * CitationProvenance — the UX-facing provenance value for a citation (AC-4).
+ *
+ * This is the camelCase projection consumed by the citation compound components
+ * (Story 1.8). It carries every field of {@link CitationTuple} (Story 1.6) plus
+ * the UX fields needed to render a citation chip/modal. The storage boundary
+ * keeps the branded, snake_case `CitationTuple`; this type is the render-side
+ * projection, so `contentHash`/`sourceDocId` are plain strings here — strict
+ * branding is enforced upstream at ingestion, not re-imposed on the UI consumer.
+ *
+ * `url` is optional: when present the citation is an interactive link; when
+ * absent the chip degrades to a non-interactive stub (UX-DR9 edge case).
+ *
+ * @rules AC-4, UX-DR9
+ * @adr ADR-001, ADR-010
+ */
+export const CitationProvenance = z.object({
+  sourceDocId: z.string().min(1),
+  spanStart: z.number().int().nonnegative(),
+  spanEnd: z.number().int().nonnegative(),
+  contentHash: z.string().min(1),
+  sourceVerb: z.string().min(1),
+  sourceTier: SourceTier,
+  sourceTitle: z.string().min(1),
+  url: z.string().url().optional(),
+});
+
+export type CitationProvenance = z.infer<typeof CitationProvenance>;
