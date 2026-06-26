@@ -205,4 +205,26 @@ export default tseslint.config(
   },
   // STR-5: @iip/graph/writer write-only restriction + internal-path reach.
   importBoundaryPreset,
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Story 1.9 — UX-DR31: ban raw fetch() in the web client.
+  // The API server, workers, and scripts use fetch legitimately, so this is
+  // scoped to apps/web/** only. All client HTTP calls go through apiFetch()
+  // (lib/api.ts) which adds AbortController + retry logic.
+  // ─────────────────────────────────────────────────────────────────────────
+  {
+    name: 'iip/web-fetch-ban',
+    files: ['apps/web/**/*.ts', 'apps/web/**/*.tsx'],
+    ignores: ['apps/web/lib/api.ts'],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: "CallExpression[callee.name='fetch']",
+          message:
+            'Raw fetch() is banned in the web client. Use apiFetch() from lib/api.ts instead (UX-DR31).',
+        },
+      ],
+    },
+  },
 );
