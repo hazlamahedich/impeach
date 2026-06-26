@@ -8,7 +8,8 @@ import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { glob } from 'glob';
 
-const ROOT = join(__dirname, '..', '..', '..', '..', '..');
+// apps/web/ is two levels up from apps/web/app/styles/.
+const ROOT = join(__dirname, '..', '..');
 const TOKENS_PATH = join(ROOT, 'app/styles/iip-tokens.css');
 
 const REQUIRED_TOKENS = [
@@ -29,7 +30,7 @@ const REQUIRED_TOKENS = [
   '--focus-ring-trust', '--focus-ring-citation',
 ];
 
-describe.skip('Story 1.7 — Design token system (UX-DR1-8)', () => {
+describe('Story 1.7 — Design token system (UX-DR1-8)', () => {
   // RED — app/styles/iip-tokens.css does not exist yet (Tailwind 4 @theme)
 
   it('iip-tokens.css exists with Tailwind 4 @theme block', () => {
@@ -56,15 +57,24 @@ describe.skip('Story 1.7 — Design token system (UX-DR1-8)', () => {
     const css = readFileSync(TOKENS_PATH, 'utf8');
     const rootMatch = css.match(/:root\s*\{([^}]+)\}/);
     const darkMatch = css.match(/\.dark\s*\{([^}]+)\}/);
-    if (!rootMatch || !darkMatch) {
+    const rootContent = rootMatch?.[1];
+    const darkContent = darkMatch?.[1];
+    if (rootContent === undefined || darkContent === undefined) {
       throw new Error('Missing :root or .dark block');
     }
-    const rootVars = Object.fromEntries(
-      [...rootMatch[1].matchAll(/--([\w-]+):\s*([^;]+)/g)].map(m => [m[1], m[2].trim()])
-    );
-    const darkVars = Object.fromEntries(
-      [...darkMatch[1].matchAll(/--([\w-]+):\s*([^;]+)/g)].map(m => [m[1], m[2].trim()])
-    );
+    const parseVars = (block: string): Record<string, string> =>
+      Object.fromEntries(
+        [...block.matchAll(/--([\w-]+):\s*([^;]+)/g)].map((m) => {
+          const name = m[1];
+          const value = m[2];
+          if (name === undefined || value === undefined) {
+            throw new Error('Malformed CSS custom property declaration');
+          }
+          return [name, value.trim()];
+        })
+      );
+    const rootVars = parseVars(rootContent);
+    const darkVars = parseVars(darkContent);
     const commonTokens = Object.keys(rootVars).filter(k => k in darkVars);
     expect(commonTokens.length).toBeGreaterThan(0);
     for (const token of commonTokens) {

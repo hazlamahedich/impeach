@@ -14,37 +14,41 @@ generatedTestFiles:
 **Date:** 2026-06-22 · **Primary Test Level:** unit (CSS parse) · **Severity:** T2
 
 ## Acceptance Criteria
-1. All semantic tokens defined: trust-tier (verified/contradicted/caution), claim (fact/attributed/dashed), defamation-risk-caution, primary, accent, surface-base/raised/sunken (UX-DR1-8)
-2. Both light and dark mode pairs
-3. Tailwind 4 configured to consume tokens
-4. Typography: Source Serif 4 (display), Geist Sans (body), IBM Plex Mono (citations) (UX-DR5)
-5. Rounded scale: 3/5/8 px (UX-DR6)
+1. All semantic tokens defined: trust-tier (verified/contradicted/caution/insufficient/disputed/retracted), source-tier (primary/secondary/tertiary), claim (fact/attributed/dashed/dashed-superseded), defamation-risk (caution/prohibited), brand & surfaces (primary/accent/surface-base/raised/sunken/border/muted/muted-foreground), citation links (default/hover/visited), focus rings (trust/citation) — 25 tokens total (UX-DR1-8)
+2. Both light and dark mode pairs with distinct values per mode
+3. Tailwind 4 configured to consume tokens via `@theme` and `@tailwindcss/postcss`
+4. Typography: Source Serif 4 (display), Geist Sans (body), IBM Plex Mono (citations) loaded via `next/font/google` (UX-DR5)
+5. Rounded scale: `--radius-sm` (3px), `--radius-md` (5px), `--radius-lg` (8px), `--radius-xl` (12px) (UX-DR6)
 6. Spacing overrides: editorial-gap (56px), graph-panel (320px), evidence-split-gap (48px) (UX-DR7)
 
 ## Red-Phase Scaffolds
-**File:** `apps/web/app/styles/design-tokens.test.ts` (8 tests)
+**File:** `apps/web/app/styles/design-tokens.test.ts` (9 tests)
 
 - ⏭️ @theme block (Tailwind v4) — RED
-- ⏭️ required semantic tokens — RED
-- ⏭️ light + dark pairs — RED
+- ⏭️ required semantic tokens (25 tokens) — RED
+- ⏭️ light + dark pairs with distinct values — RED
 - ⏭️ postcss = @tailwindcss/postcss — RED
-- ⏭️ typography loaded — RED
-- ⏭️ rounded scale 3/5/8 — RED
+- ⏭️ typography loaded via next/font — RED
+- ⏭️ rounded scale 3/5/8/12px — RED
 - ⏭️ spacing overrides — RED
-- ⏭️ **no raw hex/scale in components/iip/** — RED (STR-10 CI gate)
+- ⏭️ no raw hex/scale in components/iip/ — RED (STR-10 CI gate)
+- ⏭️ WCAG 2.1 AA contrast compliance — RED
 
 ## Implementation Checklist
 
-- [ ] `app/styles/iip-tokens.css` with Tailwind 4 `@theme { ... }` block (NOT v3 `@tailwind base/...`)
-- [ ] All REQUIRED_TOKENS (in test) defined — full matrix from project-context.md Frontend Style section
-- [ ] Light + dark pairs via `:root` and `.dark` (or `prefers-color-scheme`)
-- [ ] `postcss.config.json` plugin `@tailwindcss/postcss` (NOT v3 `tailwindcss`)
-- [ ] `next.config.ts` `transpilePackages: ['@iip/ui', ...]`
-- [ ] Load Source Serif 4 + Geist Sans + IBM Plex Mono via `next/font`
-- [ ] Define `--radius-sm/md/lg: 3px/5px/8px`
-- [ ] Define `--editorial-gap: 56px`, `--graph-panel: 320px`, `--evidence-split-gap: 48px`
-- [ ] CI lint rule: no raw hex / `--green-500`-style in `components/iip/**`
-- [ ] Activate `test.skip` → GREEN
+- [x] `app/styles/iip-tokens.css` with Tailwind 4 `@theme { ... }` block (NOT v3 `@tailwind base/...`)
+- [x] All 25 REQUIRED_TOKENS (in test) defined — full matrix from story AC #2
+- [x] Light + dark pairs via `:root` and `.dark` with distinct values per mode
+- [x] `postcss.config.json` plugin `@tailwindcss/postcss` (NOT v3 `tailwindcss`)
+- [x] `next.config.ts` `transpilePackages: ['@iip/ui', ...]`
+- [x] Load Source Serif 4 + Geist Sans + IBM Plex Mono via `next/font/google` in `layout.tsx`
+- [x] Export `--font-display`, `--font-sans`, `--font-mono` CSS variables from font instances
+- [x] Define `--radius-sm: 3px`, `--radius-md: 5px`, `--radius-lg: 8px`, `--radius-xl: 12px`
+- [x] Define `--editorial-gap: 56px`, `--graph-panel: 320px`, `--evidence-split-gap: 48px`
+- [x] CI lint rule: no raw hex / `--green-500`-style in `components/iip/**`
+- [x] Copy `design-tokens.test.ts` to `apps/web/app/styles/` and activate by removing `.skip`
+- [x] Verify WCAG 2.1 AA contrast (4.5:1 text, 3:1 graphical) in both modes
+- [x] Activate `test.skip` → GREEN
 
 **Estimated Effort:** 1 day
 

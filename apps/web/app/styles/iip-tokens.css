@@ -1,0 +1,196 @@
+/**
+ * IIP Design Token System — Story 1.7 (UX-DR1-8).
+ *
+ * Tailwind v4 CSS-first configuration: semantic tokens are declared as plain
+ * CSS custom properties under `:root` (light) and `.dark` (dark), then mapped
+ * into Tailwind's theme namespaces via the `@theme` block. Components consume
+ * the generated utilities (e.g. `bg-trust-tier-verified`, `text-claim-fact`)
+ * so light/dark mode transitions resolve automatically — never raw hex.
+ *
+ * Refs: UX-DR1-8 (semantic tokens), UX-DR5 (typography),
+ *       UX-DR6 (tightened corners), UX-DR7 (spacing overrides), STR-10.
+ */
+@import "tailwindcss";
+
+/* ───────────────────────────────────────────────────────────────────────────
+ * Light mode (default)
+ * ─────────────────────────────────────────────────────────────────────────── */
+:root {
+  /* Trust tiers */
+  --trust-tier-verified: #2A6B5E;
+  --trust-tier-contradicted: #9B3A2E;
+  --trust-tier-caution: #8F5A12;
+  --trust-tier-insufficient: #8A8A8A;
+  --trust-tier-disputed: #7B5E2E;
+  --trust-tier-retracted: #6B2E3E;
+
+  /* Source tiers */
+  --source-tier-primary: #1E3A5F;
+  --source-tier-secondary: #4A5E7A;
+  --source-tier-tertiary: #6B6258;
+
+  /* Claim states */
+  --claim-fact: #1B1C19;
+  --claim-attributed: #6B6258;
+  --claim-dashed: #736B5E;
+  --claim-dashed-superseded: #8A7E6E;
+
+  /* Defamation risk */
+  --defamation-risk-caution: #8B2C1F;
+  --defamation-risk-prohibited: #6B1A1A;
+
+  /* Brand + surfaces */
+  --primary: #1E3A5F;
+  --primary-foreground: #FFFFFF;
+  --accent: #B8761E;
+  --accent-foreground: #FFFFFF;
+  --surface-base: #FBF8F2;
+  --surface-raised: #FFFFFF;
+  --surface-sunken: #F0EDE6;
+  --border: #E3DED1;
+  --muted: #F0EDE6;
+  --muted-foreground: #6B6258;
+
+  /* Citation links */
+  --citation-link-default: #1E3A5F;
+  --citation-link-hover: #2E5A8F;
+  --citation-link-visited: #4A3A6E;
+
+  /* Focus rings */
+  --focus-ring-trust: #2A6B5E;
+  --focus-ring-citation: #1E3A5F;
+
+  /* Destructive (form errors / delete actions — aligned to defamation-risk palette) */
+  --destructive: #8B2C1F;
+  --destructive-foreground: #FFFFFF;
+
+  /* Spacing overrides (UX-DR7 — theme-independent) */
+  --editorial-gap: 56px;
+  --graph-panel: 320px;
+  --evidence-split-gap: 48px;
+}
+
+/* ───────────────────────────────────────────────────────────────────────────
+ * Dark mode — every token carries a distinct value (UX-DR1-8).
+ * Defined under `.dark` (NOT nested inside @theme — invalid in Tailwind v4).
+ * ─────────────────────────────────────────────────────────────────────────── */
+.dark {
+  /* Trust tiers */
+  --trust-tier-verified: #4A9D8A;
+  --trust-tier-contradicted: #C46B5C;
+  --trust-tier-caution: #D49A3E;
+  --trust-tier-insufficient: #A0A0A0;
+  --trust-tier-disputed: #C4A34E;
+  --trust-tier-retracted: #9B4E5E;
+
+  /* Source tiers */
+  --source-tier-primary: #7BA8D4;
+  --source-tier-secondary: #8A9EBA;
+  --source-tier-tertiary: #9A918A;
+
+  /* Claim states */
+  --claim-fact: #E8E4DC;
+  --claim-attributed: #9A918A;
+  --claim-dashed: #6E655D;
+  --claim-dashed-superseded: #7A6E5E;
+
+  /* Defamation risk */
+  --defamation-risk-caution: #C45A42;
+  --defamation-risk-prohibited: #9B3A3A;
+
+  /* Brand + surfaces */
+  --primary: #7BA8D4;
+  --primary-foreground: #131418;
+  --accent: #D49A3E;
+  --accent-foreground: #131418;
+  --surface-base: #131418;
+  --surface-raised: #1C1E23;
+  --surface-sunken: #0E0F12;
+  --border: #2A2C31;
+  --muted: #1C1E23;
+  --muted-foreground: #9A918A;
+
+  /* Citation links */
+  --citation-link-default: #7BA8D4;
+  --citation-link-hover: #9BC8F4;
+  --citation-link-visited: #8A7ABE;
+
+  /* Focus rings */
+  --focus-ring-trust: #4A9D8A;
+  --focus-ring-citation: #7BA8D4;
+
+  /* Destructive */
+  --destructive: #C45A42;
+  --destructive-foreground: #131418;
+}
+
+/* ───────────────────────────────────────────────────────────────────────────
+ * Tailwind v4 theme mappings
+ *
+ * Color tokens reference the runtime CSS variables so `.dark` overrides flow
+ * through automatically. Typography composes the next/font-loaded variables
+ * (set in app/layout.tsx) with named fallback stacks.
+ * ─────────────────────────────────────────────────────────────────────────── */
+@theme {
+  /* Colors */
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-surface-base: var(--surface-base);
+  --color-surface-raised: var(--surface-raised);
+  --color-surface-sunken: var(--surface-sunken);
+  --color-border: var(--border);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+
+  /* Trust tiers */
+  --color-trust-tier-verified: var(--trust-tier-verified);
+  --color-trust-tier-contradicted: var(--trust-tier-contradicted);
+  --color-trust-tier-caution: var(--trust-tier-caution);
+  --color-trust-tier-insufficient: var(--trust-tier-insufficient);
+  --color-trust-tier-disputed: var(--trust-tier-disputed);
+  --color-trust-tier-retracted: var(--trust-tier-retracted);
+
+  /* Source tiers */
+  --color-source-tier-primary: var(--source-tier-primary);
+  --color-source-tier-secondary: var(--source-tier-secondary);
+  --color-source-tier-tertiary: var(--source-tier-tertiary);
+
+  /* Claim states */
+  --color-claim-fact: var(--claim-fact);
+  --color-claim-attributed: var(--claim-attributed);
+  --color-claim-dashed: var(--claim-dashed);
+  --color-claim-dashed-superseded: var(--claim-dashed-superseded);
+
+  /* Defamation risk */
+  --color-defamation-risk-caution: var(--defamation-risk-caution);
+  --color-defamation-risk-prohibited: var(--defamation-risk-prohibited);
+
+  /* Citation links */
+  --color-citation-link-default: var(--citation-link-default);
+  --color-citation-link-hover: var(--citation-link-hover);
+  --color-citation-link-visited: var(--citation-link-visited);
+
+  /* Focus rings */
+  --color-focus-ring-trust: var(--focus-ring-trust);
+  --color-focus-ring-citation: var(--focus-ring-citation);
+
+  /* Typography (UX-DR5) — next/font source vars composed with named fallbacks */
+  --font-display: var(--font-display-loaded, "Source Serif 4"), Georgia, serif;
+  --font-sans: var(--font-sans-loaded, "Geist Sans"), system-ui, sans-serif;
+  --font-mono: var(--font-mono-loaded, "IBM Plex Mono"), monospace;
+
+  /* Rounded corners — tightened scale (UX-DR6) */
+  --radius-sm: 3px;
+  --radius-md: 5px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+
+  /* Spacing (UX-DR7) — surfaces consume via var(--editorial-gap) etc. */
+  --spacing-editorial-gap: var(--editorial-gap);
+  --spacing-graph-panel: var(--graph-panel);
+  --spacing-evidence-split-gap: var(--evidence-split-gap);
+}

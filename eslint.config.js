@@ -38,6 +38,8 @@ export default tseslint.config(
       '**/node_modules/**',
       '**/coverage/**',
       '**/.turbo/**',
+      '**/.next/**',
+      '**/next-env.d.ts', // Next.js auto-generated — triple-slash references required by framework
       '**/._*', // macOS AppleDouble resource forks (external drive)
       '_bmad/**',
       '_bmad-output/**',
