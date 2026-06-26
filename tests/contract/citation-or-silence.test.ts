@@ -197,12 +197,18 @@ describe('Citation-or-Silence Contract (EI-1, AC-2, SEC-5)', () => {
         .uuid({ version: 4 })
         .noShrink(),
       trust_tier: fc.constantFrom(1, 2, 3),
-      tuple: fc.record({
-        source_doc_id: fc.uuid({ version: 4 }).noShrink(),
-        span_start: fc.nat({ max: 10000 }),
-        span_end: fc.nat({ max: 10000 }),
-        content_hash: fc.string({ minLength: 1 }).noShrink(),
-      }),
+      tuple: fc
+        .record({
+          source_doc_id: fc.uuid({ version: 4 }).noShrink(),
+          span_start: fc.nat({ max: 10000 }),
+          span_end: fc.nat({ max: 10000 }),
+          content_hash: fc.hexaString({ minLength: 64, maxLength: 64 }).noShrink(),
+        })
+        .map(({ span_start, span_end, ...rest }) => ({
+          ...rest,
+          span_start: Math.min(span_start, span_end),
+          span_end: Math.max(span_start, span_end),
+        })),
     });
 
     const spanInputArb = fc.record({

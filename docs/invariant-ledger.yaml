@@ -19,8 +19,15 @@
   assertion_signature: "citation-or-silence.test.ts — POSITIVE + NEGATIVE + PC-9 invariant"
   fixtures: [golden/v1/, fixtures/citation/]
   gate: promotion
-  status: red
-  red_reason: "renderGate not implemented — Epic 2 Story 2.1"
+  status: yellow
+  yellow_reason: "renderGate stub enforces basic null-check (null-citation claims stripped, no_evidence flag set); full validation (substring verification, trust-tier gating, source-document accessibility, corroboration requirements) deferred to Epic 2 Story 2.1"
+  deferred_to: "Epic 2 Story 2.1"
+  deferred_items:
+    - "Citation factual accuracy / cross-reference validity"
+    - "Source document accessibility / chain-of-custody"
+    - "Trust-tier gating and corroboration requirements"
+    - "Expired/retracted citation detection"
+    - "Runtime enforcement when lint is bypassed"
   owner: Amelia
 
 - id: INV-002

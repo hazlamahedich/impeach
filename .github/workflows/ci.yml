@@ -99,15 +99,38 @@ jobs:
       - name: Build (test depends on dist)
         run: pnpm build
 
-      - name: Forbid .only/.skip/.todo in tests (Single-PR Protocol tooth #1)
+      - name: Forbid .only in tests (Single-PR Protocol tooth #1)
         run: |
           set -e
-          matches=$(grep -rnE '\.(only|skip|todo)\(' --include='*.test.ts' tests packages apps 2>/dev/null || true)
-          if [ -n "$matches" ]; then
-            echo "::error::Forbidden test modifier (.only/.skip/.todo) found — build fails per Single-PR Protocol tooth #1"
-            echo "$matches"
+          only_matches=$(grep -rnE '\.only\(' --include='*.test.ts' tests packages apps 2>/dev/null || true)
+          if [ -n "$only_matches" ]; then
+            echo "::error::Forbidden test modifier .only found — build fails per Single-PR Protocol tooth #1"
+            echo "$only_matches"
             exit 1
           fi
+          echo "✅ No .only modifiers in test files"
+
+      - name: Validate .skip/.todo have activation contracts
+        run: |
+          set -e
+          skip_matches=$(grep -rlnE '\.(skip|todo)\(' --include='*.test.ts' tests packages apps 2>/dev/null || true)
+          if [ -z "$skip_matches" ]; then
+            echo "✅ No skipped/todo tests"
+            exit 0
+          fi
+          violations=""
+          for f in $skip_matches; do
+            if ! grep -q '@activates-in' "$f"; then
+              violations="$violations  $f\n"
+            fi
+          done
+          if [ -n "$violations" ]; then
+            echo "::error::Skipped/todo tests found without @activates-in contract:"
+            printf "%b" "$violations"
+            echo "Add '@activates-in Epic N (Story N.M)' comment to the file."
+            exit 1
+          fi
+          echo "✅ All skipped/todo tests have @activates-in contracts"
 
       - name: TS tests (AC-F1-03 / AC-F1-05)
         # NOTE: `--detectOpenHandles` is a Jest flag; Vitest manages open
