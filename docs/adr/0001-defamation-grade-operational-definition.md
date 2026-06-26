@@ -4,9 +4,9 @@ title: Operational Definition of "Defamation-Grade" for IIP
 status: Accepted
 date: 2026-06-23
 supersedes: null
-supersedes_by: null
+superseded_by: null
 deciders: [Mary (analyst), Winston (architect), John (PM), Murat (test architect), user]
-related: [EI-1, EI-2, EI-3, EI-4, EI-5, EI-6, EI-7, EI-8, NFR-L-1, NFR-L-2, NFR-L-3, NFR-A-1, NFR-A-2, AC-2, SEC-5, SEC-6, FR-5.5, ADR-002, ADR-007]
+related: [EI-1, EI-2, EI-3, EI-4, EI-5, EI-6, EI-7, EI-8, NFR-L-1, NFR-L-2, NFR-L-3, NFR-A-1, NFR-A-2, AC-2, SEC-5, SEC-6, FR-5.5, ADR-002, ADR-007, ADR-008, ADR-010, ADR-021, ADR-022]
 evidence:
   - _bmad-output/planning-artifacts/prds/prd-impeachment-watch-2026-06-19/prd.md (EI-1 through EI-8, NFR-L-1 through NFR-L-5)
   - _bmad-output/planning-artifacts/architecture.md (AC-2, SEC-5, SEC-6, FR-5.5 gate)
@@ -203,7 +203,18 @@ gate).
 - Presenting content externally without the full G1–G8 gate
 - Deleting or updating editorial log entries
 
-### Open Questions
+### Related Decisions
+
+- **ADR-002:** AGE version pin — graph layer must support the provenance
+  chain (deterministic projection, NFR-A-2)
+- **ADR-005:** LLM model tier — cloud model for Q&A/render path must meet
+  the p95 ≤10s latency gate without sacrificing citation fidelity
+- **ADR-007:** Render gate as live call site — the mechanical
+  enforcement point for properties 1–6
+- **ADR-008:** NLI entailment gate — semantic verification layer for
+  citation-or-silence
+
+## Open questions
 
 - **Numeric defamation threshold (AR-26):** Exact max acceptable
   hallucination rate per language per citation class. Deferred to a
@@ -213,7 +224,7 @@ gate).
 - **Hash-chain concurrency (AR-27):** Multi-writer serialization model
   (single-writer consumer-group vs CRDT merge). Deferred to Epic 2.
 
-## Alternatives Considered
+## Alternatives
 
 1. **Leave "defamation-grade" undefined, enforce case-by-case.** Rejected —
    the whole point of the platform is mechanical enforcement. An undefined
@@ -229,12 +240,3 @@ gate).
    counsel defines the *liability* boundary (G7); engineering defines the
    *enforcement* mechanism. This ADR is the enforcement definition; G7 is
    the liability clearance.
-
-## Related Decisions
-
-- **ADR-002:** AGE version pin — graph layer must support the provenance
-  chain (deterministic projection, NFR-A-2)
-- **ADR-005:** LLM model tier — cloud model for Q&A/render path must meet
-  the p95 ≤10s latency gate without sacrificing citation fidelity
-- **ADR-007 (pending):** Render gate as live call site — the mechanical
-  enforcement point for properties 1–6

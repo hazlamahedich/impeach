@@ -4,7 +4,7 @@ title: Drizzle ORM Selection Rationale
 status: Accepted
 date: 2026-06-23
 supersedes: null
-supersedes_by: null
+superseded_by: null
 deciders: [Winston (architect), user]
 related: [AC-1, SC-5, PC-1a, PC-1b, STR-12, ADR-002, ADR-015]
 evidence:
@@ -70,7 +70,9 @@ Drizzle 0.35.x is pre-1.0. Risks accepted:
 - **No native AGE support.** Every Cypher query is raw SQL (ADR-015). This is
   acceptable — AGE is outside Drizzle's awareness by design (D1).
 
-### Alternatives Rejected
+## Alternatives
+
+### Rejected
 
 - **Prisma:** Hides the connection layer; AGE DDL requires unsafe escapes;
   generated client adds a codegen step and bundle weight; license posture
@@ -93,3 +95,11 @@ Drizzle 0.35.x is pre-1.0. Risks accepted:
   otherwise).
 - Upsert via `packages/db/src/upsert.ts`; multi-writes via `withTx(fn)` (PC-1a/b).
 - When Drizzle 1.0 ships, evaluate migration effort and file superseding ADR.
+
+## Open questions
+
+| # | Question | Owner | Trigger |
+|---|----------|-------|---------|
+| 1 | Does Drizzle 1.0 break the 0.35.x schema/migration format, requiring a full migration-set regeneration? | Developer/Architect | Drizzle 1.0 release |
+| 2 | Should the AGE raw-SQL escape hatch (ADR-015) gain a typed wrapper above `sql\`...\`` once Drizzle supports plugin types? | Architect | Post-1.0 Drizzle plugin API stability |
+| 3 | Is the `drizzle-orm`/`drizzle-kit` minor-match CI assertion sufficient, or should patch versions also be locked together? | Developer | First silent migration-bug incident |

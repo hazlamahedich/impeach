@@ -4,6 +4,7 @@ export function hello(): string {
   return `alive: ${packageName}`;
 }
 
+export { AppError, CitationEmitError } from './error.js';
 export { CitationTuple, CitationRef, SourceTier, CitationProvenance } from './citation.js';
 export type {
   CitationTuple as CitationTupleType,
@@ -37,3 +38,6 @@ export type {
   EvalMetric as EvalMetricType,
   EvalResult as EvalResultType,
 } from './eval.js';
+
+// Story 1.11 — PC-8 UTC helper
+export { now } from './time.js';

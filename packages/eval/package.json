@@ -9,6 +9,9 @@
       "default": "./src/index.ts"
     }
   },
+  "bin": {
+    "iip-eval": "./src/cli.ts"
+  },
   "dependencies": {
     "@iip/contracts": "workspace:*"
   },

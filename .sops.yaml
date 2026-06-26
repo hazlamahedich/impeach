@@ -1,0 +1,22 @@
+# SOPS configuration for the Impeachment Intelligence Platform (IIP).
+#
+# Secrets are stored at-rest using Mozilla SOPS + age (X25519) encryption
+# (D7, NFR-S-4). The age public key below encrypts; the corresponding
+# private key lives OUTSIDE the repo at ~/.config/sops/age/keys.txt on the
+# deploy runner only (SEC-4). CI runners receive decrypted values via OIDC
+# ephemeral tokens — never the private key.
+#
+# To generate a new key pair:
+#   age-keygen -o ~/.config/sops/age/keys.txt
+#   # Copy the "public key:" line into the age section below.
+#
+# To re-encrypt a file after rotating the public key, run:
+#   sops updatekeys secrets/<file>.yaml
+#
+# Refs: D7, NFR-S-4, SEC-4, ADR-019
+
+creation_rules:
+  # Encrypt every secret under secrets/ with the project age key.
+  - path_regex: ^secrets/.*$
+    age: >-
+      age13yvp9v0tw8zq7hcx9xfhpe9nwt3wpg9l8z2nvuj4aj0sq4rgqqsqssqpsp

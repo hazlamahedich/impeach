@@ -6,7 +6,7 @@ date: 2026-06-23
 supersedes: null
 superseded_by: null
 deciders: [Winston (architect), user]
-related: [AC-3, SC-5, STR-12, D1, ADR-003, ADR-015]
+related: [AC-3, SC-5, STR-12, D1, ADR-001, ADR-003, ADR-015]
 evidence:
   - _bmad-output/planning-artifacts/research/technical-graph-db-apache-age-evaluation-2026-06-19.md
   - https://github.com/apache/age/releases (verified 2026-06-22; re-audited and corrected 2026-06-23 — the 2026-06-22 check erroneously claimed AGE v1.7.0 was GA and that a PG16/v1.7.0 tag existed; both claims were false)
@@ -82,7 +82,7 @@ Two facts forced this ADR:
    (AGE FK-deps on relational schema, STR-12), codified as turbo task-graph
    dependencies, never parallel.
 
-## Alternatives Considered
+## Alternatives
 
 1. **Wait for native SQL:PGQ in PostgreSQL.**
    - Rejected. Not shipping in PG17 or PG18. Building on a hypothetical future
@@ -135,39 +135,26 @@ Two facts forced this ADR:
    `sql\`...\`` template (untyped). Parameterization is mandatory via the
    `cypher(graph, query, params)` wrapper (PC-1e) which catches the
    `$id`-inside-`$$` positional-binding injection footgun.
-  - In non-autocommit clients (psycopg v3, JDBC), graph DDL calls
-   (`create_graph`, `create_vlabel`) require an explicit `COMMIT` before they
-   are visible to other sessions — documented AGE behavior to bake into the boot
-   runner. The Story 1.2 integration suite includes a COMMIT-visibility test for
-   `create_graph('iip_graph')`.
-  - AGE parser hooks must be loaded per session. The Story 1.2 custom image bakes
-   `shared_preload_libraries=age` into the server CMD so hooks are available to
-   every backend without a per-session `LOAD 'age'`. This was verified manually
-   against the AGE PG16/v1.6.0-rc0 README (which documents `LOAD 'age'` per
-   session) and by the integration suite executing `cypher()` without an
-   explicit `LOAD`.
+- In non-autocommit clients (psycopg v3, JDBC), graph DDL calls
+  (`create_graph`, `create_vlabel`) require an explicit `COMMIT` before they
+  are visible to other sessions — documented AGE behavior to bake into the boot
+  runner. The Story 1.2 integration suite includes a COMMIT-visibility test for
+  `create_graph('iip_graph')`.
+- AGE parser hooks must be loaded per session. The Story 1.2 custom image bakes
+  `shared_preload_libraries=age` into the server CMD so hooks are available to
+  every backend without a per-session `LOAD 'age'`. This was verified manually
+  against the AGE PG16/v1.6.0-rc0 README (which documents `LOAD 'age'` per
+  session) and by the integration suite executing `cypher()` without an
+  explicit `LOAD`.
 
-### Neutral
-- Custom Docker image build (~10–15 min for AGE from source) is a CI cost; cache
-  aggressively. The image digest pin means reproducible Testcontainers runs.
-- AGE version drift between dev/CI/prod is eliminated by the single shared
-  image.
-
-## Open Questions
-
-| # | Question | Owner | Trigger |
-|---|----------|-------|---------|
-| 1 | When should IIP evaluate PostgreSQL 18 + AGE `PG18/v1.7.0-rc0`? | Architect | Post-v1 stability review; separate ADR required (no GA benefit — AGE 1.7.0-rc0 is also an RC) |
-| 2 | Should the Kùzu/networkx analytics sidecar be a v1 or v1.x deliverable? | Architect/PM | When centrality algorithms become a product requirement |
-| 3 | Is a graph-aware replication check needed beyond standard PG streaming replication? | Architect | Pre-PD-3 launch gate (VAL-7) |
-
-## RC0 Risk Acceptance and GA Upgrade Plan
+### RC0 Risk Acceptance and GA Upgrade Plan
 
 > **Added 2026-06-23** per Foundation Action Plan B-13 (Party Mode adversarial
 > review). Documents the accepted risk of running a release candidate in the
 > production path and defines the GA upgrade response.
 
-### Risk Accepted
+#### Risk Accepted
+
 
 IIP accepts the risk of running Apache AGE `PG16/v1.6.0-rc0` (release
 candidate, not GA) as the graph layer of a defamation-grade platform. This
@@ -208,7 +195,7 @@ file a superseding ADR within **5 business days**:
 6. Update this ADR's evidence array with the new tag URL
 7. Update `docs/glossary.md` T-013 if the version changes
 
-## Implementation Notes
+### Implementation Notes
 
 - `infra/docker/Dockerfile.pg16-age-vector` builds from `pgvector/pgvector:pg16`,
   compiles AGE from the `PG16/v1.6.0-rc0` tag source (commit `2db2f060`, the
@@ -229,6 +216,11 @@ file a superseding ADR within **5 business days**:
   outside that file.
 - `packages/graph/package.json` `exports`: `"./reader"` public,
   `"./writer"` restricted to `apps/ingest-worker/src/graph-builder/**` (STR-5).
-- Node/edge labels UPPERCASE matching type (`PERSON`, `VOTED_AGAINST`); each
-  node carries its relational `id`; named graph = `iip_graph` (architecture.md
-  §AGE Conventions).
+
+## Open questions
+
+| # | Question | Owner | Trigger |
+|---|----------|-------|---------|
+| 1 | When should IIP evaluate PostgreSQL 18 + AGE `PG18/v1.7.0-rc0`? | Architect | Post-v1 stability review; separate ADR required (no GA benefit — AGE 1.7.0-rc0 is also an RC) |
+| 2 | Should the Kùzu/networkx analytics sidecar be a v1 or v1.x deliverable? | Architect/PM | When centrality algorithms become a product requirement |
+| 3 | Is a graph-aware replication check needed beyond standard PG streaming replication? | Architect | Pre-PD-3 launch gate (VAL-7) |

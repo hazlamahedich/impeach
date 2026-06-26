@@ -11,4 +11,12 @@
 - `crypto.subtle` global availability is assumed without runtime check — runtime guarantee is outside story 1.6 scope.
 - `span_start` can equal `span_end` (zero-length citation) — product semantics of a zero-length citation should be decided later; code correctly handles it.
 - `@iip/contracts` exports `CorpusHash` as a type only — export the runtime branded schema from `index.ts` if consumers need it; not required by this story.
-- No Stryker/mutation test coverage target is set for `packages/citation/src/index.ts` — thresholds are not yet configured; out of scope for story 1.6.
+
+## Deferred from: code review of 1-11-ci-pipeline-gate-artifact-store (2026-06-26)
+
+- ADR formatting/normalization edits are Story 1.10 carry-over — not introduced by Story 1.11 implementation; no action needed here. [docs/adr/0001-*.md]
+- Full sops decryption integration test — requires actual encrypted secrets under `secrets/`; no files exist yet. [packages/config/src/secrets.ts]
+- Real polyglot eval bridge invocation in CI — deferred to Epic 4 per implementation notes; current smoke is intentional. [.github/workflows/ci.yml:242]
+- GPU passthrough runner config — already documented as commented-out and deferred to Epic 4. [infra/runner/provision.pkr.hcl:145]
+- Metric value range validation — real metrics (RAGAS/DeepEval) not defined yet; `{ echo: 1.0 }` smoke is sufficient for Epic 1. [packages/eval/src/reproduce.ts:57]
+

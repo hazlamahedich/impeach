@@ -4,9 +4,9 @@ title: Process Count Reconciliation — web is Process #6
 status: Accepted
 date: 2026-06-23
 supersedes: null
-supersedes_by: null
+superseded_by: null
 deciders: [Winston (architect), user]
-related: [AR-3, STR-2, STR-3, NFR-D-1, ADR-001]
+related: [AR-3, STR-2, STR-3, NFR-D-1, ADR-001, ADR-019]
 evidence:
   - _bmad-output/planning-artifacts/architecture.md (STR-2, AR-3)
   - _bmad-output/planning-artifacts/epics.md (Story 1.3, 11 services)
@@ -82,3 +82,27 @@ the blast-radius matrix.
 - `web` is included in VAL-9 (gate-invocation-per-served-response) scope.
 - STR-2/STR-3 documentation updated to reflect 6 processes.
 - Docker Compose `web` service is a first-class process, not an afterthought.
+
+## Alternatives
+
+1. **Classify `web` as a static asset host behind Caddy, not a process.**
+   - Rejected. Next.js 15 App Router uses React Server Components that fetch
+     server-side from `/api/v1` (UX-DR31); it is a running Node.js process
+     with its own event loop and failure domain, not a CDN-served bundle.
+2. **Keep the 5-process language and treat `web` as a deployment detail.**
+   - Rejected. The blast-radius matrix (AR-28) and VAL-9
+     (gate-invocation-per-served-response) depend on enumerating every
+     failure domain. Omitting `web` leaves a process outside the Stryker/chaos
+     scope where a render-gate bypass could hide.
+3. **Fold `web` into `api` as a single process serving both API and SSR.**
+   - Rejected. STR-2/STR-3 deliberately separate the read-only public ingress
+     (`api`, post-PD-3) from the frontend failure domain; co-locating them
+     couples an SSR crash to API availability.
+
+## Open questions
+
+| # | Question | Owner | Trigger |
+|---|----------|-------|---------|
+| 1 | Should `web` SSR fetches be gated by the same render gate as `api` (shared package) or a client-side mirror? | Architect | Story 2-1 (render gate live) |
+| 2 | Does the AR-28 blast-radius matrix tooling enumerate 2^6 combinations automatically? | Test Architect | VAL-9 chaos suite (Epic 2) |
+| 3 | Is `web` in-scope for Stryker mutation testing on its render-adjacent code? | Test Architect | PD-3 launch gate |

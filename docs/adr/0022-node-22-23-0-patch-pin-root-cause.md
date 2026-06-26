@@ -4,7 +4,7 @@ title: Node.js 22.23.0 Patch Pin Root Cause
 status: Accepted
 date: 2026-06-23
 supersedes: null
-supersedes_by: null
+superseded_by: null
 deciders: [Amelia (dev), Winston (architect), user]
 related: [SC-9, PC-2, NFR-D-1, ADR-001]
 evidence:
@@ -63,7 +63,33 @@ multi-year defamation-grade platform.
   release, the minimum viable Node version may decrease — but we stay pinned
   to the latest 22.x LTS for security patches.
 
-## Monitoring
+## Alternatives
+
+1. **Pin Node 24 (current release).**
+   - Rejected. Node 24 is a non-LTS current release. The project mandates Node
+     22.x (the active LTS, SC-9). Non-LTS releases deprecate faster, which is
+     unacceptable for a multi-year defamation-grade platform.
+2. **Relax `engine-strict=true` to let `eslint-visitor-keys@5.0.1` install on 22.11.0.**
+   - Rejected. `engine-strict` is a guardrail that catches engine-constraint
+     violations at install time rather than runtime. Disabling it silences
+     exactly the failure mode this ADR documents and trades a clear early error
+     for a cryptic runtime break.
+3. **Downgrade/pin `typescript-eslint` to a version whose `eslint-visitor-keys` does not require `^22.13.0`.**
+   - Rejected. `typescript-eslint@8.x` is the current major with the ESLint v9
+     flat-config support IIP depends on. Pinning an older minor to dodge an
+     engine floor trades tooling currency for a latent incompatibility.
+4. **Stay on `22.11.0` and accept the install failure.**
+   - Rejected. The failure is a hard abort; the build cannot proceed.
+
+## Open questions
+
+| # | Question | Owner | Trigger |
+|---|----------|-------|---------|
+| 1 | When Node 22 reaches EOL, which next-LTS (24 or later) satisfies the full transitive engine set? | Architect | ~Node 22 EOL (typically ~30 months post release) |
+| 2 | Does `eslint-visitor-keys` relax the `^22.13.0` floor in a future release, lowering the minimum viable Node? | Developer | Each `pnpm update` cycle |
+| 3 | Should `.nvmrc` exactness be asserted by a CI matrix step that fails on drift from `engines.node`? | Test Architect | CI pipeline hardening (Story 1-11) |
+
+### Monitoring
 
 The upgrade owner (Amelia/Dev) should check on each `pnpm update` whether
 the `eslint-visitor-keys` engine constraint has changed, and whether a newer

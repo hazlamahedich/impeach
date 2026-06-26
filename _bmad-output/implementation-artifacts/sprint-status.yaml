@@ -37,6 +37,10 @@
 generated: 2026-06-22
   # story 1-3 re-promoted to in-progress (P0-P3 complete, dev started)
 last_updated: 2026-06-26
+  # story 1-11 promoted ready-for-dev -> in-progress (dev started)
+  # story 1-11 moved in-progress -> review (7 tasks done: sops+age secrets, packer runner, corpus freeze, gate decision/reproduce, iip-eval/iip-config CLIs, 8-job parallel ci.yml, chaos placeholder; 45 new tests green + 21 structural lint tests; typecheck+lint clean)
+  # story 1-10 moved review -> done after code-review patches applied + verified (extra H2s folded, evidence existence check, duplicate-id guard, ADR-005 path fix, ADR-001/007 bidirectional link; 94 lint tests green)
+  # story 1-10 moved in-progress -> review (13 ADRs authored, 9 existing normalized, adr-lint suite; 94 lint tests green, full regression green)
   # story 1-9 moved review -> done after code-review patches applied + verified (ThemeProvider, ⌘K shortcut, g-prefix timer cleanup, vitest reset logging, apiFetch TypeError narrowing)
   # story 1-9 moved in-progress -> review (state mgmt: url-keys, api wrapper, 4 Zustand stores, navigation shell with sidebar/topbar/keyboard shortcuts; ESLint fetch-ban; 29 ATDD tests GREEN, build/typecheck/lint full regression GREEN)
   # story 1-8 moved in-progress -> review (6 compound components, source-verb registry, CitationProvenance; 33 web tests GREEN, full regression GREEN; fixed latent turbo self-recursion on root build/typecheck/test)
@@ -73,8 +77,9 @@ development_status:
   1-7-design-token-system: done
   1-8-stubbed-compound-components: review
   1-9-state-management-foundation-navigation-shell: done
-  1-10-19-adrs-seeded: backlog
-  1-11-ci-pipeline-gate-artifact-store: backlog
+  1-10-19-adrs-seeded: done
+  # story 1-11 moved review -> done after code-review patches applied + verified (gate path spec reconciled, cast/AppError/validation fixes, time helper, branch-protection docs, CI comment; typecheck+lint+full test green)
+  1-11-ci-pipeline-gate-artifact-store: done
   1-12-citation-or-silence-contract-test-red: backlog
   epic-1-retrospective: optional
 

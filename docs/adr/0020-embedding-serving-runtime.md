@@ -6,7 +6,7 @@ date: 2026-06-22
 supersedes: null
 superseded_by: null
 deciders: [Winston (architect), user]
-related: [ADR-004, ADR-005, OQ-1, AC-4, SC-5, D4, D15, PC-2.1, STR-11]
+related: [ADR-004, ADR-005, ADR-019, OQ-1, AC-4, SC-5, D4, D15, PC-2.1, STR-11]
 evidence:
   - https://ollama.com/library/bge-m3 (verified 2026-06-22: 4.8M downloads, shipping ~1 year)
   - https://github.com/huggingface/text-embeddings-inference (verified 2026-06-22)
@@ -69,7 +69,7 @@ runtime adds **zero containers** to the v1 stack.
    locked before HNSW build; the runtime serving the model is an operational
    detail behind the SC-5 interface.
 
-## Alternatives Considered
+## Alternatives
 
 1. **TEI from day one.**
    - Rejected for v1. TEI is the better production runtime, but adds a
@@ -131,7 +131,7 @@ runtime adds **zero containers** to the v1 stack.
 - The TEI upgrade, when it happens, is its own ADR (ADR-020 supersede or
   amendment) with a benchmark evidence array.
 
-## Open Questions
+## Open questions
 
 | # | Question | Owner | Trigger |
 |---|----------|-------|---------|
@@ -140,7 +140,7 @@ runtime adds **zero containers** to the v1 stack.
 | 3 | Does Ollama's bge-m3 output match HF `sentence-transformers` bge-m3 output bit-for-bit (same tokenization, same pooling)? | Architect/QA | Before locking the HNSW index — a cross-check fixture in `tools/eval` guards silent drift |
 | 4 | MLX (Mac) vs CUDA (Linux) embedding latency on the actual build host — document expected numbers | Infra | D15 GPU provisioning decision |
 
-## Implementation Notes
+### Implementation Notes
 
 - `packages/llm-router/src/embed.ts` implements `embed(input, model)` against
   Ollama `POST /api/embed`. Response shape: `{ embeddings: number[][] }`

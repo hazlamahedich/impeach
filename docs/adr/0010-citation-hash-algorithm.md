@@ -6,7 +6,7 @@ date: 2026-06-25
 supersedes: null
 superseded_by: null
 deciders: [Winston (architect), Amelia (developer), Murat (test architect), user]
-related: [AC-4, SC-2, SEC-2, SEC-6, NFR-A-1, ADR-001]
+related: [AC-4, SC-2, SEC-2, SEC-6, NFR-A-1, ADR-001, ADR-008, ADR-017]
 evidence:
   - _bmad-output/test-artifacts/atdd/epic-1/story-1-6/citation-tuple.test.ts (test 3: hash algorithm defined per ADR-010)
   - _bmad-output/project-context.md (line 38: crypto.subtle.digest, NOT node:crypto)
@@ -50,7 +50,7 @@ with Unicode normalization (NFC) applied.
 
 The output is a 64-character lowercase hex string.
 
-## Rationale
+## Alternatives
 
 ### Why SHA-256 over xxhash
 
@@ -97,3 +97,11 @@ re-indexing.
 - The hash is NOT a cryptographic signature — it provides tamper detection
   (integrity), not non-repudiation. Digital signatures are a separate concern
   (ADR-007, deferred to Epic 3).
+
+## Open questions
+
+| # | Question | Owner | Trigger |
+|---|----------|-------|---------|
+| 1 | Should the citation hash additionally cover surrounding context (sentence/paragraph) to resist truncation attacks, or remain span-only? | Architect | Pre-PD-3 launch gate (VAL-7) |
+| 2 | At what corpus scale does SHA-256 of span-sized text become a measurable bottleneck worth profiling? | Developer | F4 bulk-embed milestone |
+| 3 | Is a parallel Ed25519 signature over the citation tuple required for non-repudiation (ADR-007 / Epic 3)? | Architect | When two-person intake state machine lands (Story 2-3) |
