@@ -210,7 +210,7 @@ describe('Story 1.5 — Polyglot eval seam (SC-1, ADR-014)', () => {
       try {
         fc = await import('fast-check');
       } catch {
-        skip('fast-check not installed — skipping property test');
+        skip(); // fast-check not installed — skipping property test
         return;
       }
 

@@ -29,7 +29,7 @@ function Silence(): ReactNode {
       data-testid="answer-block-silence"
       className="rounded-md border-l-3 border-muted-foreground bg-surface-sunken p-5"
     >
-      <h3 className="font-display text-base text-claim-fact">No sourced answer found</h3>
+      <h3 className="font-display text-base text-claim-fact">No sourced answer found.</h3>
       <p className="mt-1 font-sans text-sm text-muted-foreground">
         IIP only answers when a claim can be tied to a source you can open.
       </p>

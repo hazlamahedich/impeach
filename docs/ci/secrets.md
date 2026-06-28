@@ -72,3 +72,64 @@ corpus/GPU workstation:
 
 See [`runner-setup.md`](./runner-setup.md) for the Packer provisioning
 template and GPU-passthrough (deferred to Epic 4) documentation.
+
+## Operator bootstrap runbook (TD2 — Epic 2 Prep Sprint)
+
+The following steps complete the deferred sops integration (Story 1.11 →
+TD2). Until these are done, `tests/integration/sops-decryption.test.ts`
+skips with a tool-availability message.
+
+### 1. Install tools
+
+```sh
+brew install age sops
+```
+
+### 2. Generate or recover the age keypair
+
+A public key already exists in `.sops.yaml` (`age13yvp...`). If the
+private key exists on another machine, copy it to
+`~/.config/sops/age/keys.txt`. If lost, generate a new keypair and update
+`.sops.yaml`:
+
+```sh
+mkdir -p ~/.config/sops/age
+age-keygen -o ~/.config/sops/age/keys.txt
+# Copy the "Public key:" line into .sops.yaml → age: field
+```
+
+### 3. Create and encrypt the dev secrets file
+
+```sh
+cp secrets/.env.sops.template secrets/dev.sops.yaml
+# Edit secrets/dev.sops.yaml — fill in real values for local dev
+$EDITOR secrets/dev.sops.yaml  # or: sops secrets/dev.sops.yaml
+sops --encrypt --in-place secrets/dev.sops.yaml
+```
+
+Verify the file is encrypted (should contain `sops:` metadata block, not
+plaintext values):
+
+```sh
+head -5 secrets/dev.sops.yaml
+```
+
+### 4. Activate the integration test
+
+```sh
+pnpm test:integration -- sops-decryption
+```
+
+The test decrypts `secrets/dev.sops.yaml`, feeds the values to
+`validateConfig()`, and asserts the config is valid. If it passes, TD2
+is complete.
+
+### 5. Verify fail-closed boot
+
+```sh
+# With key present → boots successfully
+IIP_SOPS_AGE_KEY=$(cat ~/.config/sops/age/keys.txt) pnpm --filter @iip/config exec node --import tsx/esm src/cli.ts validate --strict
+
+# Without key → fails closed (exit 1, logs var name only)
+pnpm --filter @iip/config exec node --import tsx/esm src/cli.ts validate --strict
+```

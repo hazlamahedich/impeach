@@ -12,6 +12,7 @@
     "build": "turbo run build --filter=!impeachment-watch",
     "typecheck": "turbo run typecheck --filter=!impeachment-watch",
     "test": "vitest run --project smoke --project contract --project lint && turbo run test --filter=!impeachment-watch",
+    "test:coverage": "vitest run --project '@iip/*' --coverage",
     "test:lint": "vitest run --project lint",
     "test:red": "vitest run --project contract-red",
     "test:integration": "vitest run --project integration",
@@ -47,6 +48,8 @@
     "turbo": "^2.9.0",
     "typescript": "^5.6.3",
     "typescript-eslint": "^8.21.0",
-    "vitest": "^2.1.8"
+    "vitest": "^2.1.8",
+    "@vitest/coverage-v8": "2.1.9",
+    "minimatch": "3.1.5"
   }
 }

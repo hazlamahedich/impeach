@@ -1,0 +1,24 @@
+{
+  "$schema": "https://raw.githubusercontent.com/StrykerMutator/stryker/master/packages/api/schema/stryker-core.json",
+  "packageManager": "pnpm",
+  "reporters": ["clear-text", "progress"],
+  "testRunner": "vitest",
+  "coverageAnalysis": "perTest",
+  "concurrency": 1,
+  "thresholds": {
+    "high": 100,
+    "low": 100,
+    "break": 100
+  },
+  "mutate": [
+    "src/gate.ts"
+  ],
+  "ignorePatterns": [
+    "**/._*",
+    "**/node_modules/**",
+    "**/dist/**"
+  ],
+  "vitest": {
+    "related": false
+  }
+}

@@ -24,28 +24,12 @@
 import { describe, it, expect } from 'vitest';
 import * as fc from 'fast-check';
 import { renderGate } from '@iip/render';
-import { RenderInput, CitationTuple } from '@iip/contracts';
+import { RenderInput } from '@iip/contracts';
 import type {
   RenderInputType,
   RenderDocumentType,
-  CitationRefType,
 } from '@iip/contracts';
-
-/** Minimal valid citation ref factory. */
-function validCitation(overrides: Partial<CitationRefType> = {}): CitationRefType {
-  return {
-    citation_id: 'cit-001',
-    source_id: '00000000-0000-4000-8000-000000000001',
-    trust_tier: 1,
-    tuple: CitationTuple.parse({
-      source_doc_id: '00000000-0000-4000-8000-000000000002',
-      span_start: 0,
-      span_end: 100,
-      content_hash: 'a'.repeat(64),
-    }),
-    ...overrides,
-  };
-}
+import { makeCitationRef } from '../support/fixtures';
 
 describe('Citation-or-Silence Contract (EI-1, AC-2, SEC-5)', () => {
   describe('POSITIVE: cited assertions are served', () => {
@@ -58,7 +42,7 @@ describe('Citation-or-Silence Contract (EI-1, AC-2, SEC-5)', () => {
             text: 'The senator voted YES on the resolution.',
             is_claim: true,
             claim_type: 'fact',
-            citation_ref: validCitation(),
+            citation_ref: makeCitationRef(),
           },
         ],
       };
@@ -123,7 +107,7 @@ describe('Citation-or-Silence Contract (EI-1, AC-2, SEC-5)', () => {
             text: 'Claim with citation.',
             is_claim: true,
             claim_type: 'fact',
-            citation_ref: validCitation(),
+            citation_ref: makeCitationRef(),
           },
           {
             text: 'Claim without.',
@@ -177,7 +161,7 @@ describe('Citation-or-Silence Contract (EI-1, AC-2, SEC-5)', () => {
             text: 'The Senate acquitted the official.',
             is_claim: true,
             claim_type: 'fact',
-            citation_ref: validCitation({ trust_tier: 1 }),
+            citation_ref: makeCitationRef({ trust_tier: 1 }),
           },
         ],
       };

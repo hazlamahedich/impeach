@@ -2,11 +2,11 @@ name: CI
 
 # Story 1.11 — AC-F1-07 parallel-job CI pipeline.
 #
-# Six hard-gated jobs run in parallel after a shared install:
-#   build → {test, typecheck, eval}
-#   lint   (independent)
-#   adr-lint (independent — Story 1.10)
-#   chaos  (placeholder — Story 2.9)
+# Parallel jobs after a shared install:
+#   build → {test, typecheck, eval, coverage}
+#   install → {lint, adr-lint}
+#   audit   (independent — reads lockfile via pnpm CLI)
+#   chaos   (placeholder — Story 2.9)
 #
 # OIDC: id-token: write lets the runner mint ephemeral cloud tokens (≤1h).
 # Token lifetime is enforced by the cloud provider IAM trust policy, NOT
@@ -135,7 +135,7 @@ jobs:
       - name: TS tests (AC-F1-03 / AC-F1-05)
         # NOTE: `--detectOpenHandles` is a Jest flag; Vitest manages open
         # handles via cleanup hooks + `--pool=forks` for integration tests.
-        # c8/v8 coverage is deferred to a CI-hardening pass (Story 1.x).
+        # v8 coverage is collected in the dedicated `coverage` job below.
         run: pnpm test
 
       - name: Contract test — citation-or-silence (P1, structural stub GREEN until Story 2.1)
@@ -205,6 +205,24 @@ jobs:
         run: pnpm typecheck
 
   # ───────────────────────────────────────────────────────────────────────
+  # audit — pnpm audit gate for production dependencies. Independent of
+  # build/install (reads pnpm-lock.yaml directly via the pnpm CLI's bundled
+  # runtime). Fails on high or critical advisories in prod deps; dev-only
+  # advisories are reported but non-blocking.
+  # ───────────────────────────────────────────────────────────────────────
+  audit:
+    name: audit (pnpm audit --prod)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.4
+          run_install: false
+      - name: Audit production deps (fail on high/critical)
+        run: pnpm audit --prod --audit-level=high
+
+  # ───────────────────────────────────────────────────────────────────────
   # lint — ESLint flat-config + Python ruff (independent of build).
   # ───────────────────────────────────────────────────────────────────────
   lint:
@@ -272,6 +290,46 @@ jobs:
           # smoke suite is the empty-corpus freeze + a deterministic echo
           # metric; real RAGAS/DeepEval metrics arrive in Epic 4.
           echo "✅ eval gate: golden corpus frozen + bridge available"
+
+  # ───────────────────────────────────────────────────────────────────────
+  # coverage — vitest v8 coverage report across all package unit-test
+  # projects (@iip/*). Uploads lcov.info as a CI artifact for download or
+  # ingestion by Codecov/Coveralls.
+  #
+  # Reporting-only for now: `continue-on-error` keeps a sub-threshold result
+  # from breaking the pipeline while coverage ramps toward the thresholds
+  # defined in vitest.config.ts (lines 70 / branches 60 / functions 70). The
+  # dedicated `test` job remains the hard gate for test correctness; remove
+  # `continue-on-error` here to promote coverage to a hard gate later.
+  # ───────────────────────────────────────────────────────────────────────
+  coverage:
+    name: coverage (vitest v8)
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.4
+          run_install: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: pnpm
+      - name: Install (frozen lockfile)
+        run: pnpm install --frozen-lockfile
+      - name: Build (coverage depends on dist)
+        run: pnpm build
+      - name: Generate coverage (vitest v8, @iip/* projects)
+        continue-on-error: true
+        run: pnpm test:coverage
+      - name: Upload lcov report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-lcov
+          path: coverage/lcov.info
+          if-no-files-found: warn
 
   # ───────────────────────────────────────────────────────────────────────
   # adr-lint — PC-3 template compliance for every ADR (Story 1.10).

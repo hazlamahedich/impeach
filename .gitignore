@@ -8,6 +8,7 @@ __pycache__/
 /tmp/
 pilot-corpus/
 .env
+.stryker-tmp/
 
 # Node / Turborepo build artifacts
 node_modules/

@@ -1,7 +1,7 @@
 {
   "$schema": "https://raw.githubusercontent.com/StrykerMutator/stryker/master/packages/api/schema/stryker-core.json",
-  "_comment": "EMPTY HULL — Foundation Action Plan P5. Target files do not exist yet. When packages/render/src/gate.ts and packages/auth/src/verify.ts are created (Epic 2), this config activates.",
-  "packageManager": "npm",
+  "_comment": "ACTIVE — Epic 1 post-NFR-audit. packages/render/src/gate.ts exists and has tests. packages/auth/src/verify.ts is deferred to Epic 2 Story 2.2.",
+  "packageManager": "pnpm",
   "reporters": ["html", "clear-text", "progress"],
   "testRunner": "vitest",
   "coverageAnalysis": "perTest",
@@ -13,13 +13,25 @@
     "break": 100
   },
   "mutate": [
-    "packages/render/src/gate.ts",
-    "packages/auth/src/verify.ts"
+    "packages/render/src/gate.ts"
   ],
+  "ignorePatterns": [
+    "**/._*",
+    "**/.agent/**",
+    "**/.agents/**",
+    "**/.claude/**",
+    "**/node_modules/**",
+    "**/dist/**"
+  ],
+  "vitest": {
+    "configFile": "packages/render/vitest.config.ts",
+    "related": false
+  },
   "_mutate_pending": [
+    "packages/auth/src/verify.ts!{100}",
     "packages/citation/src/verify.ts!{90}",
     "packages/intake/src/state.ts!{90}",
     "apps/ingest-worker/src/extract/worker.ts!{90}"
   ],
-  "_mutate_pending_note": "Files above will be added when they exist. ≥90% threshold (not 100%) per SEC-8."
+  "_mutate_pending_note": "Files above will be added when they exist. 100% on auth/verify.ts per SEC-8; ≥90% on others."
 }

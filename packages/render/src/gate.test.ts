@@ -1,22 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { renderGate } from './gate.js';
-import { CitationTuple } from '@iip/contracts';
-import type { RenderInputType, CitationRefType } from '@iip/contracts';
-
-function validCitation(overrides: Partial<CitationRefType> = {}): CitationRefType {
-  return {
-    citation_id: 'cit-001',
-    source_id: '00000000-0000-4000-8000-000000000001',
-    trust_tier: 1,
-    tuple: CitationTuple.parse({
-      source_doc_id: '00000000-0000-4000-8000-000000000002',
-      span_start: 0,
-      span_end: 100,
-      content_hash: 'a'.repeat(64),
-    }),
-    ...overrides,
-  };
-}
+import type { RenderInputType } from '@iip/contracts';
+import { validCitation } from './__fixtures__/factories.js';
 
 describe('renderGate (Story 1.4 stub)', () => {
   describe('POSITIVE: cited claims are preserved', () => {
