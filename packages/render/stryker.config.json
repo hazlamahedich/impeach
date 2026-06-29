@@ -5,20 +5,20 @@
   "testRunner": "vitest",
   "coverageAnalysis": "perTest",
   "concurrency": 1,
-  "thresholds": {
-    "high": 100,
-    "low": 100,
-    "break": 100
-  },
+  "thresholds": { "high": 100, "low": 100, "break": 100 },
   "mutate": [
-    "src/gate.ts"
+    "packages/render/src/gate.ts",
+    "packages/render/src/substring.ts"
   ],
   "ignorePatterns": [
     "**/._*",
+    "**/.agent/**",
+    "**/.agents/**",
+    "**/.claude/**",
+    "**/_bmad/**",
+    "**/_bmad-output/**",
+    "**/.stryker-tmp/**",
     "**/node_modules/**",
     "**/dist/**"
-  ],
-  "vitest": {
-    "related": false
-  }
+  ]
 }

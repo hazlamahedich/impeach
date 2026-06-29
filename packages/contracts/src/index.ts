@@ -23,7 +23,25 @@ export type {
   RenderSpan as RenderSpanType,
   RenderDocument as RenderDocumentType,
   RenderInput as RenderInputType,
+  SourceDocSnapshot,
+  SourceResolver,
+  EntailmentChecker,
+  CitationVerifier,
+  GateContext,
+  GateViolation,
+  GateViolationKind,
+  GateSpan,
+  GateOutput,
+  GateInput,
 } from './render.js';
+export {
+  TRUST_TIERS,
+  isValidTrustTier,
+} from './trust-tier.js';
+export type {
+  TrustTierNumber,
+  TrustTierLabel,
+} from './trust-tier.js';
 export {
   EVAL_SCHEMA_VERSION,
   EvalFixture,

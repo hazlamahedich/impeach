@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { CitationRef } from './citation.js';
+import type { CitationTuple } from './citation.js';
 
 /**
  * RenderSpan — a single unit of rendered output.
@@ -77,3 +78,129 @@ export class RenderViolation extends Error {
     super(message);
   }
 }
+
+// ───────────────────────────────────────────────────────────────────────────
+// Live render gate types (Story 2.1 — AC-2 / SEC-5 / EI-1 / EI-8 / SEC-3).
+//
+// The live gate is ASYNC and dependency-injected so `packages/render` imports
+// ONLY `@iip/contracts` (SC-3): source-document resolution, citation-hash
+// verification, and NLI entailment are all injected via {@link GateContext}.
+// The serve-worker wires the real implementations; the gate stays pure and
+// unit-testable without a database.
+//
+// @rules AC-2, SEC-5, EI-1, EI-8, SEC-3, SC-3
+// @adr ADR-001, ADR-010
+// ───────────────────────────────────────────────────────────────────────────
+
+/**
+ * Snapshot of a source document as resolved for the render gate.
+ *
+ * The `SourceResolver` implementation (injected by the serve-worker) owns data
+ * freshness: it is responsible for returning up-to-date metadata
+ * (`superseded_at`, `takedown_trigger`, `retention_policy`). The gate trusts
+ * the resolver's snapshot; it does not independently verify freshness.
+ *
+ * @rules AC-4, EI-1
+ */
+export interface SourceDocSnapshot {
+  readonly id: string;
+  readonly text: string;
+  readonly trust_tier: 1 | 2 | 3;
+  /** ISO-8601 UTC; `null` = live (not superseded). */
+  readonly superseded_at: string | null;
+  readonly takedown_trigger: boolean;
+  /** e.g. `defamation_grade_permanent` — lands concretely in Story 2.6. */
+  readonly retention_policy: string;
+}
+
+/**
+ * Resolves a source-document UUID to a {@link SourceDocSnapshot}, or `null`
+ * when the document does not exist / is inaccessible. Returning `null` is
+ * fail-closed: the gate strips the citing span and logs `source_not_found`.
+ *
+ * @rules EI-1, AC-4, SC-3
+ */
+export interface SourceResolver {
+  resolve(sourceDocId: string): Promise<SourceDocSnapshot | null>;
+}
+
+/**
+ * NLI entailment checker — backs the substring prefilter (AC #5).
+ *
+ * Story 2.1 ships a no-op pass-through (`StubEntailmentChecker`); a model-backed
+ * cross-encoder / LLM check swaps in later without a gate refactor.
+ */
+export interface EntailmentChecker {
+  check(claim: string, source: string): Promise<{ entailed: boolean; score?: number }>;
+}
+
+/**
+ * Citation-hash verifier — injected from `@iip/citation` (`verify`) so the gate
+ * authenticates each `content_hash` (ADR-010) without importing `@iip/citation`
+ * directly, preserving the SC-3 boundary.
+ */
+export interface CitationVerifier {
+  verify(
+    tuple: CitationTuple,
+    source: { content: string },
+  ): Promise<boolean>;
+}
+
+/**
+ * Bundle of injected gate dependencies. The gate is a pure function of
+ * `(input, ctx)` — everything external (resolver, entailment, hash verifier)
+ * flows through here.
+ */
+export interface GateContext {
+  readonly resolver: SourceResolver;
+  readonly entailment: EntailmentChecker;
+  readonly verifyCitation: CitationVerifier['verify'];
+}
+
+/** Discriminator for every violation the gate can emit (exhaustive). */
+export type GateViolationKind =
+  | 'citation_mismatch'
+  | 'source_not_found'
+  | 'hash_mismatch'
+  | 'superseded'
+  | 'invalid_tier'
+  | 'trust_tier_mismatch'
+  | 'gate.degraded'
+  | 'entailment_failed'
+  | 'empty_span'
+  | 'inverted_span'
+  | 'out_of_bounds'
+  // Reserved — emitted when Story 2.6 (retention/takedown schema) lands:
+  | 'citation_expired';
+
+/** A single gate violation logged to the output document's `violations` array. */
+export interface GateViolation {
+  readonly kind: GateViolationKind;
+  readonly source_doc_id?: string;
+  readonly span_text?: string;
+  /** Human-readable degradation context (e.g., the original error message). */
+  readonly details?: string;
+}
+
+/**
+ * A rendered span as emitted by the live gate. Extends {@link RenderSpan} with
+ * the `uncorroborated` provenance marker surfaced for tier-3 single-source
+ * claims (SEC-3).
+ */
+export interface GateSpan extends RenderSpan {
+  readonly uncorroborated?: boolean;
+}
+
+/**
+ * Output of the live render gate. Carries the filtered spans, the silence flag,
+ * the recorded violations, and (only when silenced) the PD-1 essence sentence.
+ */
+export interface GateOutput {
+  readonly spans: readonly GateSpan[];
+  readonly no_evidence: boolean;
+  readonly violations: readonly GateViolation[];
+  readonly essence_sentence?: string;
+}
+
+/** Input to the live gate — the shared rag→render symbol (SC-3). */
+export type GateInput = RenderInput;
