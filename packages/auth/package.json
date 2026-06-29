@@ -7,6 +7,10 @@
     ".": {
       "types": "./src/index.ts",
       "default": "./src/index.ts"
+    },
+    "./verify": {
+      "types": "./src/verify.ts",
+      "default": "./src/verify.ts"
     }
   },
   "scripts": {
@@ -14,5 +18,12 @@
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "vitest run",
     "lint": "eslint src"
+  },
+  "dependencies": {
+    "@iip/contracts": "workspace:*",
+    "jose": "^6.2.3"
+  },
+  "devDependencies": {
+    "fastify": "^5.9.0"
   }
 }

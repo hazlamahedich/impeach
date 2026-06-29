@@ -1,5 +1,5 @@
 # generated: 2026-06-22
-# last_updated: 2026-06-25
+# last_updated: 2026-06-29
 # project: impeachment watch
 # project_key: NOKEY
 # tracking_system: file-system
@@ -36,7 +36,11 @@
 
 generated: 2026-06-22
   # story 1-3 re-promoted to in-progress (P0-P3 complete, dev started)
-last_updated: 2026-06-28
+last_updated: 2026-06-29
+  # story 2-2 created -> ready-for-dev
+  # story 2-1 promoted ready-for-dev -> in-progress (dev started)
+  # story 2-1 moved in-progress -> review (renderGateLive chain gate live; Stryker 100% gate.ts+substring.ts; contract/property/error/concurrency/integration GREEN; INV-001 partial-green not promoted)
+  # story 2-1 created -> ready-for-dev
   # Epic 2 Prep Sprint COMPLETE — all 6 tasks done (TD1-TD6)
   # TD1: pre-existing TS error in polyglot-eval-roundtrip.test.ts fixed
   # TD2: sops integration test + secrets template + operator runbook created (final encryption requires age/sops install — see docs/ci/secrets.md)
@@ -104,8 +108,9 @@ development_status:
   2-prep-td4-red-test-contract-render-gate: done
   2-prep-td5-perf-baseline-k6: done
   2-prep-td6-atdd-specification-guideline: done
-  2-1-render-gate-live: backlog
-  2-2-per-issued-jwt-authentication: backlog
+  2-1-render-gate-live: done
+  # story 2-2 moved review -> done after adversarial code-review patches applied + verified (async ReplayDetector, branded principal, clock-skew clamp, kid guard, dependency fail-safes, middleware hardening, 89 auth + 21 integration/contract = 110 tests GREEN, Stryker 100% verify.ts 108/108 killed, typecheck+lint clean)
+  2-2-per-issued-jwt-authentication: done
   2-3-two-person-intake-state-machine: backlog
   2-4-hash-chained-editorial-log: backlog
   2-5-hash-chain-concurrency-model-adr: backlog

@@ -55,6 +55,7 @@ export default tseslint.config(
       '.git/**',
       // Story 1.4: lint fixtures are intentionally illegal — excluded from lint.
       'tests/lint-fixtures/**',
+      '**/.stryker-tmp/**',
     ],
   },
   js.configs.recommended,
@@ -205,6 +206,78 @@ export default tseslint.config(
   },
   // STR-5: @iip/graph/writer write-only restriction + internal-path reach.
   importBoundaryPreset,
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Story 2.2 — SEC-1: ban req.auth access in API handlers.
+  // Handlers read ONLY req.principal (populated by auth middleware), never
+  // req.auth (DoD-1). Enforced via no-restricted-syntax in apps/api/**.
+  // ─────────────────────────────────────────────────────────────────────────
+  {
+    name: 'iip/api-req-auth-ban',
+    files: ['apps/api/**/*.ts'],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: "MemberExpression[object.name='req'][property.name='auth']",
+          message:
+            'req.auth is banned in API handlers — read req.principal only (SEC-1, DoD-1). The auth middleware populates req.principal from the verified JWT.',
+        },
+      ],
+    },
+  },
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Story 2.2 — SEC-1/PC-9: process.env reads only in @iip/config.
+  // Auth keys must be resolved via @iip/config (sops/age at rest), never
+  // read directly from process.env in packages/auth or other packages.
+  // ─────────────────────────────────────────────────────────────────────────
+  {
+    name: 'iip/process-env-restriction',
+    files: ['packages/**/*.ts'],
+    ignores: [
+      'packages/config/**',
+      'packages/db/drizzle.config.ts',
+      'packages/*/src/**/*.test.ts',
+      'packages/eval/src/cli.ts',
+    ],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: "MemberExpression[object.name='process'][property.name='env']",
+          message:
+            'process.env access is restricted to @iip/config only (PC-9, DoD-4). Resolve configuration via @iip/config.',
+        },
+      ],
+    },
+  },
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Story 2.2 — SEC-1: packages/auth must not import from apps/*.
+  // Auth is a library package; it cannot depend on application code.
+  // ─────────────────────────────────────────────────────────────────────────
+  {
+    name: 'iip/auth-bans-apps',
+    files: ['packages/auth/**/*.ts'],
+    plugins: { import: importX },
+    rules: {
+      'import/no-restricted-paths': [
+        'error',
+        {
+          basePath: '.',
+          zones: [
+            {
+              target: 'packages/auth/**',
+              from: 'apps/**',
+              message:
+                'packages/auth must not import from apps/* — auth is a library package (SEC-1).',
+            },
+          ],
+        },
+      ],
+    },
+  },
 
   // ─────────────────────────────────────────────────────────────────────────
   // Story 1.9 — UX-DR31: ban raw fetch() in the web client.

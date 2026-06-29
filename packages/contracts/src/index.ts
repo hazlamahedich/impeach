@@ -41,3 +41,13 @@ export type {
 
 // Story 1.11 — PC-8 UTC helper
 export { now } from './time.js';
+
+// Story 2.2 — SEC-1 authentication contract types
+export { Scope, PrincipalSchema, JtiSchema, IssuerSchema, KidSchema } from './auth.js';
+export type {
+  Scope as ScopeType,
+  Principal,
+  Jti,
+  Issuer,
+  Kid,
+} from './auth.js';

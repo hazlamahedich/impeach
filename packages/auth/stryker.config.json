@@ -1,0 +1,37 @@
+{
+  "$schema": "https://raw.githubusercontent.com/StrykerMutator/stryker/master/packages/api/schema/stryker-core.json",
+  "_comment": "Story 2.2 — packages/auth/src/verify.ts at 100% (SEC-8). Run from packages/auth: npx stryker run",
+  "packageManager": "pnpm",
+  "reporters": [
+    "html",
+    "clear-text",
+    "progress"
+  ],
+  "testRunner": "vitest",
+  "coverageAnalysis": "perTest",
+  "concurrency": 1,
+  "_comment_concurrency": "concurrency:1 for auth mutation tests — isolated from hash-chain tests so auth mutations run at full speed (DoD-2)",
+  "thresholds": {
+    "high": 100,
+    "low": 100,
+    "break": 100
+  },
+  "mutate": [
+    "src/verify.ts"
+  ],
+  "ignorePatterns": [
+    "**/._*",
+    "**/.agent/**",
+    "**/.agents/**",
+    "**/.claude/**",
+    "**/_bmad/**",
+    "**/_bmad-output/**",
+    "**/.stryker-tmp/**",
+    "**/node_modules/**",
+    "**/dist/**"
+  ],
+  "disableTypeChecks": false,
+  "vitest": {
+    "configFile": "vitest.config.ts"
+  }
+}
