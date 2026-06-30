@@ -36,7 +36,10 @@
 
 generated: 2026-06-22
   # story 1-3 re-promoted to in-progress (P0-P3 complete, dev started)
-last_updated: 2026-06-29
+last_updated: 2026-06-30
+  # story 2-3 moved review -> done (code-review patches applied: tx-bound repository + withTx callback, attestation indexed-state guard, IntakeContentHash branding, intake config in @iip/config, insufficient_scope error code; typecheck+lint clean, Stryker intake 93.38% / worker 100%)
+  # story 2-3 moved in-progress -> review (two-person intake state machine SEC-2 implemented: @iip/intake gate + crypto + attestation; 24 integration + 12 contract + 6 worker tests GREEN; Stryker intake 94.64% [state.ts 92.39%, verify/attestation 100%] + worker 100%; typecheck+lint clean)
+  # story 2-3 promoted ready-for-dev -> in-progress (dev started)
   # story 2-2 created -> ready-for-dev
   # story 2-1 promoted ready-for-dev -> in-progress (dev started)
   # story 2-1 moved in-progress -> review (renderGateLive chain gate live; Stryker 100% gate.ts+substring.ts; contract/property/error/concurrency/integration GREEN; INV-001 partial-green not promoted)
@@ -111,7 +114,7 @@ development_status:
   2-1-render-gate-live: done
   # story 2-2 moved review -> done after adversarial code-review patches applied + verified (async ReplayDetector, branded principal, clock-skew clamp, kid guard, dependency fail-safes, middleware hardening, 89 auth + 21 integration/contract = 110 tests GREEN, Stryker 100% verify.ts 108/108 killed, typecheck+lint clean)
   2-2-per-issued-jwt-authentication: done
-  2-3-two-person-intake-state-machine: backlog
+  2-3-two-person-intake-state-machine: done
   2-4-hash-chained-editorial-log: backlog
   2-5-hash-chain-concurrency-model-adr: backlog
   2-6-retention-takedown-schema-filipino-eval-spec: backlog

@@ -29,6 +29,22 @@ export type DatabaseUrl = Brand<string, 'DatabaseUrl'>;
 /** A validated ``redis://`` or ``rediss://`` (TLS) URL. */
 export type RedisUrl = Brand<string, 'RedisUrl'>;
 
+/** Operator public key record shape for the intake state machine (SEC-2, DoD-4). */
+export interface OperatorKeyConfig {
+  readonly key: string;
+  readonly status: 'active' | 'revoked';
+  readonly revokedAt?: string;
+}
+
+/** A validated operator keyring record for intake signature verification. */
+export type IntakeOperatorKeyring = Brand<
+  Record<string, OperatorKeyConfig>,
+  'IntakeOperatorKeyring'
+>;
+
+/** A validated partner keyring record for Tier-5 provenance verification (SEC-2, AC-5). */
+export type IntakePartnerKeyring = Brand<Record<string, string>, 'IntakePartnerKeyring'>;
+
 // ─────────────────────────────────────────────────────────────────────────
 // Result<T, E> — this package does not depend on @iip/contracts' Result
 // (would create an import cycle once config gains more dependencies).
@@ -54,6 +70,17 @@ export type ConfigError =
 export interface ValidatedConfig {
   readonly databaseUrl: DatabaseUrl;
   readonly redisUrl: RedisUrl;
+  /** Intake two-person state machine configuration (SEC-2, DoD-4). */
+  readonly intake: {
+    /** Operator public keys by kid: base64 SPKI Ed25519 + revocation status. */
+    readonly operatorPublicKeys: IntakeOperatorKeyring;
+    /** Tier-5 partner provenance keys by kid: base64 SPKI Ed25519. */
+    readonly partnerPublicKeys: IntakePartnerKeyring;
+    /** Maximum seconds between review and approval before reverting to staging. */
+    readonly approvalWindowSeconds: number;
+    /** Minimum milliseconds between review and approval signatures (AC-8). */
+    readonly minInterSignatureDelayMs: number;
+  };
 }
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -70,6 +97,109 @@ function readRequired(
     return { ok: false, error: { kind: 'MISSING', name } };
   }
   return { ok: true, value: raw };
+}
+
+/** Treat absent, empty, and whitespace-only JSON strings as "missing". */
+function readRequiredJson<T>(
+  source: Record<string, string | undefined>,
+  name: string,
+): Result<T, ConfigError> {
+  const raw = source[name];
+  if (raw === undefined || raw.trim().length === 0) {
+    return { ok: false, error: { kind: 'MISSING', name } };
+  }
+  try {
+    return { ok: true, value: JSON.parse(raw) as T };
+  } catch {
+    return {
+      ok: false,
+      error: { kind: 'MALFORMED', name, reason: 'must be valid JSON' },
+    };
+  }
+}
+
+/** Validate that every value in an operator keyring is a non-empty base64 SPKI string with a valid status. */
+function validateOperatorKeyring(
+  raw: unknown,
+): Result<IntakeOperatorKeyring, ConfigError> {
+  if (raw === null || typeof raw !== 'object' || Array.isArray(raw)) {
+    return {
+      ok: false,
+      error: {
+        kind: 'MALFORMED',
+        name: 'INTAKE_OPERATOR_PUBLIC_KEYS',
+        reason: 'must be a JSON object mapping kid to { key, status }',
+      },
+    };
+  }
+  const record = raw as Record<string, unknown>;
+  for (const [kid, entry] of Object.entries(record)) {
+    if (
+      entry === null ||
+      typeof entry !== 'object' ||
+      typeof (entry as { key?: unknown }).key !== 'string' ||
+      (entry as { key: string }).key.trim().length === 0 ||
+      !['active', 'revoked'].includes((entry as { status?: unknown }).status as string)
+    ) {
+      return {
+        ok: false,
+        error: {
+          kind: 'MALFORMED',
+          name: 'INTAKE_OPERATOR_PUBLIC_KEYS',
+          reason: `kid ${kid} must have non-empty key and status active|revoked`,
+        },
+      };
+    }
+  }
+  return { ok: true, value: raw as IntakeOperatorKeyring };
+}
+
+/** Validate that every value in a partner keyring is a non-empty base64 SPKI string. */
+function validatePartnerKeyring(
+  raw: unknown,
+): Result<IntakePartnerKeyring, ConfigError> {
+  if (raw === null || typeof raw !== 'object' || Array.isArray(raw)) {
+    return {
+      ok: false,
+      error: {
+        kind: 'MALFORMED',
+        name: 'INTAKE_PARTNER_PUBLIC_KEYS',
+        reason: 'must be a JSON object mapping kid to base64 public key',
+      },
+    };
+  }
+  const record = raw as Record<string, unknown>;
+  for (const [kid, key] of Object.entries(record)) {
+    if (typeof key !== 'string' || key.trim().length === 0) {
+      return {
+        ok: false,
+        error: {
+          kind: 'MALFORMED',
+          name: 'INTAKE_PARTNER_PUBLIC_KEYS',
+          reason: `kid ${kid} must have a non-empty base64 public key`,
+        },
+      };
+    }
+  }
+  return { ok: true, value: raw as IntakePartnerKeyring };
+}
+
+/** Validate a positive integer config value. */
+function validatePositiveInt(
+  raw: string | undefined,
+  name: string,
+): Result<number, ConfigError> {
+  if (raw === undefined || raw.trim().length === 0) {
+    return { ok: true, value: name === 'INTAKE_APPROVAL_WINDOW_SECONDS' ? 3600 : 60000 };
+  }
+  const value = Number(raw);
+  if (!Number.isFinite(value) || !Number.isInteger(value) || value <= 0) {
+    return {
+      ok: false,
+      error: { kind: 'MALFORMED', name, reason: 'must be a positive integer' },
+    };
+  }
+  return { ok: true, value };
 }
 
 /** Validate a Postgres DSN — must start with ``postgres://`` or ``postgresql://``. */
@@ -108,10 +238,15 @@ function validateRedisUrl(raw: string): Result<RedisUrl, ConfigError> {
 /**
  * Validate all required IIP secrets/env vars.
  *
+ * Intake keyrings are loaded from JSON env vars (DoD-4). In production these
+ * values are decrypted from sops-encrypted files by the boot runner; tests can
+ * pass explicit JSON strings. Defaults preserve backward compatibility for
+ * callers that only need the database/redis config.
+ *
  * Returns a {@link Result}; never throws. Pass an explicit ``source`` for
  * tests; defaults to ``process.env``.
  *
- * @rules D7, NFR-S-4
+ * @rules D7, NFR-S-4, SEC-2, DoD-4
  */
 export function validateConfig(
   source: Record<string, string | undefined> = process.env,
@@ -126,9 +261,46 @@ export function validateConfig(
   const redis = validateRedisUrl(redisRaw.value);
   if (!redis.ok) return redis;
 
+  const operatorKeyringRaw = readRequiredJson<Record<string, OperatorKeyConfig>>(
+    source,
+    'INTAKE_OPERATOR_PUBLIC_KEYS',
+  );
+  if (!operatorKeyringRaw.ok) return operatorKeyringRaw;
+  const operatorKeyring = validateOperatorKeyring(operatorKeyringRaw.value);
+  if (!operatorKeyring.ok) return operatorKeyring;
+
+  const partnerKeyringRaw = readRequiredJson<Record<string, string>>(
+    source,
+    'INTAKE_PARTNER_PUBLIC_KEYS',
+  );
+  if (!partnerKeyringRaw.ok) return partnerKeyringRaw;
+  const partnerKeyring = validatePartnerKeyring(partnerKeyringRaw.value);
+  if (!partnerKeyring.ok) return partnerKeyring;
+
+  const approvalWindowSeconds = validatePositiveInt(
+    source['INTAKE_APPROVAL_WINDOW_SECONDS'],
+    'INTAKE_APPROVAL_WINDOW_SECONDS',
+  );
+  if (!approvalWindowSeconds.ok) return approvalWindowSeconds;
+
+  const minInterSignatureDelayMs = validatePositiveInt(
+    source['INTAKE_MIN_INTER_SIGNATURE_DELAY_MS'],
+    'INTAKE_MIN_INTER_SIGNATURE_DELAY_MS',
+  );
+  if (!minInterSignatureDelayMs.ok) return minInterSignatureDelayMs;
+
   return {
     ok: true,
-    value: { databaseUrl: db.value, redisUrl: redis.value },
+    value: {
+      databaseUrl: db.value,
+      redisUrl: redis.value,
+      intake: {
+        operatorPublicKeys: operatorKeyring.value,
+        partnerPublicKeys: partnerKeyring.value,
+        approvalWindowSeconds: approvalWindowSeconds.value,
+        minInterSignatureDelayMs: minInterSignatureDelayMs.value,
+      },
+    },
   };
 }
 

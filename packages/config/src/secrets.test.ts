@@ -14,6 +14,14 @@ import {
 const VALID_ENV: Record<string, string | undefined> = {
   ['DATABASE_URL']: 'postgres://postgres:pw@localhost:5433/iip',
   ['REDIS_URL']: 'redis://localhost:6380',
+  ['INTAKE_OPERATOR_PUBLIC_KEYS']: JSON.stringify({
+    ['op-1']: { key: 'ZmFrZS1rZXk=', status: 'active' as const },
+  }),
+  ['INTAKE_PARTNER_PUBLIC_KEYS']: JSON.stringify({
+    ['partner-1']: 'ZmFrZS1rZXk=',
+  }),
+  ['INTAKE_APPROVAL_WINDOW_SECONDS']: '3600',
+  ['INTAKE_MIN_INTER_SIGNATURE_DELAY_MS']: '60000',
 };
 
 describe('Story 1.11 — Task 1: validateConfig() (D7, NFR-S-4)', () => {

@@ -20,9 +20,19 @@ import { z } from 'zod';
  * `z.enum` (not TS `enum`) per PC-4 #14: the inferred union is the only
  * sanctioned form. Adding a scope is a one-line edit here.
  *
- * @rules SEC-1
+ * Story 2.3 adds the two-person intake scopes (`intake:review`,
+ * `intake:approve`) — the two cryptographic roles in the SEC-2 state machine.
+ *
+ * @rules SEC-1, SEC-2
  */
-export const Scope = z.enum(['read', 'write', 'admin', 'audit']);
+export const Scope = z.enum([
+  'read',
+  'write',
+  'admin',
+  'audit',
+  'intake:review',
+  'intake:approve',
+]);
 export type Scope = z.infer<typeof Scope>;
 
 /**

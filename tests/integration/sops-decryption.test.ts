@@ -20,7 +20,7 @@ import { describe, it, expect } from 'vitest';
 import { spawnSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { validateConfig, bootOrDie } from '../../packages/config/src/secrets.js';
+import { validateConfig, bootOrDie } from '@iip/config';
 
 const SECRETS_FILE = resolve(import.meta.dirname, '../../secrets/dev.sops.yaml');
 const SOPS_BINARY = spawnSync('which', ['sops'], { encoding: 'utf8' });

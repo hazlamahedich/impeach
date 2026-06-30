@@ -13,4 +13,7 @@ export {
   type ValidatedConfig,
   type DatabaseUrl,
   type RedisUrl,
+  type OperatorKeyConfig,
+  type IntakeOperatorKeyring,
+  type IntakePartnerKeyring,
 } from './secrets.js';

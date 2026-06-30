@@ -1,5 +1,11 @@
 # Deferred Work
 
+## Deferred from: code review of 2-3-two-person-intake-state-machine (2026-06-30)
+
+- `requireTransition` emits `intake.invalid_transition` events with empty `principal_sub` and `key_kid` — `packages/intake/src/gate/state.ts:100-115`, `packages/contracts/src/intake/IntakeEventLogger.ts:58-68`. The event schema accepts the values but audit quality is weakened. Defer to a future audit-hardening story. [reviewer note: consider deriving a meaningful principal/kid value for invalid-transition events]
+
+- DB migration `packages/db/drizzle/0000_intake_documents.sql:8-25` has no CHECK constraints for `status` values or `content_hash` format. The gate enforces these at the app layer; DDL hardening is a follow-up improvement, not a Story 2.3 blocker. [reviewer note: add `CHECK (status IN (...))` and `CHECK (content_hash ~ '^[a-f0-9]{64}$')` when DDL maintenance is scheduled]
+
 ## Deferred from: code review of 1-2-postgresql-pgvector-age-compatibility-proof (2026-06-23)
 
 - `scripts/age-migrate.ts` boot runner and `packages/contracts/__fixtures__/containers.ts` do not exist yet — these are explicitly in scope for Story 1.3, not Story 1.2. Story 1.2 only seeds the migration file and proves the image works. [ADR-002:162-165]

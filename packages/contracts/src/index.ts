@@ -69,3 +69,28 @@ export type {
   Issuer,
   Kid,
 } from './auth.js';
+
+// Story 2.3 — SEC-2 two-person intake state machine contract types
+export {
+  DocumentStatusLiteral,
+  DocumentStatus,
+  Ed25519Signature,
+  KeyId,
+  IntakeContentHash,
+  IntakeEventName,
+  IntakeEvent,
+  NoopIntakeEventLogger,
+  computeContentHash,
+  signaturePayloadFromHash,
+  CONTENT_HASH_REGEX,
+} from './intake/index.js';
+export type {
+  DocumentStatusLiteral as DocumentStatusLiteralType,
+  DocumentStatus as DocumentStatusType,
+  Ed25519Signature as Ed25519SignatureType,
+  KeyId as KeyIdType,
+  IntakeContentHash as IntakeContentHashType,
+  IntakeEventName as IntakeEventNameType,
+  IntakeEvent as IntakeEventType,
+  IntakeEventLogger,
+} from './intake/index.js';

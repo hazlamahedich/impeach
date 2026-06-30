@@ -1,0 +1,19 @@
+{
+  "$schema": "https://raw.githubusercontent.com/StrykerMutator/stryker/master/packages/api/schema/stryker-core.json",
+  "_comment": "Story 2.3 Stryker config — extraction worker guard (SEC-2, AC-6, DoD-2). Run from apps/ingest-worker: pnpm exec stryker run. Threshold >=90%.",
+  "packageManager": "pnpm",
+  "reporters": ["html", "clear-text"],
+  "testRunner": "vitest",
+  "coverageAnalysis": "perTest",
+  "concurrency": 1,
+  "thresholds": { "high": 90, "low": 90, "break": 90 },
+  "mutate": ["src/worker.ts"],
+  "ignorePatterns": [
+    "**/._*",
+    "**/node_modules/**",
+    "**/dist/**",
+    "**/.stryker-tmp/**"
+  ],
+  "disableTypeChecks": false,
+  "vitest": { "configFile": "vitest.config.ts" }
+}
