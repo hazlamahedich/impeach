@@ -23,6 +23,9 @@ importers:
       '@iip/db':
         specifier: workspace:*
         version: link:packages/db
+      '@iip/editorial':
+        specifier: workspace:*
+        version: link:packages/editorial
       '@iip/eslint-plugin':
         specifier: workspace:*
         version: link:packages/eslint-plugin
@@ -239,6 +242,9 @@ importers:
 
   packages/contracts:
     dependencies:
+      canonicalize:
+        specifier: ^1.0.8
+        version: 1.0.8
       zod:
         specifier: ^3.23.8
         version: 3.25.76
@@ -265,7 +271,15 @@ importers:
         specifier: 0.28.1
         version: 0.28.1
 
-  packages/editorial: {}
+  packages/editorial:
+    dependencies:
+      '@iip/contracts':
+        specifier: workspace:*
+        version: link:../contracts
+    devDependencies:
+      '@iip/test-utils':
+        specifier: workspace:*
+        version: link:../test-utils
 
   packages/eslint-plugin:
     dependencies:
@@ -2555,6 +2569,9 @@ packages:
 
   caniuse-lite@1.0.30001799:
     resolution: {integrity: sha512-hG1bReV+OUU+MOqK4t/ZWI0tZOyz3rqS9XuhOUz1cIcbwBKjOyJEJuw9ER5JuNyqxNk8u/JUVbGibBOL1yrjFw==}
+
+  canonicalize@1.0.8:
+    resolution: {integrity: sha512-0CNTVCLZggSh7bc5VkX5WWPWO+cyZbNd07IHIsSXLia/eAq+r836hgk+8BKoEh7949Mda87VUOitx5OddVj64A==}
 
   chai@5.3.3:
     resolution: {integrity: sha512-4zNhdJD/iOjSH0A05ea+Ke6MU5mmpQcbQsSOkgdaUMJ9zTlDTD/GYlwohmIE2u0gaxHYiVHEn1Fw9mZ/ktJWgw==}
@@ -6510,6 +6527,8 @@ snapshots:
   callsites@3.1.0: {}
 
   caniuse-lite@1.0.30001799: {}
+
+  canonicalize@1.0.8: {}
 
   chai@5.3.3:
     dependencies:

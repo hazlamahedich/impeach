@@ -9,7 +9,6 @@ export { CitationTuple, CitationRef, SourceTier, CitationProvenance } from './ci
 export type {
   CitationTuple as CitationTupleType,
   CitationRef as CitationRefType,
-  CorpusHash,
   SourceTier as SourceTierType,
   CitationProvenance as CitationProvenanceType,
 } from './citation.js';
@@ -94,3 +93,39 @@ export type {
   IntakeEvent as IntakeEventType,
   IntakeEventLogger,
 } from './intake/index.js';
+
+// Story 2.4 — SEC-6 hash-chained editorial log contract types
+export {
+  PrevHash,
+  CorpusHash,
+  Signature,
+  Seq,
+  PartitionKey,
+  GENESIS_PREV_HASH,
+  EVENT_NAME_REGEX,
+  EditorialLogEvent,
+  LogEntry,
+  jcsCanonicalize,
+  hashEntry,
+  makeEntry,
+  makeGenesisEntry,
+  EditorialError,
+} from './editorial-log.js';
+export type {
+  PrevHash as PrevHashType,
+  CorpusHash as CorpusHashType,
+  Signature as SignatureType,
+  Seq as SeqType,
+  PartitionKey as PartitionKeyType,
+  EditorialLogEvent as EditorialLogEventType,
+  LogEntry as LogEntryType,
+  LogEntryCanonical,
+  MakeEntryParams,
+  LogQueryFilter,
+  ChainFailureType,
+  ChainFailure,
+  ChainWarningType,
+  ChainWarning,
+  VerificationReport,
+  EditorialErrorCode,
+} from './editorial-log.js';

@@ -18,12 +18,13 @@ function makeRecordingLogger(): AuthEventLogger & { calls: LogCall[] } {
   const calls: LogCall[] = [];
   return {
     calls,
-    revoked(...args: unknown[]) { calls.push({ method: 'revoked', args }); },
-    expired(...args: unknown[]) { calls.push({ method: 'expired', args }); },
-    invalidSignature(...args: unknown[]) { calls.push({ method: 'invalidSignature', args }); },
-    missingKid(...args: unknown[]) { calls.push({ method: 'missingKid', args }); },
-    insufficientScope(...args: unknown[]) { calls.push({ method: 'insufficientScope', args }); },
-    replay(...args: unknown[]) { calls.push({ method: 'replay', args }); },
+    async revoked(...args: unknown[]) { calls.push({ method: 'revoked', args }); },
+    async expired(...args: unknown[]) { calls.push({ method: 'expired', args }); },
+    async invalidSignature(...args: unknown[]) { calls.push({ method: 'invalidSignature', args }); },
+    async missingKid(...args: unknown[]) { calls.push({ method: 'missingKid', args }); },
+    async insufficientScope(...args: unknown[]) { calls.push({ method: 'insufficientScope', args }); },
+    async replay(...args: unknown[]) { calls.push({ method: 'replay', args }); },
+    async expiredKey(...args: unknown[]) { calls.push({ method: 'expiredKey', args }); },
   };
 }
 

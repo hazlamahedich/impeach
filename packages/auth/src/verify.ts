@@ -149,10 +149,13 @@ export interface VerifyJwtConfig {
   readonly clockSkewSeconds?: number;
 }
 
-/** Fail-safe logger wrapper so logging outages cannot lock operators out. */
-function safeLog(logger: AuthEventLogger, call: (l: AuthEventLogger) => void): void {
+/** Fail-safe logger wrapper so logging outages cannot block authentication decisions. */
+async function safeLog(
+  logger: AuthEventLogger,
+  call: (l: AuthEventLogger) => Promise<void>,
+): Promise<void> {
   try {
-    call(logger);
+    await call(logger);
   } catch {
     // Logging must never block authentication decisions (AC-11, SEC-1).
     // The caller still throws the appropriate AuthError.
@@ -187,7 +190,7 @@ export function createVerifyJwt(config: VerifyJwtConfig): (token: string) => Pro
     // ── Step 2: Reject missing/empty/non-string kid (M6 mutant target) ──
     const kid = header.kid;
     if (typeof kid !== 'string' || kid.length === 0) {
-      safeLog(config.eventLogger, (l) => l.missingKid());
+      await safeLog(config.eventLogger, async (l) => await l.missingKid());
       throw new AuthError('missing key identifier (kid) in JWT header', 'auth.missing_kid');
     }
 
@@ -195,7 +198,7 @@ export function createVerifyJwt(config: VerifyJwtConfig): (token: string) => Pro
     // jose's jwtVerify with algorithms option handles this, but we check
     // explicitly so the error message is precise and the branch is Stryker-visible.
     if (header.alg !== ALLOWED_ALG) {
-      safeLog(config.eventLogger, (l) => l.invalidSignature(kid));
+      await safeLog(config.eventLogger, async (l) => await l.invalidSignature(kid));
       throw new AuthError(
         `rejected algorithm '${header.alg ?? 'missing'}' — only EdDSA is accepted`,
         'auth.invalid_signature',
@@ -207,14 +210,14 @@ export function createVerifyJwt(config: VerifyJwtConfig): (token: string) => Pro
     try {
       keyEntry = config.keyRegistry.get(kid);
     } catch (err) {
-      safeLog(config.eventLogger, (l) => l.invalidSignature(kid));
+      await safeLog(config.eventLogger, async (l) => await l.invalidSignature(kid));
       throw new AuthError(
         `key registry unavailable: ${err instanceof Error ? err.message : 'unknown error'}`,
         'auth.unknown_kid',
       );
     }
     if (keyEntry === undefined) {
-      safeLog(config.eventLogger, (l) => l.invalidSignature(kid));
+      await safeLog(config.eventLogger, async (l) => await l.invalidSignature(kid));
       throw new AuthError(`unknown key identifier: ${kid}`, 'auth.unknown_kid');
     }
 
@@ -233,10 +236,10 @@ export function createVerifyJwt(config: VerifyJwtConfig): (token: string) => Pro
       // only logging, not trusting the claims.
       if (err instanceof Error && err.name === 'JWTExpired') {
         const decoded = decodeJwt(token);
-        safeLog(config.eventLogger, (l) => l.expired(extractPrincipalInfo(decoded, kid)));
+        await safeLog(config.eventLogger, async (l) => await l.expired(extractPrincipalInfo(decoded, kid)));
         throw new AuthError('JWT has expired', 'auth.expired');
       }
-      safeLog(config.eventLogger, (l) => l.invalidSignature(kid));
+      await safeLog(config.eventLogger, async (l) => await l.invalidSignature(kid));
       throw new AuthError('JWT signature verification failed', 'auth.invalid_signature');
     }
 
@@ -249,7 +252,7 @@ export function createVerifyJwt(config: VerifyJwtConfig): (token: string) => Pro
     }
     if (exp - iat > MAX_TOKEN_LIFETIME_SECONDS) {
       const info = extractPrincipalInfo(payload, kid);
-      safeLog(config.eventLogger, (l) => l.expired(info));
+      await safeLog(config.eventLogger, async (l) => await l.expired(info));
       throw new AuthError('JWT lifetime exceeds 1h maximum', 'auth.expired');
     }
 
@@ -269,7 +272,7 @@ export function createVerifyJwt(config: VerifyJwtConfig): (token: string) => Pro
     try {
       revoked = config.revocationChecker.isRevoked(jtiStr);
     } catch (err) {
-      safeLog(config.eventLogger, (l) => l.invalidSignature(kid));
+      await safeLog(config.eventLogger, async (l) => await l.invalidSignature(kid));
       throw new AuthError(
         `revocation backend unavailable: ${err instanceof Error ? err.message : 'unknown error'}`,
         'auth.unknown_kid',
@@ -277,7 +280,7 @@ export function createVerifyJwt(config: VerifyJwtConfig): (token: string) => Pro
     }
     if (revoked) {
       const info = toPrincipalInfo(validated);
-      safeLog(config.eventLogger, (l) => l.revoked(info, 'administratively revoked'));
+      await safeLog(config.eventLogger, async (l) => await l.revoked(info, 'administratively revoked'));
       throw new AuthError(`JWT revoked: jti ${jtiStr}`, 'auth.revoked');
     }
 
@@ -286,7 +289,7 @@ export function createVerifyJwt(config: VerifyJwtConfig): (token: string) => Pro
     const replayResult = await config.replayDetector.checkAndRecord(validated.jti, exp);
     if (!replayResult) {
       const info = toPrincipalInfo(validated);
-      safeLog(config.eventLogger, (l) => l.replay(info));
+      await safeLog(config.eventLogger, async (l) => await l.replay(info));
       throw new AuthError(`JWT replay detected: jti ${jtiStr} already used`, 'auth.replay');
     }
 

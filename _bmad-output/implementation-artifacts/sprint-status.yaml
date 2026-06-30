@@ -1,5 +1,5 @@
 # generated: 2026-06-22
-# last_updated: 2026-06-29
+# last_updated: 2026-06-30
 # project: impeachment watch
 # project_key: NOKEY
 # tracking_system: file-system
@@ -37,6 +37,9 @@
 generated: 2026-06-22
   # story 1-3 re-promoted to in-progress (P0-P3 complete, dev started)
 last_updated: 2026-06-30
+  # story 2-4 moved review -> done (code-review patches applied 2026-07-01: AuthEventLogger async Promise<void> + expiredKey, internal _append funnel with unique jti, RFC 8785 canonicalize library, time/Seq schema hardening, append(entry) tip-continuity enforcement, empty-signature rejection, KEY_REGISTRY_UNAVAILABLE distinction, key validity window checks, JTI_REPLAY mapping, invalid range/truncation detection, brand parsing, queryLog limit cap, migration GRANT; targeted suites 51/51 GREEN; @iip/contracts/auth/editorial typecheck+lint+test GREEN)
+  # story 2-4 moved in-progress -> review (hash-chained editorial log SEC-6 implemented: branded types + JCS + makeEntry + 14-event catalog + CAS repository with appendToPartition + verifyChain + AuthEventLogger adapter; 51 tests GREEN [10 contract + 35 integration + 3 perf + 3 chaos]; typecheck + lint clean across 22 projects; full regression GREEN)
+  # story 2-4 promoted draft -> in-progress (dev started)
   # story 2-3 moved review -> done (code-review patches applied: tx-bound repository + withTx callback, attestation indexed-state guard, IntakeContentHash branding, intake config in @iip/config, insufficient_scope error code; typecheck+lint clean, Stryker intake 93.38% / worker 100%)
   # story 2-3 moved in-progress -> review (two-person intake state machine SEC-2 implemented: @iip/intake gate + crypto + attestation; 24 integration + 12 contract + 6 worker tests GREEN; Stryker intake 94.64% [state.ts 92.39%, verify/attestation 100%] + worker 100%; typecheck+lint clean)
   # story 2-3 promoted ready-for-dev -> in-progress (dev started)
@@ -115,7 +118,7 @@ development_status:
   # story 2-2 moved review -> done after adversarial code-review patches applied + verified (async ReplayDetector, branded principal, clock-skew clamp, kid guard, dependency fail-safes, middleware hardening, 89 auth + 21 integration/contract = 110 tests GREEN, Stryker 100% verify.ts 108/108 killed, typecheck+lint clean)
   2-2-per-issued-jwt-authentication: done
   2-3-two-person-intake-state-machine: done
-  2-4-hash-chained-editorial-log: backlog
+  2-4-hash-chained-editorial-log: done
   2-5-hash-chain-concurrency-model-adr: backlog
   2-6-retention-takedown-schema-filipino-eval-spec: backlog
   2-7-defamation-threshold-blast-radius-adrs: backlog

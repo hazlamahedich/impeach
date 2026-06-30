@@ -1,9 +1,13 @@
+/**
+ * Editorial package smoke test (SEC-6).
+ *
+ * @rules SEC-6
+ */
 import { describe, it, expect } from 'vitest';
-import { hello, packageName } from '@iip/editorial';
+import { packageName } from './index.js';
 
-describe('@iip/editorial', () => {
-  it('hello() reports alive from the package entry point (AC-F1-03)', () => {
+describe('@iip/editorial package', () => {
+  it('exports package name', () => {
     expect(packageName).toBe('@iip/editorial');
-    expect(hello()).toBe('alive: @iip/editorial');
   });
 });

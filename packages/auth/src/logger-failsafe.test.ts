@@ -10,12 +10,13 @@ import type { KeyRegistry } from './verify.js';
 import type { AuthEventLogger } from './event-logger.js';
 
 const throwingLogger: AuthEventLogger = {
-  revoked: () => { throw new Error('logger boom'); },
-  expired: () => { throw new Error('logger boom'); },
-  invalidSignature: () => { throw new Error('logger boom'); },
-  missingKid: () => { throw new Error('logger boom'); },
-  insufficientScope: () => { throw new Error('logger boom'); },
-  replay: () => { throw new Error('logger boom'); },
+  revoked: async () => { throw new Error('logger boom'); },
+  expired: async () => { throw new Error('logger boom'); },
+  invalidSignature: async () => { throw new Error('logger boom'); },
+  missingKid: async () => { throw new Error('logger boom'); },
+  insufficientScope: async () => { throw new Error('logger boom'); },
+  replay: async () => { throw new Error('logger boom'); },
+  expiredKey: async () => { throw new Error('logger boom'); },
 };
 
 async function makeToken(): Promise<{ token: string; pair: CryptoKeyPair }> {

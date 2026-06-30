@@ -14,5 +14,11 @@
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "vitest run",
     "lint": "eslint src"
+  },
+  "dependencies": {
+    "@iip/contracts": "workspace:*"
+  },
+  "devDependencies": {
+    "@iip/test-utils": "workspace:*"
   }
 }

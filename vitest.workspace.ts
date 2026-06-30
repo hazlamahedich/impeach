@@ -57,4 +57,20 @@ export default defineWorkspace([
       exclude: ['**/node_modules/**', '**/dist/**', '**/._*'],
     },
   },
+  {
+    test: {
+      name: 'perf',
+      environment: 'node',
+      include: ['tests/perf/**/*.test.ts'],
+      exclude: ['**/node_modules/**', '**/dist/**', '**/._*'],
+    },
+  },
+  {
+    test: {
+      name: 'chaos',
+      environment: 'node',
+      include: ['tests/chaos/**/*.test.ts'],
+      exclude: ['**/node_modules/**', '**/dist/**', '**/._*'],
+    },
+  },
 ]);

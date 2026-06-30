@@ -26,15 +26,20 @@ interface PrincipalInfo {
  * Interface implemented by the real editorial-log-backed logger (Story 2.4)
  * and the no-op default.
  *
- * @rules SEC-1, AC-11
+ * All methods return `Promise<void>` because the real implementation writes
+ * to persistent storage (SEC-6). Callers must await or handle rejections
+ * explicitly; failures must not be swallowed.
+ *
+ * @rules SEC-1, AC-11, SEC-6
  */
 export interface AuthEventLogger {
-  revoked(principal: PrincipalInfo, reason: string): void;
-  expired(principal: PrincipalInfo): void;
-  invalidSignature(kid: string | undefined): void;
-  missingKid(): void;
-  insufficientScope(principal: PrincipalInfo, required: readonly Scope[]): void;
-  replay(principal: PrincipalInfo): void;
+  revoked(principal: PrincipalInfo, reason: string): Promise<void>;
+  expired(principal: PrincipalInfo): Promise<void>;
+  invalidSignature(kid: string | undefined): Promise<void>;
+  missingKid(): Promise<void>;
+  insufficientScope(principal: PrincipalInfo, required: readonly Scope[]): Promise<void>;
+  replay(principal: PrincipalInfo): Promise<void>;
+  expiredKey(kid: string): Promise<void>;
 }
 
 /**
@@ -43,10 +48,11 @@ export interface AuthEventLogger {
  * @rules SEC-1
  */
 export const NoopAuthEventLogger: AuthEventLogger = {
-  revoked(): void {},
-  expired(): void {},
-  invalidSignature(): void {},
-  missingKid(): void {},
-  insufficientScope(): void {},
-  replay(): void {},
+  revoked(): Promise<void> { return Promise.resolve(); },
+  expired(): Promise<void> { return Promise.resolve(); },
+  invalidSignature(): Promise<void> { return Promise.resolve(); },
+  missingKid(): Promise<void> { return Promise.resolve(); },
+  insufficientScope(): Promise<void> { return Promise.resolve(); },
+  replay(): Promise<void> { return Promise.resolve(); },
+  expiredKey(): Promise<void> { return Promise.resolve(); },
 };

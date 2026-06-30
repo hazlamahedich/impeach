@@ -1,0 +1,59 @@
+{
+  "$schema": "https://raw.githubusercontent.com/StrykerMutator/stryker/master/packages/api/schema/stryker-core.json",
+  "_comment": "Story 2.4 Stryker mutation config (SEC-6, DoD-9). Run from packages/editorial: npx stryker run. Targets the editorial log repository + contract types. Threshold >=90% score. Mutation targets TC-3.1..TC-3.15 are killed by tests/integration/editorial-log.integration.test.ts (35) + tests/contract/editorial-boundary.contract.test.ts (10) + tests/perf/editorial-log.perf.test.ts (3) + tests/chaos/editorial-log.chaos.test.ts (3).",
+  "packageManager": "pnpm",
+  "reporters": ["html", "clear-text", "progress"],
+  "testRunner": "vitest",
+  "coverageAnalysis": "perTest",
+  "concurrency": 1,
+  "_concurrency_note": "concurrency:1 — parallelism masks mutants under concurrent writers (DoD-9)",
+  "thresholds": {
+    "high": 90,
+    "low": 90,
+    "break": 90
+  },
+  "mutate": [
+    "src/editorial-log-repo.ts",
+    "src/auth-event-logger-adapter.ts"
+  ],
+  "ignorePatterns": [
+    "**/._*",
+    "**/.agent/**",
+    "**/.agents/**",
+    "**/.claude/**",
+    "**/_bmad/**",
+    "**/_bmad-output/**",
+    "**/.stryker-tmp/**",
+    "**/node_modules/**",
+    "**/dist/**"
+  ],
+  "disableTypeChecks": false,
+  "vitest": {
+    "configFile": "vitest.config.ts"
+  },
+  "_mutatorCategories": [
+    "ArithmeticOperator",
+    "BooleanLiteral",
+    "ConditionalExpression",
+    "EqualityOperator",
+    "LogicalOperator",
+    "StringLiteral"
+  ],
+  "_targets": {
+    "TC-3.1": "prevHash check bypass — killed by TC-1.6/1.7 (tamper detection)",
+    "TC-3.2": "Signature verification bypass — killed by TC-1.13/1.14",
+    "TC-3.3": "Concurrency serializability bypass — killed by TC-1.16/1.17/1.18",
+    "TC-3.4": "Write-only check bypass — killed by TC-1.31/1.32",
+    "TC-3.5": "Event name pattern bypass — killed by TC-1.24/1.25",
+    "TC-3.6": "Genesis hash constant mutation — killed by TC-1.3, TC-2.10",
+    "TC-3.7": "JCS key sorting bypass — killed by TC-1.26/1.27/1.30",
+    "TC-3.8": "Hash formula mutation — killed by TC-2.4",
+    "TC-3.9": "Sequence gap detection bypass — killed by TC-1.8/1.9",
+    "TC-3.10": "jti uniqueness bypass — killed by TC-1.21",
+    "TC-3.11": "Timestamp non-UTC — killed by TC-2.6",
+    "TC-3.12": "Retry count mutation — killed by TC-1.18",
+    "TC-3.13": "Genesis auto-bootstrap bypass — killed by TC-1.3",
+    "TC-3.14": "Partition isolation bypass — killed by TC-1.19",
+    "TC-3.15": "Truncation detection bypass — killed by TC-1.33"
+  }
+}

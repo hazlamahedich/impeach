@@ -34,6 +34,7 @@
     "@iip/contracts": "workspace:*",
     "@iip/config": "workspace:*",
     "@iip/db": "workspace:*",
+    "@iip/editorial": "workspace:*",
     "@iip/eslint-plugin": "workspace:*",
     "@iip/eval": "workspace:*",
     "@iip/ingest-worker": "workspace:*",

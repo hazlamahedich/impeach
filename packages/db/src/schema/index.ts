@@ -14,3 +14,4 @@
  */
 export { compatibilityProbe } from './compatibility-probe.js';
 export { intakeDocuments } from './intake-documents.js';
+export { editorialLog } from './editorial-log.js';

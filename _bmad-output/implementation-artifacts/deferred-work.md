@@ -1,5 +1,11 @@
 # Deferred Work
 
+## Deferred from: code review of 2-4-hash-chained-editorial-log (2026-06-30)
+
+- Full DB-level chaos tests (pool exhaustion, transaction timeout) beyond compute-only stubs — deferred to Story 2.5 per story scope. [tests/chaos/editorial-log.chaos.test.ts]
+- Performance SLA enforcement at 100K entries against a real PostgreSQL instance — deferred to Story 2.5. [tests/perf/editorial-log.perf.test.ts]
+- External witnessing implementation and periodic root-hash publication — explicitly deferred to Story 2.5. [packages/editorial/src/editorial-log-repo.ts:330-341, packages/db/drizzle/0001_editorial_log.sql]
+
 ## Deferred from: code review of 2-3-two-person-intake-state-machine (2026-06-30)
 
 - `requireTransition` emits `intake.invalid_transition` events with empty `principal_sub` and `key_kid` — `packages/intake/src/gate/state.ts:100-115`, `packages/contracts/src/intake/IntakeEventLogger.ts:58-68`. The event schema accepts the values but audit quality is weakened. Defer to a future audit-hardening story. [reviewer note: consider deriving a meaningful principal/kid value for invalid-transition events]
