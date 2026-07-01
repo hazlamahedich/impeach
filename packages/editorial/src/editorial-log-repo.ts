@@ -123,28 +123,42 @@ export function createEditorialLogRepo(config: EditorialRepoConfig): EditorialLo
     }
 
     // CAS insert: only insert if no entry exists at (partition_key, seq).
-    const result = await executor.query(
-      `INSERT INTO editorial_log
-         (seq, partition_key, prev_hash, curr_hash, principal_sub, signature, event, jti, payload, time, witness_cursor)
-       SELECT $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11
-       WHERE NOT EXISTS (
-         SELECT 1 FROM editorial_log WHERE partition_key = $2 AND seq = $1
-       )
-       RETURNING seq`,
-      [
-        entry.seq,
-        entry.partition_key,
-        entry.prev_hash,
-        entry.curr_hash,
-        entry.principal_sub,
-        entry.signature,
-        entry.event,
-        entry.jti,
-        JSON.stringify(entry.payload),
-        entry.time,
-        null,
-      ],
-    );
+    let result: { rows: readonly Record<string, unknown>[] };
+    try {
+      result = await executor.query(
+        `INSERT INTO editorial_log
+           (seq, partition_key, prev_hash, curr_hash, principal_sub, signature, event, jti, payload, time, witness_cursor)
+         SELECT $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11
+         WHERE NOT EXISTS (
+           SELECT 1 FROM editorial_log WHERE partition_key = $2 AND seq = $1
+         )
+         RETURNING seq`,
+        [
+          entry.seq,
+          entry.partition_key,
+          entry.prev_hash,
+          entry.curr_hash,
+          entry.principal_sub,
+          entry.signature,
+          entry.event,
+          entry.jti,
+          JSON.stringify(entry.payload),
+          entry.time,
+          null,
+        ],
+      );
+    } catch (err) {
+      // Defensive normalization: under real DB-level concurrency, a race between
+      // the CAS guard and the unique index can surface as a unique-violation
+      // error. Map it to the same logical conflict as a 0-row CAS result.
+      if (isUniqueViolation(err)) {
+        throw new EditorialError(
+          `CAS conflict at (partition_key=${entry.partition_key}, seq=${entry.seq})`,
+          'CONCURRENT_APPEND_EXHAUSTED',
+        );
+      }
+      throw err;
+    }
 
     if (result.rows.length > 0) {
       const insertedSeq = Number(result.rows[0]!['seq']);
@@ -530,6 +544,21 @@ export function createEditorialLogRepo(config: EditorialRepoConfig): EditorialLo
 // ─────────────────────────────────────────────────────────────────────────
 // Internal helpers
 // ─────────────────────────────────────────────────────────────────────────
+
+/**
+ * Detect a PostgreSQL unique-constraint violation (SQLSTATE 23505).
+ *
+ * This is a defensive helper: the CAS guard (WHERE NOT EXISTS) and the
+ * composite primary key are a defense-in-depth pair, but under true DB-level
+ * concurrency the race window between the sub-select and the insert can still
+ * surface as 23505. We normalize that to the same logical CAS conflict the
+ * rest of the code expects.
+ */
+function isUniqueViolation(err: unknown): boolean {
+  if (err === null || typeof err !== 'object') return false;
+  const code = (err as Record<string, unknown>)['code'];
+  return code === '23505';
+}
 
 /**
  * Bootstrap a genesis entry if seq=0 doesn't exist for the partition (AC-10).

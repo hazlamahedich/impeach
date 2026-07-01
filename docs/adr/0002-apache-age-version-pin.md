@@ -6,7 +6,7 @@ date: 2026-06-23
 supersedes: null
 superseded_by: null
 deciders: [Winston (architect), user]
-related: [AC-3, SC-5, STR-12, D1, ADR-001, ADR-003, ADR-015, ADR-023]
+related: [AC-3, SC-5, STR-12, D1, ADR-001, ADR-003, ADR-015, ADR-023, ADR-024]
 evidence:
   - _bmad-output/planning-artifacts/research/technical-graph-db-apache-age-evaluation-2026-06-19.md
   - https://github.com/apache/age/releases (verified 2026-06-22; re-audited and corrected 2026-06-23 — the 2026-06-22 check erroneously claimed AGE v1.7.0 was GA and that a PG16/v1.7.0 tag existed; both claims were false)

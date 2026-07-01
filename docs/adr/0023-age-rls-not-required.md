@@ -6,7 +6,7 @@ date: 2026-06-28
 supersedes: null
 superseded_by: null
 deciders: [Winston (architect), anti lustay (user)]
-related: [ADR-002, SEC-2, SEC-6, SEC-7]
+related: [ADR-002, SEC-2, SEC-6, SEC-7, ADR-024]
 evidence:
   - _bmad-output/planning-artifacts/architecture.md
   - _bmad-output/planning-artifacts/epics.md

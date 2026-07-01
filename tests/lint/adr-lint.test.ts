@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
  *
  * @rules AC-1, AC-2, AC-3, AC-4, AC-5, SC-9, VAL-4
  *
- * Validates the complete ADR set (ADR-001 … ADR-023) for:
+ * Validates the complete ADR set (ADR-001 … ADR-024) for:
  *  - Presence + filename convention (four-digit kebab-case)  (AC #1)
  *  - YAML frontmatter: required keys, exact types, 3-digit `id`  (AC #2)
  *  - The `supersedes_by` typo is rejected in favour of `superseded_by`  (AC #2)
@@ -37,10 +37,10 @@ describe('adr-lint — PC-3 template compliance (AC #1–#5)', () => {
   const adrs = loadAdrs(ADR_DIR);
   const byId = new Map(adrs.map((a) => [a.id, a]));
 
-  it('docs/adr/ contains the complete ADR-001 … ADR-023 set with unique ids (AC #1)', () => {
-    expect(adrs.length).toBe(23);
+  it('docs/adr/ contains the complete ADR-001 … ADR-024 set with unique ids (AC #1)', () => {
+    expect(adrs.length).toBe(24);
     const seenIds = new Set<string>();
-    for (let n = 1; n <= 23; n += 1) {
+    for (let n = 1; n <= 24; n += 1) {
       const id = `ADR-${String(n).padStart(3, '0')}`;
       expect(byId.has(id), `missing ${id}`).toBe(true);
     }
