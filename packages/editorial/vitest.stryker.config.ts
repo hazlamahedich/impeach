@@ -20,6 +20,7 @@ export default defineConfig({
       '../../tests/integration/editorial-log*.integration.test.ts',
       '../../tests/chaos/editorial-log*.chaos.test.ts',
       '../../tests/perf/editorial-log*.perf.test.ts',
+      '../../tests/contract/editorial-boundary.contract.test.ts',
     ],
     exclude: ['**/node_modules/**', '**/dist/**', '**/._*'],
     pool: 'forks',

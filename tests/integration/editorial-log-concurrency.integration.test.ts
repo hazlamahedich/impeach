@@ -22,6 +22,7 @@ import {
   Signature,
   GENESIS_PREV_HASH,
   makeEntry,
+  makeGenesisEntry,
   EditorialError,
 } from '@iip/contracts';
 import { createEditorialLogRepo } from '@iip/editorial';
@@ -105,6 +106,15 @@ beforeEach(async () => {
     now: () => new Date(),
   });
 });
+
+async function getError(fn: () => Promise<unknown>): Promise<unknown> {
+  try {
+    await fn();
+    return new Error('expected function to throw, but it did not');
+  } catch (err) {
+    return err;
+  }
+}
 
 // ─────────────────────────────────────────────────────────────────────────
 // Key & Entry Helpers
@@ -397,13 +407,156 @@ describe('Story 2.5 — Hash-Chain Concurrency Model (AR-27, VAL-3.7)', () => {
 
     // append() must reject the wrong prev_hash before INSERT.
     await expect(repo.append(entry)).rejects.toThrow(EditorialError);
-    await expect(repo.append(entry)).rejects.toThrow(/CHAIN_CONTINUITY_VIOLATION|prev_hash/);
+    await expect(repo.append(entry)).rejects.toThrow(
+      /CHAIN_CONTINUITY_VIOLATION/,
+    );
+    const chainErr = await getError(() => repo.append(entry));
+    expect(chainErr).toBeInstanceOf(EditorialError);
+    expect((chainErr as EditorialError).code).toBe(
+      'CHAIN_CONTINUITY_VIOLATION',
+    );
+    expect((chainErr as EditorialError).originalMessage).toMatch(
+      /^append rejected: seq\/prev_hash does not continue the chain/,
+    );
+    // Error diagnostics include actual tip seq and expected next seq.
+    expect((chainErr as EditorialError).message).toMatch(
+      /tip=1, expected seq=2/,
+    );
+
+    // Also ensure the error message *does* include the tip seq and expected seq.
+    const chainMsg = (chainErr as EditorialError).originalMessage;
+    expect(chainMsg).toMatch(/\(tip=1, expected seq=2\)/);
 
     // Chain is not forked.
     const report = await repo.verifyChain(partition);
     expect(report.valid).toBe(true);
     const entries = await repo.queryLog({ partitionKey: partition });
     expect(entries.length).toBe(2); // genesis + 1 (the wrong entry was NOT inserted)
+  });
+
+  // TC-2.5-CONC-6b: append() at seq=1 now chains from genesis curr_hash, not GENESIS_PREV_HASH.
+  it('TC-2.5-CONC-6b: append() at seq=1 chains from genesis curr_hash', async () => {
+    const pk = await generateKeyPair('op-conc6b');
+    const signer = makeSigner(pk);
+    const partition = 'conc6b-seq1-genesis-curr';
+
+    const tip = await repo.getTip(partition);
+    expect(tip).toBeNull();
+
+    // Build a valid seq=1 entry that chains from the genesis curr_hash.
+    const time = new Date().toISOString();
+    const genesis = makeGenesisEntry(partition, time);
+    const entry = await makeEntry({
+      partitionKey: partition,
+      principalSub: 'op-conc6b',
+      event: 'auth.revoked',
+      jti: 'jti-seq1-ok',
+      payload: {},
+      time,
+      prevHash: genesis.curr_hash as unknown as typeof GENESIS_PREV_HASH,
+      seq: 1,
+      getSignature: signer,
+    });
+
+    const insertedSeq = await repo.append(entry);
+    expect(insertedSeq).toBe(1);
+
+    // The seq=1 rejection message includes the expected genesis hash, killing
+    // the string-literal mutant that strips the diagnostic suffix.
+    const badEntry = await makeEntry({
+      partitionKey: partition,
+      principalSub: 'op-conc6b',
+      event: 'auth.revoked',
+      jti: 'jti-seq1-bad',
+      payload: {},
+      time,
+      prevHash: GENESIS_PREV_HASH,
+      seq: 1,
+      getSignature: signer,
+    });
+    const seq1Err = await getError(() => repo.append(badEntry));
+    expect(seq1Err).toBeInstanceOf(EditorialError);
+    expect((seq1Err as EditorialError).code).toBe('CHAIN_CONTINUITY_VIOLATION');
+    expect((seq1Err as EditorialError).originalMessage).toMatch(
+      new RegExp(`expected ${genesis.curr_hash}`),
+    );
+
+    // Chain is valid, including genesis + the seq=1 entry.
+    const report = await repo.verifyChain(partition);
+    expect(report.valid, `chain invalid: ${JSON.stringify(report.failures.slice(0, 3))}`).toBe(true);
+    const entries = await repo.queryLog({ partitionKey: partition });
+    expect(entries.length).toBe(2);
+    expect(entries[0]!.seq).toBe(0);
+    expect(entries[1]!.seq).toBe(1);
+  });
+
+  // TC-2.5-CONC-6c: append() with seq<=0 is rejected before any DB operation.
+  it('TC-2.5-CONC-6c: append() rejects seq<=0 before DB operation', async () => {
+    const pk = await generateKeyPair('op-conc6c');
+    const signer = makeSigner(pk);
+    const partition = 'conc6c-invalid-seq';
+
+    const entry = await makeEntry({
+      partitionKey: partition,
+      principalSub: 'op-conc6c',
+      event: 'auth.revoked',
+      jti: 'jti-invalid-seq',
+      payload: {},
+      time: new Date().toISOString(),
+      prevHash: GENESIS_PREV_HASH,
+      seq: 0,
+      getSignature: signer,
+    });
+
+    await expect(repo.append(entry)).rejects.toThrow(EditorialError);
+    await expect(repo.append(entry)).rejects.toThrow(/INVALID_ENTRY/);
+    const seqErr = await getError(() => repo.append(entry));
+    expect(seqErr).toBeInstanceOf(EditorialError);
+    expect((seqErr as EditorialError).code).toBe('INVALID_ENTRY');
+    expect((seqErr as EditorialError).originalMessage).toBe(
+      `append rejected: seq must be > 0, got ${entry.seq}`,
+    );
+
+    // No DB mutation occurred.
+    const entries = await repo.queryLog({ partitionKey: partition });
+    expect(entries.length).toBe(0);
+  });
+
+  // TC-2.5-CONC-6d: append() on an empty partition rejects seq>1 before INSERT.
+  it('TC-2.5-CONC-6d: append() rejects seq>1 on empty partition', async () => {
+    const pk = await generateKeyPair('op-conc6d');
+    const signer = makeSigner(pk);
+    const partition = 'conc6d-empty-tip';
+
+    // Attempt to append seq=2 when no genesis/tip exists.
+    const entry = await makeEntry({
+      partitionKey: partition,
+      principalSub: 'op-conc6d',
+      event: 'auth.revoked',
+      jti: 'jti-empty-tip',
+      payload: {},
+      time: new Date().toISOString(),
+      prevHash: '0'.repeat(64) as unknown as typeof GENESIS_PREV_HASH,
+      seq: 2,
+      getSignature: signer,
+    });
+
+    await expect(repo.append(entry)).rejects.toThrow(EditorialError);
+    await expect(repo.append(entry)).rejects.toThrow(
+      /CHAIN_CONTINUITY_VIOLATION/,
+    );
+    const emptyErr = await getError(() => repo.append(entry));
+    expect(emptyErr).toBeInstanceOf(EditorialError);
+    expect((emptyErr as EditorialError).code).toBe(
+      'CHAIN_CONTINUITY_VIOLATION',
+    );
+    expect((emptyErr as EditorialError).originalMessage).toMatch(
+      /\(tip=none, expected seq=1\)/,
+    );
+
+    // No DB mutation occurred on the empty partition.
+    const entries = await repo.queryLog({ partitionKey: partition });
+    expect(entries.length).toBe(0);
   });
 
   // ── Consistency & Isolation (3 tests) ──
@@ -593,7 +746,7 @@ describe('Story 2.5 — Hash-Chain Concurrency Model (AR-27, VAL-3.7)', () => {
         payload: { fail: true },
         getSignature: failingSigner,
       }),
-    ).rejects.toThrow(/SIGNING_CALLBACK_FAILED|HSM unreachable/);
+    ).rejects.toThrow('HSM unreachable');
 
     // Chain is not corrupted — the failed append was not committed.
     const report = await repo.verifyChain(partition);
@@ -662,10 +815,36 @@ describe('Story 2.5 — Hash-Chain Concurrency Model (AR-27, VAL-3.7)', () => {
     expect(fulfilled.length).toBeGreaterThanOrEqual(1);
 
     // Any rejected writer must get an EditorialError (CAS conflict).
+    let rejectedMessage: string | undefined;
     for (const r of rejected) {
       if (r.status === 'rejected') {
         expect(r.reason).toBeInstanceOf(EditorialError);
+        if (r.reason instanceof EditorialError) {
+          expect(r.reason.code).toBe('CONCURRENT_APPEND_EXHAUSTED');
+          rejectedMessage = r.reason.originalMessage;
+        }
       }
+    }
+
+    // Error message must include the partition key and seq to kill trivial
+    // string-literal mutants in the conflict branch.
+    if (rejectedMessage) {
+      expect(rejectedMessage).toMatch(/partition_key=/);
+      expect(rejectedMessage).toMatch(/seq=2/);
+    }
+
+    // If no race loser occurred this run, force the 0-row CAS path with a
+    // follow-up append() on the same seq. This also covers the rare case where
+    // both racing inserts succeed (non-deterministic under low contention).
+    if (rejected.length === 0) {
+      const followUpErr = await getError(() => repo.append(entryB));
+      expect(followUpErr).toBeInstanceOf(EditorialError);
+      expect((followUpErr as EditorialError).code).toBe(
+        'CONCURRENT_APPEND_EXHAUSTED',
+      );
+      expect((followUpErr as EditorialError).originalMessage).toBe(
+        `CAS conflict at (partition_key=${partition}, seq=2)`,
+      );
     }
 
     // Chain is unbroken — only one entry at seq=2.

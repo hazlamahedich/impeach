@@ -560,6 +560,10 @@ export class EditorialError extends Error {
     message: string,
     readonly code: EditorialErrorCode,
   ) {
-    super(message);
+    super(`${message} [${code}]`);
+    // Preserve the original message for exact-match assertions.
+    this.originalMessage = message;
   }
+
+  readonly originalMessage: string;
 }

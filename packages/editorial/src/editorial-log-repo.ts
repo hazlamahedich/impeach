@@ -92,6 +92,7 @@ export function createEditorialLogRepo(config: EditorialRepoConfig): EditorialLo
     // Validate the entry shape before any DB operation.
     LogEntry.parse(entry);
 
+    // Reject non-positive sequence numbers before any DB operation.
     if (entry.seq <= 0) {
       throw new EditorialError(
         `append rejected: seq must be > 0, got ${entry.seq}`,
@@ -107,16 +108,32 @@ export function createEditorialLogRepo(config: EditorialRepoConfig): EditorialLo
     // Enforce chain continuity against the current tip.
     const tip = await getTip(entry.partition_key);
     if (entry.seq === 1) {
-      if ((entry.prev_hash as unknown as string) !== (GENESIS_PREV_HASH as unknown as string)) {
+      const genesisHash = hashEntry(GENESIS_PREV_HASH, {
+        seq: 0,
+        partition_key: entry.partition_key,
+        principal_sub: '__genesis__',
+        event: 'system.genesis',
+        jti: '__genesis__',
+        payload: {},
+        time: entry.time,
+      });
+      if ((entry.prev_hash as unknown as string) !== genesisHash) {
         throw new EditorialError(
-          `append rejected: seq=1 must chain from GENESIS_PREV_HASH`,
+          `append rejected: seq=1 must chain from genesis curr_hash (expected ${genesisHash})`,
           'CHAIN_CONTINUITY_VIOLATION',
         );
       }
     } else {
-      if (tip === null || entry.seq !== tip.seq + 1 || (entry.prev_hash as unknown as string) !== (tip.currHash as unknown as string)) {
+      const continuityFailure =
+        tip === null ||
+        entry.seq !== tip.seq + 1 ||
+        (entry.prev_hash as unknown as string) !==
+          (tip.currHash as unknown as string);
+      if (continuityFailure) {
+        const tipSeq = tip === null ? 'none' : String(tip.seq);
+        const expectedSeq = tip === null ? '1' : String(tip.seq + 1);
         throw new EditorialError(
-          `append rejected: seq/prev_hash does not continue the chain (tip=${tip?.seq ?? 'none'}, expected seq=${tip ? tip.seq + 1 : 1})`,
+          `append rejected: seq/prev_hash does not continue the chain (tip=${tipSeq}, expected seq=${expectedSeq})`,
           'CHAIN_CONTINUITY_VIOLATION',
         );
       }
@@ -150,7 +167,7 @@ export function createEditorialLogRepo(config: EditorialRepoConfig): EditorialLo
     } catch (err) {
       // Defensive normalization: under real DB-level concurrency, a race between
       // the CAS guard and the unique index can surface as a unique-violation
-      // error. Map it to the same logical conflict as a 0-row CAS result.
+      // error. Map it to the same logical CAS conflict as a 0-row CAS result.
       if (isUniqueViolation(err)) {
         throw new EditorialError(
           `CAS conflict at (partition_key=${entry.partition_key}, seq=${entry.seq})`,
