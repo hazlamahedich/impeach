@@ -31,6 +31,7 @@
   "devDependencies": {
     "@eslint/js": "^9.18.0",
     "@iip/api": "workspace:*",
+    "@iip/auth": "workspace:*",
     "@iip/contracts": "workspace:*",
     "@iip/config": "workspace:*",
     "@iip/db": "workspace:*",

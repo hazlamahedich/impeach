@@ -14,6 +14,9 @@ importers:
       '@iip/api':
         specifier: workspace:*
         version: link:apps/api
+      '@iip/auth':
+        specifier: workspace:*
+        version: link:packages/auth
       '@iip/config':
         specifier: workspace:*
         version: link:packages/config
