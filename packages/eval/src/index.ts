@@ -27,6 +27,35 @@ export {
   type Decision,
 } from './reproduce.js';
 
+// Story 2.6b-code — Inter-annotator agreement statistics (κ function — ADR-0025 §3/§4)
+export {
+  cohenKappa,
+  fleissKappa,
+  type CohenMatrix,
+  type CohenKappaResult,
+  type FleissRow,
+  type FleissKappaResult,
+} from './kappa.js';
+
+// Story 2.6b-code — OQ-9 measurement protocol (pass/fail rule + Decimal CP-LCB — ADR-0025 §4)
+export {
+  clopperPearsonLcb95,
+  evaluateOQ9Grouped,
+  OQ9_METRICS,
+  TAU_RED,
+  TAU_DOC,
+  TAU_STRATUM_LCB,
+  BOUNDARY_TOLERANCE,
+  KAPPA_LICENSE_THRESHOLD,
+  KAPPA_GATE_THRESHOLD,
+  type OQ9Metric,
+  type DocMetricScore,
+  type StratumMetricInput,
+  type StratumMetricResult,
+  type OQ9GroupedInput,
+  type OQ9Result,
+} from './oq9.js';
+
 export const packageName = '@iip/eval';
 
 export function hello(): string {

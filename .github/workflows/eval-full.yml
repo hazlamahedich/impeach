@@ -1,0 +1,62 @@
+name: eval:full
+
+# Story 2.6b-code — Two-tier CI enforcement (AC #5, ADR-0025 §5).
+#
+# `eval:full` — n≥200, **DEPLOY-BLOCKING on main/release**. NEVER CACHED for
+# releases (a cached release eval is a non-eval — ADR-0025 §5): the Turbo task
+# is pinned `cache: false` so every run re-executes from source. This is the
+# real gate: the full OQ9_PASS rule runs (stratified Clopper–Pearson 0.95
+# lower bound per metric + Fleiss' κ ≥ 0.75 + provenance manifest match).
+#
+# Branch policy (documented in docs/ci/eval-tiers.md):
+#   - On `main` and release tags: REQUIRED, blocks merge/deploy.
+#   - On PR branches: not run (too slow + needs the full annotated corpus;
+#     PRs get eval:smoke only).
+#
+# Tiering note (code review 2026-07-03): the smoke/full script split is
+# advisory in this slice — both run the same Filipino spec because the
+# annotated corpus does not yet exist (it lands in Story 2.6b-measure).
+# The `IIP_EVAL_FULL` env var is reserved for that future branching; until
+# then both tiers run the same synthetic fixtures and `eval:full` differs
+# only in (a) being deploy-blocking and (b) never being Turbo-cached.
+
+on:
+  push:
+    branches: [main]
+  release:
+    types: [created, published]
+
+permissions:
+  contents: read
+
+# Cancel superseded runs on the same ref — eval:full is ~90 min; stacked runs
+# burn isolated-runner (SEC-4) capacity and delay the deploy-blocking signal.
+concurrency:
+  group: eval-full-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  eval-full:
+    name: eval:full (n≥200, deploy-blocking, never cached — ADR-0025 §5)
+    runs-on: ubuntu-latest
+    # GATING: no continue-on-error. Failure blocks main merge + release.
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.4
+          run_install: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: pnpm
+      - name: Install (frozen lockfile)
+        run: pnpm install --frozen-lockfile
+      - name: Build (eval depends on dist)
+        run: pnpm build
+      - name: eval:full (n≥200, never cached for releases — ADR-0025 §5)
+        env:
+          # Reserved for the smoke/full corpus branching that lands with the
+          # annotated corpus in Story 2.6b-measure (ADR-0025 §5).
+          IIP_EVAL_FULL: '1'
+        run: pnpm --filter @iip/eval eval:full
