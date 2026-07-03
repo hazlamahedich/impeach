@@ -6,7 +6,7 @@ date: 2026-06-22
 supersedes: null
 superseded_by: null
 deciders: [Winston (architect), user]
-related: [ADR-004, ADR-005, ADR-019, OQ-1, AC-4, SC-5, D4, D15, PC-2.1, STR-11]
+related: [ADR-004, ADR-005, ADR-019, OQ-1, AC-4, SC-5, D4, D15, PC-2.1, STR-11, ADR-025]
 evidence:
   - https://ollama.com/library/bge-m3 (verified 2026-06-22: 4.8M downloads, shipping ~1 year)
   - https://github.com/huggingface/text-embeddings-inference (verified 2026-06-22)

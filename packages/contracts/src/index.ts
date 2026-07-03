@@ -94,6 +94,16 @@ export type {
   IntakeEventLogger,
 } from './intake/index.js';
 
+// Story 2.6a — AR-23 / VAL-2 G-2 retention/takedown contract types
+export {
+  RetentionPolicyLiteral,
+  RetentionPolicy,
+} from './intake/index.js';
+export type {
+  RetentionPolicyLiteral as RetentionPolicyLiteralType,
+  RetentionPolicy as RetentionPolicyType,
+} from './intake/index.js';
+
 // Story 2.4 — SEC-6 hash-chained editorial log contract types
 export {
   PrevHash,

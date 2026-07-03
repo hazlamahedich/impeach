@@ -6,7 +6,7 @@ date: 2026-06-22
 supersedes: null
 superseded_by: null
 deciders: [Winston (architect), John (PM), user]
-related: [NFR-D-2, NFR-O-2, RK-5a, PC-2.1, SC-9, EI-6, AC-2, ADR-006, ADR-019, ADR-020]
+related: [NFR-D-2, NFR-O-2, RK-5a, PC-2.1, SC-9, EI-6, AC-2, ADR-006, ADR-019, ADR-020, ADR-025]
 evidence:
   - _bmad-output/eval-artifacts/iip-feasibility-report-2026-06-22.md
   - _bmad-output/eval-artifacts/iip-feasibility-report-v2-fast.json

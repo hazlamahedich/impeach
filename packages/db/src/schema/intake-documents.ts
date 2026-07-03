@@ -1,6 +1,6 @@
-import { pgTable, uuid, timestamp, text, integer } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, timestamp, text, integer, boolean } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
-import type { DocumentStatus, IntakeContentHash } from '@iip/contracts';
+import type { DocumentStatus, IntakeContentHash, RetentionPolicy } from '@iip/contracts';
 
 /**
  * Intake documents table — the two-person intake state machine record
@@ -48,4 +48,46 @@ export const intakeDocuments = pgTable('intake_documents', {
   updated_at: timestamp('updated_at', { withTimezone: true, mode: 'date' })
     .defaultNow()
     .notNull(),
+
+  // ─────────────────────────────────────────────────────────────────────
+  // Retention / takedown metadata (Story 2.6a — AR-23, VAL-2 G-2).
+  // Three ORTHOGONAL concepts; see packages/contracts/src/intake/retention.ts:
+  //   - retention_class : the governance HOLD CLASS (branded RetentionPolicy)
+  //   - takedown_trigger: the removal RATIONALE (free text — court_order, dmca,
+  //                       editor_retraction). Distinct from the class and the
+  //                       freeze flag.
+  //   - legal_hold      : the litigation-FREEZE flag (boolean).
+  //   - retention_set_at: when the non-default class/hold was set.
+  //
+  // Nullability rationale (Option A — nullable-conditional, per Amelia):
+  // `retention_class`, `takedown_trigger`, and `retention_set_at` are
+  // `.nullable()` because they are populated ONLY when a takedown/hold event
+  // triggers. At defamation grade, NULL `retention_class` = "no decision yet"
+  // (honest); a fabricated `'standard'` default would read as "actively
+  // classified" when no decision was made — a lie that looks like compliance
+  // (Winston #2/#20). `legal_hold` is the SOLE exception: boolean-NULL is an
+  // anti-pattern (three-valued logic on a freeze flag is incoherent), so it is
+  // NOT NULL DEFAULT false — false is the honest "not held." A vocabulary
+  // CHECK on `retention_class` lives in the hand-authored SQL migration only
+  // (near-zero-cost belt-and-suspenders; the Drizzle def stays nullable).
+  //
+  // `superseded_at` is NOT in this story — moved to ADR-0017
+  // (supersession-orchestration) scope; a lone timestamp under-models what
+  // ADR-0017 must orchestrate (successor FK, reason, audit).
+  //
+  // ⚠️ FORGEABILITY GUARD — retention_set_at (review open item):
+  // Unlike `created_at`/`updated_at` (which use `.defaultNow()`), this column
+  // has NO DB default and NO `.$defaultFn`. Project rule (PC-8): "app NEVER
+  // sends timestamps." When the retention WRITE path lands, `retention_set_at`
+  // MUST be stamped server-side via an injected `now()` clock (mirroring
+  // packages/editorial/src/editorial-log-repo.ts), NEVER accepted from request
+  // input — a client-supplied value could back-date or forward-date a
+  // litigation hold, undermining audit defensibility in a defamation-grade
+  // system. No write path exists in this story; tracked as a review open item
+  // for the retention-write story.
+  // ─────────────────────────────────────────────────────────────────────
+  retention_class: text('retention_class').$type<RetentionPolicy>(),
+  takedown_trigger: text('takedown_trigger'),
+  legal_hold: boolean('legal_hold').notNull().default(false),
+  retention_set_at: timestamp('retention_set_at', { withTimezone: true, mode: 'date' }),
 });

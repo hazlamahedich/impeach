@@ -6,7 +6,7 @@ date: 2026-06-26
 supersedes: null
 superseded_by: null
 deciders: [Winston (architect), Amelia (developer), Murat (test architect), user]
-related: [AC-2, SC-2, SEC-5, NFR-O-2, RK-2a, ADR-001, ADR-010]
+related: [AC-2, SC-2, SEC-5, NFR-O-2, RK-2a, ADR-001, ADR-010, ADR-025]
 evidence:
   - _bmad-output/planning-artifacts/architecture.md (AC-2: substring prefilter backed by NLI entailment gate; §citation engine)
   - _bmad-output/planning-artifacts/research/technical-citation-eval-graph-viz-2026-06-19.md

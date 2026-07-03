@@ -6,7 +6,7 @@ date: 2026-06-26
 supersedes: null
 superseded_by: null
 deciders: [Winston (architect), Murat (test architect), Amelia (developer), user]
-related: [SC-1, STR-12, AC-1, ADR-009, ADR-011, ADR-012]
+related: [SC-1, STR-12, AC-1, ADR-009, ADR-011, ADR-012, ADR-025]
 evidence:
   - _bmad-output/planning-artifacts/architecture.md (SC-1: polyglot eval invoked via subprocess/CLI NOT HTTP; STR-12 TS↔Python via subprocess)
   - _bmad-output/project-context.md (§Polyglot eval bridge: subprocess contract needs a schema version; TS zod ↔ Python pydantic)

@@ -1,5 +1,5 @@
 # generated: 2026-06-22
-# last_updated: 2026-07-01
+# last_updated: 2026-07-03
 # project: impeachment watch
 # project_key: NOKEY
 # tracking_system: file-system
@@ -36,7 +36,11 @@
 
 generated: 2026-06-22
   # story 1-3 re-promoted to in-progress (P0-P3 complete, dev started)
-last_updated: 2026-07-01
+last_updated: 2026-07-03
+  # story 2-6 moved review -> done (2026-07-03; code review passed: all 4 decision-needed resolved by user + 12 patches applied + verified — typecheck/lint clean, adr-lint 103/103, contracts 10/10, integration 13/13 GREEN). 2.6a slice (retention schema) is DONE. 2.6b ACs #2/#3 (Fleiss kappa gate, ADR-0025 Accepted) remain UNCLOSED — split to Story 2-6b-close (backlog), blocked on native-Filipino annotator procurement. G-2 stays OPEN until Story 2-10 lands config_history.
+  # story 2-6 promoted ready-for-dev -> in-progress (2026-07-03; 2.6a dev started: retention schema on intake_documents — RetentionPolicy contract + Drizzle columns + 0002 up/down migration + integration test). 2.6b (Filipino eval ADR-0025) remains BLOCKED on native-Filipino annotator procurement (Open Item #1 in review report); G-2 stays OPEN until Story 2-10 lands config_history.
+  # story 2-6 amended via party-mode adversarial review (6 agents, 3 rounds) -> SPLIT: 2.6a (retention schema, intake-only) ready-for-dev; 2.6b (Filipino salience eval gate) blocked on native-Filipino annotator sourcing. VAL-10 language-premise correction appended to architecture.md (English=volume-production / Filipino=salience-production). New stories filed: 2-6c (English eval gate, the volume-critical path) backlog; 2-10 (config_history build, the real G-2 close) backlog. G-2 stays OPEN until 2-10 lands. superseded_at moved to ADR-0017 scope; takedown_trigger restored; retention_policy->retention_class + legal_hold/retention_set_at; depends_on 2.5 stripped; spurious ADR-0024 link removed. See story-2-6-review-report.md.
+  # story 2-6 created -> ready-for-dev (retention/takedown schema & Filipino eval spec)
   # story 2-5 moved in-progress -> review (ADR-024 authored: CAS + composite PK model; 5 alternatives evaluated; 10 chain integrity invariants; operational runbook; witnessing/co-design/downstream contracts; 5 open questions; 19 new tests GREEN [12 integration + 4 chaos + 3 perf]; bidirectional ADR links added to ADR-001/002/023; adr-lint 23->24; Stryker 8 new mutation targets; pre-existing append() seq=1 bug documented in OQ-24.3; typecheck+lint clean)
   # story 2-5 promoted ready-for-dev -> in-progress (dev started: ADR-024 + concurrency test suite)
   # story 2-5 created -> ready-for-dev (hash-chain concurrency model ADR draft)
@@ -122,8 +126,16 @@ development_status:
   2-2-per-issued-jwt-authentication: done
   2-3-two-person-intake-state-machine: done
   2-4-hash-chained-editorial-log: done
-  2-5-hash-chain-concurrency-model-adr: review
-  2-6-retention-takedown-schema-filipino-eval-spec: backlog
+  # story 2-5 moved review -> done after adversarial code-review (Blind Hunter + Edge Case Hunter + Acceptance Auditor): 8 decision-needed + 8 patch findings all resolved — appendToPartition 23505 normalization (raw pg error no longer escapes CAS loop); append() seq=1 genesis-hash bug fixed (uses stored tip.currHash); append() returns AppendOutcome not throws (AC-12a) with DUPLICATE_SEQUENCE/PREV_HASH_MISMATCH; jti-replay discriminated from seq PK (JTI_REPLAY) to prevent BullMQ infinite re-enqueue; SIGNING_CALLBACK_FAILED code; verifyChain REPEATABLE READ (AC-6); seedable RNG (DoD-6); exhaustion/integrity metrics (AC-3); ESLint append() ban (AC-12c); chaos+perf rebuilt as real Testcontainers DB-backed tests (chaos 7/7, perf 6/6, measured 1.80% exhaustion @50 writers); DoD-5 re-scoped to concurrency slice; 15 integration + 35 Story-2.4 regression + 10 contract = GREEN, typecheck+lint clean
+  2-5-hash-chain-concurrency-model-adr: done
+  # story 2-6 SPLIT (party-mode adversarial review 2026-07-03): 2.6a retention schema ready-for-dev (intake-only; G-2 OPEN — config_history deferred to 2-10); 2.6b Filipino salience eval gate blocked on native-Filipino annotator sourcing (no separate file yet — tracked in story-2-6-review-report.md)
+  # story 2-6 promoted ready-for-dev -> in-progress (2026-07-03; 2.6a dev started: retention schema on intake_documents — RetentionPolicy contract + Drizzle columns + 0002 up/down migration + integration test). 2.6b (Filipino eval ADR-0025) remains BLOCKED on native-Filipino annotator procurement (Open Item #1 in review report); G-2 stays OPEN until Story 2-10 lands config_history.
+  # story 2-6 moved in-progress -> review (2026-07-03; 2.6a slice ONLY): branded RetentionPolicy contract + 4 retention columns on intake_documents (Option A nullability; legal_hold NOT NULL DEFAULT false) + hand-authored 0002 up/down migration (vocabulary CHECK + 2 sparse partial indexes; journal reconciled — also fixed unjournaled 0001) + 13/13 GREEN Testcontainers integration test asserting against live information_schema. ADR-0025 authored as Proposed (full OQ-9 protocol + 7 bidirectional ADR links + adr-lint 24->25, 103/103 GREEN); project owner (anti lustay) committed as interim annotator #1 of 3. 2.6b ACs #2 (ADR Accepted) + #3 (Fleiss kappa >= 0.75) are UNCLOSEABLE in code (kappa undefined for <3 raters) -> split to new Story 2-6b-close (backlog). typecheck + lint + full pnpm test GREEN. Pre-existing integration failures (compose-stack MinIO tag, sops-decryption binary gating) verified at baseline f9583b1 — not caused by this story.
+  2-6-retention-takedown-schema-filipino-eval-spec: done
+  # story 2-6b-close filed 2026-07-03: splits the uncloseable-in-code 2.6b ACs out of Story 2.6. Scope = source 2 more native-Filipino annotators + a named adjudicator (procurement), build + annotate the golden Filipino corpus, measure Fleiss' kappa >= 0.75, promote ADR-0025 Proposed -> Accepted, pin the Filipino eval test location, run eval:smoke/eval:full two-tier CI. Blocks G-3 release. Depends on 2.6a (this story) for the retention schema; unblocked the moment annotators land.
+  2-6b-close-filipino-eval-annotator-procurement: backlog
+  2-6c-english-extraction-quality-eval-gate: backlog
+  2-10-config-history-retention-g2-close: backlog
   2-7-defamation-threshold-blast-radius-adrs: backlog
   2-8-pd-2-kpi-observation-gate-invocation-contract-test: backlog
   2-9-unified-chaos-suite-500-rps-citation-invariant: backlog

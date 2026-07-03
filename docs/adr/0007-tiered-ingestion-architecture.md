@@ -6,7 +6,7 @@ date: 2026-06-26
 supersedes: null
 superseded_by: null
 deciders: [Winston (architect), John (PM), user]
-related: [D6, FR-1.1, FR-1.2, NFR-L-1, NFR-L-2, NFR-L-5, ADR-001, ADR-006]
+related: [D6, FR-1.1, FR-1.2, NFR-L-1, NFR-L-2, NFR-L-5, ADR-001, ADR-006, ADR-025]
 evidence:
   - _bmad-output/planning-artifacts/architecture.md (§ingest tiered adapters; v1 ships Tier-1 + Tier-4 only; Tier-2 deferred)
   - _bmad-output/planning-artifacts/research/technical-ingestion-architecture-blocked-ph-sources-2026-06-19.md
