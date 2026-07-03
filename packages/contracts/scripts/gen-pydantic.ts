@@ -73,6 +73,11 @@ function runCodegen(inputPath: string, outputPath: string): void {
       '--field-constraints',
       '--use-union-operator',
       '--strict-types', 'str', 'int', 'float', 'bool',
+      // Deterministic output: --disable-timestamp omits the generation
+      // timestamp from the header comment. Without this the CI drift check is
+      // non-deterministic — re-running the generator always produces a diff
+      // (the current time), masking real schema drift.
+      '--disable-timestamp',
     ],
     { stdio: 'pipe', encoding: 'utf-8' },
   );
