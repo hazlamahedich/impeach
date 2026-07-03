@@ -26,8 +26,10 @@
  * **Tier wiring (AC #5):** `eval:smoke` (per-PR, non-gating) and `eval:full`
  * (main/release, deploy-blocking) both run this file today — the annotated
  * corpus does not yet exist, so both tiers exercise the same synthetic
- * fixtures. `IIP_EVAL_FULL` is reserved for the smoke/full branching that
- * lands with the annotated corpus in Story 2.6b-measure (ADR-0025 §5).
+ * fixtures. The smoke/full distinction is enforced by CI wiring
+ * (`eval:full` runs only on main/release; never Turbo-cached), not a
+ * package-level env var — `IIP_EVAL_FULL` is a no-op as of the Story 2.6c
+ * code-review patch (P7).
  */
 import { describe, it, expect } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';

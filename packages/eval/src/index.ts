@@ -56,6 +56,12 @@ export {
   type OQ9Result,
 } from './oq9.js';
 
+// Story 2.6c — On-disk corpus manifest validator (Open Item O-2 — ADR-0025 §2 / ADR-0026)
+export {
+  validateCorpusManifest,
+  type ValidatedManifest,
+} from './manifest.js';
+
 export const packageName = '@iip/eval';
 
 export function hello(): string {

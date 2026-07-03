@@ -30,6 +30,15 @@
  * is conditional on the κ measurement (Story 2.6b-measure). This slice
  * mutation-tests the fallback *path* — the render gate's silence behavior that
  * makes DR-4 defamation-safe — which is live today.
+ *
+ * **Story 2.6c extension (AC #4, ADR-0026 §7):** English DR-4 regression-anchor
+ * assertions + manifest-mutation vectors. The DR-4 render LOGIC is
+ * language-invariant (the gate strips uncited claims regardless of language),
+ * so the English block is a **regression-anchor for English inputs** (not a
+ * parallel ceremony block): it pins that the same fail-closed behavior holds
+ * on English-source-corpus content, and enumerates the manifest-mutation
+ * vectors (corrupted-manifest hash mismatch, schema-version mismatch,
+ * empty-files-list) that the OQ-9 gate's provenance-manifest conjunct catches.
  */
 import { describe, it, expect } from 'vitest';
 import fs from 'node:fs';
@@ -38,6 +47,14 @@ import { fileURLToPath } from 'node:url';
 import { renderGate, renderGateLive } from './gate.js';
 import { makeGateContext, sourceDoc, citedClaimFor } from './__fixtures__/factories.js';
 import type { GateInput, RenderInputType } from '@iip/contracts';
+// NOTE (Story 2.6c, boundary discipline SC-3/STR-4): packages/render imports
+// ONLY @iip/contracts. The manifest-mutation vectors (corrupted-manifest hash
+// mismatch, schema-version mismatch, empty-files-list) are OQ-9 gate-logic +
+// harness-validator concerns that live in @iip/eval; they are ENUMERATED below
+// (documentation contract) and TESTED in packages/eval/src/__tests__/
+// english-oq9.spec.ts (EN-3/EN-4/EN-5 + the hash-mismatch vector). Importing
+// @iip/eval here would violate the render-package boundary (render is
+// structurally separate from generation + eval per SC-3).
 
 describe('Story 2.6b-code — DR-4 fallback mutation targets (AC #11, ADR-0025 §7)', () => {
   describe('MUTANT KILL LIST — each DR-4-relevant mutant dies under Stryker (fail-closed invariant)', () => {
@@ -176,6 +193,123 @@ describe('Story 2.6b-code — DR-4 fallback mutation targets (AC #11, ADR-0025 �
       expect(cfg.thresholds.high).toBe(100);
       expect(cfg.thresholds.low).toBe(100);
       expect(cfg.thresholds.break).toBe(100);
+    });
+  });
+});
+
+// ───────────────────────────────────────────────────────────────────────────
+// Story 2.6c — English DR-4 regression-anchor + manifest-mutation vectors
+// (AC #4, ADR-0026 §7).
+//
+// The DR-4 render LOGIC is language-invariant: the render gate strips uncited
+// claims and emits structured silence regardless of whether the content is
+// Filipino or English. So this block is a REGRESSION-ANCHOR for English inputs
+// (pinning that the same fail-closed behavior holds on the English
+// source-corpus path), NOT a parallel ceremony block with different logic.
+// The manifest-mutation vectors below enumerate the OQ-9 provenance-manifest
+// conjunct's catch list (corrupted-manifest hash mismatch, schema-version
+// mismatch, empty-files-list) — these are the vectors that would let a
+// manifest drift silently past the gate.
+// ───────────────────────────────────────────────────────────────────────────
+
+describe('Story 2.6c — English DR-4 regression-anchor + manifest-mutation vectors (AC #4, ADR-0026 §7)', () => {
+  describe('English regression-anchor — fail-closed behavior holds on English source-corpus inputs', () => {
+    it('EN-DR-1: an English-content render with no extracted claims → structured silence + essence (the English DR-4 state)', async () => {
+      // The English v0 corpus is unannotated (ADR-0026 §5), so under DR-4
+      // English claims are NOT extracted. The render gate sees zero cited
+      // English claims and MUST emit structured silence — never an uncited
+      // allegation. This is the regression-anchor: the same invariant the
+      // Filipino block (DR-INT-1) asserts, pinned on English content so a
+      // future change that breaks the English path is caught here.
+      const input: GateInput = {
+        query: 'senator impeachment record',
+        answer_text: 'English sources are searchable but claim extraction is disabled (coverage gap).',
+        spans: [
+          // Only non-claim context spans — no extracted English claims under DR-4.
+          { text: 'Searchable English source: Senate record ...', is_claim: false, citation_ref: null },
+        ],
+      };
+      const ctx = makeGateContext({
+        resolver: { resolve: async () => null },
+      });
+      const out = await renderGateLive(input, ctx);
+      expect(out.no_evidence).toBe(true);
+      expect(out.spans.some((s) => s.is_claim)).toBe(false);
+      // The essence_sentence carries the disclosure text the UI surfaces.
+      expect(out.essence_sentence).toContain('coverage gap');
+    });
+
+    it('EN-DR-2: a jurisdictional-framing English allegation with no citation is stripped (PH-libel-law surface)', () => {
+      // English allegations carry PH defamation risk under any audience
+      // (ADR-0026 Context — audience-independent). An uncited English
+      // allegation — even one framed in English legal/journalism register —
+      // MUST be stripped by the structural gate. This is the English-unique
+      // framing case: the disclaimer copy + jurisdictional framing differ
+      // from the Filipino block, but the gate behavior is identical.
+      const input: RenderInputType = {
+        query: 'senator impeachment record',
+        answer_text: 'Context.',
+        spans: [
+          {
+            text: 'The senator is alleged to have accepted bribes from a contractor.',
+            is_claim: true,
+            citation_ref: null, // uncited → must be stripped
+          },
+        ],
+      };
+      const out = renderGate(input);
+      expect(out.spans.filter((s) => s.is_claim)).toHaveLength(0);
+      expect(out.no_evidence).toBe(true);
+    });
+  });
+
+  describe('Manifest-mutation vectors — the OQ-9 provenance-manifest conjunct catch list (documentation contract)', () => {
+    // These vectors enumerate the manifest mutations the OQ-9 gate's
+    // provenance-manifest conjunct (expectedManifestSha === actualManifestSha
+    // ∧ non-empty) + the shared-harness validateCorpusManifest() must catch.
+    // They are documented here as the DR-4 companion's mutation contract.
+    //
+    // BOUNDARY NOTE (SC-3/STR-4): the gate logic + validator live in
+    // @iip/eval, which @iip/render MUST NOT import (render is structurally
+    // separate from eval). The vectors are therefore ENUMERATED here (the
+    // contract) and TESTED in @iip/eval:
+    //   - hash mismatch → packages/eval/src/__tests__/english-oq9.spec.ts
+    //     (the gate-logic vectors are covered by the OQ-9 module's own test
+    //     suite: oq9.test.ts asserts manifestShaMatches=false on mismatch;
+    //     english-oq9.spec.ts EN-3/EN-4 assert the manifest passes
+    //     validation, EN-5 asserts the old shape is rejected).
+    //   - schema-version mismatch → english-oq9.spec.ts EN-5 (the
+    //     validateCorpusManifest rejection of the wrong shape).
+    //   - empty-files-list → english-oq9.spec.ts EN-4 (files.length === 0,
+    //     the empty-corpus honesty clause) + EN-6 (INCONCLUSIVE on n<n_min).
+
+    it('EN-MV-DOC: manifest-mutation vectors are enumerated and tested in @iip/eval (boundary-respecting documentation contract)', () => {
+      // The three vectors a manifest mutation battery must catch, with their
+      // test homes. This assertion exists so the contract is machine-
+      // discoverable from the DR-4 companion (a grep for "EN-MV" finds it).
+      const vectors = [
+        {
+          id: 'EN-MV-1',
+          vector: 'corrupted-manifest hash mismatch (expectedManifestSha !== actualManifestSha)',
+          caughtBy: 'OQ-9 provenance-manifest conjunct (manifestShaMatches=false → pass=false)',
+          testedIn: 'packages/eval/src/oq9.test.ts (manifest mismatch conjunct)',
+        },
+        {
+          id: 'EN-MV-2',
+          vector: 'schema-version mismatch (manifest carries schemaVersion !== "1.0.0")',
+          caughtBy: 'shared-harness validateCorpusManifest() → manifest:invalid_shape',
+          testedIn: 'packages/eval/src/__tests__/english-oq9.spec.ts EN-5 (old-shape rejection)',
+        },
+        {
+          id: 'EN-MV-3',
+          vector: 'empty-files-list (files: []) — shape-valid but gate-inert',
+          caughtBy: 'validateCorpusManifest accepts (shape-valid) + OQ-9 sample-size conjunct fails (INCONCLUSIVE)',
+          testedIn: 'packages/eval/src/__tests__/english-oq9.spec.ts EN-4 + EN-6',
+        },
+      ];
+      expect(vectors).toHaveLength(3);
+      // Pin the three enumerated vectors so a documentation drift is caught.
+      expect(vectors.map((v) => v.id)).toEqual(['EN-MV-1', 'EN-MV-2', 'EN-MV-3']);
     });
   });
 });

@@ -58,7 +58,7 @@ releases). Neither tier substitutes for the other.
 - **Blocking policy:** required check on `main` + release tags. Failure blocks
   merge to main and blocks release publication.
 - **Location:** `.github/workflows/eval-full.yml`.
-- **Script:** `IIP_EVAL_FULL=1 pnpm --filter @iip/eval eval:full -- --force`.
+- **Script:** `pnpm --filter @iip/eval eval:full -- --force`.
 
 ## Wiring summary (AC #5 — three named places)
 
@@ -67,7 +67,9 @@ The two-tier gate is wired in three named locations, per AC #5:
 1. **`turbo.json`** — `eval:smoke` + `eval:full` task entries (both
    `dependsOn: ["^build"]` so workspace deps are built first).
 2. **`packages/eval/package.json`** — `eval:smoke` + `eval:full` scripts
-   (vitest invocations; `eval:full` gates on `IIP_EVAL_FULL=1`).
+   (vitest invocations over `'src/__tests__/**/*.spec.ts'`; the smoke/full
+   distinction is enforced by Turbo/CI wiring, not a package-level env var —
+   see Story 2.6c update below).
 3. **`.github/workflows/eval-{smoke,full}.yml`** — the CI jobs that invoke the
    scripts with the documented per-branch blocking policy.
 
@@ -81,3 +83,42 @@ native-Filipino annotator procurement. Until the measurement lands,
 (PC-3: ADR-0025 is binding-citable once Accepted on spec-completeness, which
 Task 7 of this story achieves; the κ *measurement* gates release, not
 citation).
+
+## Story 2.6c update (2026-07-03) — auto-discovery + English spec
+
+The `eval:smoke` and `eval:full` scripts in `packages/eval/package.json` were
+**corrected from a hardcoded Filipino path to a path filter** (`vitest run
+src/__tests__`). The prior hardcoded form silently dropped every other language
+spec; the filter makes AC #5 of Story 2.6c's "auto-discovered with zero
+per-language CI wiring" claim literally true.
+
+**Scope note (code-review patch P7):** the positional `src/__tests__` is a
+vitest path *filter* (matched as a prefix over resolved test-file paths), NOT a
+shell glob — vitest does not expand glob positional args, so
+`src/__tests__/**/*.spec.ts` matches nothing and the directory form is used.
+The filter therefore runs every file under `__tests__` that the vitest config
+`include` matches (`src/**/*.spec.ts` + `src/**/*.test.ts`). Today only the
+`*-oq9.spec.ts` gate specs live there; a future `.test.ts` under `__tests__`
+would also be picked up. Keep gate specs as `*.spec.ts` and put helper tests
+elsewhere (or tighten the vitest `include` for the eval package) if that
+distinction becomes load-bearing. Both tiers now auto-discover:
+
+- `packages/eval/src/__tests__/filipino-oq9.spec.ts` (8 tests — Story 2.6b-code)
+- `packages/eval/src/__tests__/english-oq9.spec.ts` (9 tests — Story 2.6c)
+
+Future language instances drop a `*-oq9.spec.ts` into `__tests__/` and are
+picked up with no script, turbo, or workflow edit (ADR-0025 §6 / ADR-0026
+AC #5). The English measurement (κ ≥ 0.75 on real annotated English data) is
+split to Story 2.6c-measure, blocked on PH-domiciled annotator procurement;
+until it lands, the English spec asserts decision-logic on synthetic fixtures
+only (INCONCLUSIVE on `n < n_min` is the acceptance anchor — ADR-0026 §5).
+
+**Code-review patch (2026-07-03, P7):** the prior scripts set
+`IIP_EVAL_FULL=1` on `eval:full`, but nothing in the codebase read that env
+var — the smoke/full distinction lived entirely in the Turbo/CI wiring
+(`eval:full` task pinned `cache:false`; `eval:full` runs only on main/release
+per `.github/workflows/eval-full.yml`). The no-op env var was removed; the
+`// tiering` package.json comment now documents that the tiering is
+CI-enforced, not package-enforced. The `eval:full` script invocation in the
+"Script" line above is updated to drop the `IIP_EVAL_FULL=1` prefix.
+
