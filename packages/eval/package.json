@@ -13,12 +13,16 @@
     "iip-eval": "./src/cli.ts"
   },
   "dependencies": {
-    "@iip/contracts": "workspace:*"
+    "@iip/contracts": "workspace:*",
+    "decimal.js": "10.6.0"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "vitest run",
-    "lint": "eslint src"
+    "lint": "eslint src",
+    "eval:smoke": "vitest run src/__tests__/filipino-oq9.spec.ts --retry=0",
+    "eval:full": "IIP_EVAL_FULL=1 vitest run src/__tests__/filipino-oq9.spec.ts --retry=0",
+    "// tiering": "eval:smoke (per-PR, non-gating) and eval:full (main/release, deploy-blocking) run the same Filipino spec until the annotated corpus lands in Story 2.6b-measure. IIP_EVAL_FULL is reserved for the future smoke/full branching (ADR-0025 §5). The Turbo eval:full task is pinned cache:false so releases re-execute from source."
   }
 }

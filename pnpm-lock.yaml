@@ -308,6 +308,9 @@ importers:
       '@iip/contracts':
         specifier: workspace:*
         version: link:../contracts
+      decimal.js:
+        specifier: 10.6.0
+        version: 10.6.0
 
   packages/graph: {}
 

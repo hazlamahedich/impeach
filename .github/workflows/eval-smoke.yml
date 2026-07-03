@@ -1,0 +1,59 @@
+name: eval:smoke
+
+# Story 2.6b-code — Two-tier CI enforcement (AC #5, ADR-0025 §5).
+#
+# `eval:smoke` — n=20, per-PR, **EXPLICITLY NON-GATING**. This is a
+# fast-feedback sanity loop, NOT a quality gate: at n=20 the full OQ9_PASS
+# rule (n≥100 ∧ stratum≥30) is structurally unsatisfiable, and the CI width
+# (≈ ±0.22 at n=20) is noise. Smoke asserts the RELAXED SUBSET only:
+#   - no τ_red violation on any sampled doc,
+#   - no provenance-manifest SHA-256 mismatch,
+#   - schema-valid output.
+# The stratified Clopper–Pearson floor and full κ measurement are deferred
+# to `eval:full` (deploy-blocking, eval-full.yml).
+#
+# This job is wired as a REQUIRED check for visibility but its failure does
+# NOT block merge (the per-branch blocking policy is documented in
+# docs/ci/eval-tiers.md — smoke is advisory). The gate that blocks is
+# `eval:full` on main/release.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+# Cancel superseded runs on the same ref — avoids redundant smoke runs on
+# rapid PR pushes (the deploy-blocking tier is eval:full, separately grouped).
+concurrency:
+  group: eval-smoke-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  eval-smoke:
+    name: eval:smoke (n=20, non-gating sanity — ADR-0025 §5)
+    runs-on: ubuntu-latest
+    # NON-GATING: this job advertises its result for visibility but does not
+    # block merge. Branch protection MUST list it as a non-required check; the
+    # blocking tier is eval:full (eval-full.yml) on main/release branches.
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.4
+          run_install: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: pnpm
+      - name: Install (frozen lockfile)
+        run: pnpm install --frozen-lockfile
+      - name: Build (eval depends on dist)
+        run: pnpm build
+      - name: eval:smoke (n=20, relaxed subset — ADR-0025 §5)
+        run: pnpm --filter @iip/eval eval:smoke

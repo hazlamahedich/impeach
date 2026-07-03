@@ -36,6 +36,19 @@
         "py:lint"
       ],
       "outputs": []
+    },
+    "eval:smoke": {
+      "dependsOn": [
+        "^build"
+      ],
+      "outputs": []
+    },
+    "eval:full": {
+      "dependsOn": [
+        "^build"
+      ],
+      "outputs": [],
+      "cache": false
     }
   }
 }
