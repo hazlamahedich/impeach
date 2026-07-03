@@ -300,4 +300,35 @@ export default tseslint.config(
       ],
     },
   },
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Story 2.5 — AC-12(c): the low-level `append()` single-CAS primitive is
+  // internal to packages/editorial. External callers MUST use the retried
+  // public API `appendToPartition()`. The stronger, type-level enforcement
+  // (splitting the repo interface so the public type omits `append`) is
+  // tracked as ADR-024 OQ-24.2; this rule provides mechanical call-site
+  // enforcement in the meantime. Scoped to everything except the package
+  // itself and the integration/chaos/perf tests that exercise it directly.
+  // ─────────────────────────────────────────────────────────────────────────
+  {
+    name: 'iip/editorial-append-internal',
+    files: ['**/*.ts', '**/*.tsx'],
+    ignores: [
+      'packages/editorial/**',
+      'tests/integration/editorial-log-concurrency.integration.test.ts',
+      'tests/chaos/editorial-log-concurrency.chaos.test.ts',
+      'tests/perf/editorial-log-concurrency.perf.test.ts',
+    ],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector:
+            "CallExpression > MemberExpression.callee[property.name='append'][object.name=/^(repo|editorialRepo|editorialLogRepo|logRepo)$/]",
+          message:
+            'EditorialLogRepo.append() is internal to packages/editorial (AC-12(c)). External callers must use appendToPartition() (AC-8). See ADR-024 OQ-24.2.',
+        },
+      ],
+    },
+  },
 );
