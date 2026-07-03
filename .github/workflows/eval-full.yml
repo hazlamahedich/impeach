@@ -14,11 +14,14 @@ name: eval:full
 #     PRs get eval:smoke only).
 #
 # Tiering note (code review 2026-07-03): the smoke/full script split is
-# advisory in this slice — both run the same Filipino spec because the
-# annotated corpus does not yet exist (it lands in Story 2.6b-measure).
-# The `IIP_EVAL_FULL` env var is reserved for that future branching; until
-# then both tiers run the same synthetic fixtures and `eval:full` differs
-# only in (a) being deploy-blocking and (b) never being Turbo-cached.
+# advisory in this slice — both run the same specs because the annotated
+# corpus does not yet exist (it lands in Story 2.6b-measure / 2.6c-measure).
+# The `IIP_EVAL_FULL` env var was previously reserved for smoke/full branching
+# but is a NO-OP as of the Story 2.6c code-review patch (P7): nothing in the
+# codebase reads it, and the smoke/full distinction is enforced purely by
+# CI wiring (this workflow runs only on main/release; eval:full is never
+# Turbo-cached). It is kept in the job env as a future wiring point if
+# in-process tier branching is later needed; removing it is safe.
 
 on:
   push:
@@ -58,7 +61,8 @@ jobs:
         run: pnpm build
       - name: eval:full (n≥200, never cached for releases — ADR-0025 §5)
         env:
-          # Reserved for the smoke/full corpus branching that lands with the
-          # annotated corpus in Story 2.6b-measure (ADR-0025 §5).
+          # NO-OP as of Story 2.6c code-review (P7): nothing reads this var.
+          # Kept as a future wiring point; the deploy-blocking + never-cached
+          # behavior is enforced by CI (this workflow) + Turbo, not this env.
           IIP_EVAL_FULL: '1'
         run: pnpm --filter @iip/eval eval:full

@@ -6,7 +6,7 @@ date: 2026-06-26
 supersedes: null
 superseded_by: null
 deciders: [Winston (architect), Murat (test architect), John (PM), user]
-related: [AC-1, AC-6, SC-7, NFR-A-2, ADR-014, ADR-025]
+related: [AC-1, AC-6, SC-7, NFR-A-2, ADR-014, ADR-025, ADR-026]
 evidence:
   - _bmad-output/planning-artifacts/architecture.md (AC-1 eval harness owns versioned golden corpus in-repo; SC-7 gate artifact store content-addressed; AC-6 reproducibility)
   - _bmad-output/planning-artifacts/epics.md (AC-F1-04 — historical path reference `packages/eval/corpus/golden/v0/` corrected to active `eval/corpus/golden/v0/` form in Amendment 1, 2026-07-03)
