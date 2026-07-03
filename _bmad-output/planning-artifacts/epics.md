@@ -665,17 +665,21 @@ So that concurrent writers don't silently fork the chain.
 
 ### Story 2.6: Retention/Takedown Schema & Filipino Eval Spec (AR-23, AR-24, VAL-2)
 
+> **AMENDED 2026-07-03** (party-mode adversarial review). This story is **SPLIT** into 2.6a (retention schema, intake-only) + 2.6b (Filipino salience eval gate). Two new stories filed: **2.10** (config_history build = the real G-2 close, since `config_history` is unbuilt) and **2.6c** (English extraction-quality eval gate = the volume-critical path per VAL-10). G-2 stays **OPEN** until 2.10 lands. See `_bmad-output/implementation-artifacts/story-2-6-review-report.md`.
+
 As a developer,
 I want retention/takedown fields in the data model and a Filipino eval-set spec locked in an ADR,
 So that claim-touching milestones are unblocked and defamation-grade retention is encoded.
 
-**Acceptance Criteria:**
+**Acceptance Criteria (amended):**
 
 **Given** the Drizzle schema includes retention metadata
-**When** a document or assertion is stored
-**Then** retention metadata fields exist (retention_policy, takedown_trigger, superseded_at) (AR-23, G-2 Critical)
-**And** the Filipino eval-set spec ADR is accepted with evidence — Filipino is the production case, not i18n (AR-24, G-3)
-**And** the ADR defines how Filipino extraction quality is gated before any claim of Filipino coverage (OQ-9)
+**When** a document is stored
+**Then** retention metadata fields exist on `intake_documents` — `retention_class` (renamed from `retention_policy` to avoid the `legal_hold` vocabulary clash), `takedown_trigger` (the removal rationale: court_order/dmca/editor_retraction), and `legal_hold` (orthogonal litigation-freeze flag) (AR-23, G-2 — intake-surface only; full G-2 close deferred to Story 2.10)
+**And** `superseded_at` is **moved to ADR-0017** (supersession-orchestration scope) — it is supersession lifecycle, not retention; a lone timestamp under-models what ADR-0017 must orchestrate (successor FK, reason, audit)
+**And** the Filipino eval-set spec ADR is accepted with evidence — Filipino is a **salience** production case (VAL-10: highest-defamation-risk subset), sequenced after the English volume-production gate (AR-24, G-3)
+**And** the ADR defines **how** Filipino extraction quality is gated (OQ-9) — a measurement protocol (Clopper–Pearson floor, n≥100, annotation provenance, CI enforcement), not thresholds alone
+**And** an **English extraction-quality eval gate (Story 2.6c)** is scoped as the volume-critical path (VAL-10) — G-3 closes only when BOTH the English and Filipino gates are specified
 
 ### Story 2.7: Defamation Threshold & Blast-Radius ADRs (AR-26, AR-28, VAL-2)
 

@@ -18,6 +18,16 @@ export type {
   IntakeContentHash as IntakeContentHashType,
 } from './state.js';
 
+// Story 2.6a — AR-23 / VAL-2 G-2 retention/takedown contract types
+export {
+  RetentionPolicyLiteral,
+  RetentionPolicy,
+} from './retention.js';
+export type {
+  RetentionPolicyLiteral as RetentionPolicyLiteralType,
+  RetentionPolicy as RetentionPolicyType,
+} from './retention.js';
+
 export {
   IntakeEventName,
   IntakeEvent,

@@ -32,3 +32,11 @@
 - GPU passthrough runner config — already documented as commented-out and deferred to Epic 4. [infra/runner/provision.pkr.hcl:145]
 - Metric value range validation — real metrics (RAGAS/DeepEval) not defined yet; `{ echo: 1.0 }` smoke is sufficient for Epic 1. [packages/eval/src/reproduce.ts:57]
 
+
+## Deferred from: code review of story-2-6-retention-takedown-schema-filipino-eval-spec (2026-07-03)
+
+- Drizzle schema omits the two partial indexes declared in the SQL migration (drift hazard). Pre-existing project convention — 0000/0001 also hand-author indexes not modeled in Drizzle. Add a documenting comment or model indexes in Drizzle when the index-source-of-truth convention is settled project-wide. [packages/db/src/schema/intake-documents.ts vs 0002_intake_retention.sql:63-69]
+- Vocabulary CHECK lives only in raw SQL; Drizzle has no knowledge of it → drift hazard. Pre-existing pattern (hand-authored migrations due to drizzle-kit version-check); spec explicitly chose SQL-only CHECK. Track until Drizzle `check()` adoption is decided. [packages/db/drizzle/0002_intake_retention.sql vs packages/db/src/schema/intake-documents.ts:217]
+- Branded `RetentionPolicy` applied via `.$type<>()` with no runtime `.parse()` on the read path. Pre-existing pattern; no read path exists yet. Validate with `RetentionPolicyLiteral.parse(...)` at the repository boundary when the read path lands. [packages/db/src/schema/intake-documents.ts:217]
+- Integration test applies only migrations 0000 + 0002, skipping 0001 — unrealistic chain. Applying the full journal chain (0000→0001→0002) in `beforeAll` is a test-architecture improvement tracked with the broader migration-test convention. [tests/integration/retention-schema.integration.test.ts:428-429]
+- Scope leak: uncommitted Story 2.5 editorial-log changes co-mingled in the working tree (eslint.config.js, packages/contracts/src/editorial-log.ts, packages/editorial/*, tests/{chaos,integration,perf}/editorial-log-concurrency.*). These are Story 2.5 leftovers, not 2.6 dependencies — must be split into separate commits before any 2.6 commit/merge.
