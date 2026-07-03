@@ -545,7 +545,10 @@ export type EditorialErrorCode =
   | 'CHAIN_INTEGRITY_FAILURE'
   | 'JTI_REPLAY'
   | 'CHAIN_CONTINUITY_VIOLATION'
-  | 'INVALID_ENTRY';
+  | 'INVALID_ENTRY'
+  | 'DUPLICATE_SEQUENCE'
+  | 'PREV_HASH_MISMATCH'
+  | 'SIGNING_CALLBACK_FAILED';
 
 /**
  * EditorialError — closed set of editorial log failure variants.

@@ -18,15 +18,51 @@ import type {
   CorpusHash,
   Signature,
   EditorialLogEvent,
+  EditorialErrorCode,
 } from '@iip/contracts';
 
 /**
- * AppendResult — result of `append(entry)` and `appendToPartition(params)`.
+ * AppendSuccess — successful single-CAS append outcome (AC-12(a)).
  *
- * Returns the inserted `seq`. If a CAS conflict occurs, callers receive the
- * conflict details so they can decide whether to retry.
+ * @rules SEC-6, AC-12, DoD-4
+ */
+export interface AppendSuccess {
+  readonly ok: true;
+  readonly seq: Seq;
+}
+
+/**
+ * AppendFailure — single-CAS append failure outcome (AC-12(a)).
  *
- * @rules SEC-6, DoD-4
+ * `append()` is the low-level primitive: it returns a failure result instead
+ * of throwing so callers handle CAS conflict explicitly (DoD-4, AC-12(a):
+ * "returns a failure result (not throws — contract must be explicit)").
+ *
+ * @rules SEC-6, AC-12, DoD-4
+ */
+export interface AppendFailure {
+  readonly ok: false;
+  readonly code: EditorialErrorCode;
+  readonly message: string;
+}
+
+/**
+ * AppendOutcome — the result of `append(entry)` (AC-12(a)).
+ *
+ * Discriminated by `ok`. Callers MUST branch on `ok` before reading `seq`.
+ *
+ * @rules SEC-6, AC-12, DoD-4
+ */
+export type AppendOutcome = AppendSuccess | AppendFailure;
+
+/**
+ * AppendResult — result of `appendToPartition(params)` (AC-8).
+ *
+ * `appendToPartition` retries CAS conflicts internally and returns the
+ * inserted `seq` on success; it throws `EditorialError` only on retry
+ * exhaustion or unrecoverable failure (AC-3).
+ *
+ * @rules SEC-6, AC-8, DoD-4
  */
 export type AppendResult = Seq;
 
@@ -68,6 +104,18 @@ export interface OperatorKeyLookup {
  */
 export interface QueryExecutor {
   query(text: string, params?: readonly unknown[]): Promise<{ rows: readonly Record<string, unknown>[] }>;
+  /**
+   * Run a callback inside a single database transaction on one connection.
+   *
+   * When implemented (e.g. over a checked-out `PoolClient`), the callback
+   * receives a transaction-scoped executor so multiple reads share one
+   * snapshot. Used by `verifyChain` to obtain REPEATABLE READ isolation
+   * (AC-6). Optional: when absent, reads run as individual autocommit
+   * statements.
+   *
+   * @rules AC-6, SEC-6
+   */
+  transaction?<T>(fn: (tx: QueryExecutor) => Promise<T>): Promise<T>;
 }
 
 /**
@@ -98,8 +146,15 @@ export interface AppendParams {
  * @rules SEC-6, AC-1, AC-7, AC-8, AC-9, DoD-4, DoD-13, DoD-15
  */
 export interface EditorialLogRepo {
-  /** Single CAS insert attempt for a pre-built entry (DoD-4). Validates chain continuity. */
-  append(entry: LogEntry): Promise<AppendResult>;
+  /**
+   * Single CAS insert attempt for a pre-built entry (DoD-4, AC-12(a)).
+   *
+   * Low-level primitive for internal use only. Returns an {@link AppendOutcome}
+   * — a CAS conflict is reported as a failure result, NOT a throw, so callers
+   * handle it explicitly. Direct calls from outside `packages/editorial` are
+   * banned by ESLint (AC-12(c)).
+   */
+  append(entry: LogEntry): Promise<AppendOutcome>;
   /** CAS append with retry: re-reads tip, rebuilds entry, re-signs on conflict (AC-8, DoD-13). */
   appendToPartition(params: AppendParams): Promise<AppendResult>;
   getTip(partitionKey: PartitionKey | string): Promise<{ seq: Seq; currHash: CorpusHash } | null>;
@@ -112,16 +167,35 @@ export interface EditorialLogRepo {
 }
 
 /**
+ * EditorialMetricSink — optional metrics hook (AC-3).
+ *
+ * When provided, the repository increments `editorial.append_exhausted` on
+ * CAS retry exhaustion and `editorial.chain_integrity_failure` when
+ * `verifyChain` detects corruption. Defaults to a no-op sink so production
+ * wiring (@iip/config) can inject the real client without forcing tests to.
+ *
+ * @rules AC-3, SEC-6
+ */
+export interface EditorialMetricSink {
+  increment(name: string, tags?: Readonly<Record<string, string>>): void;
+}
+
+/**
  * EditorialRepoConfig — injected dependencies for the repository.
  *
  * Dependencies are injected (not module-level) so Stryker can test every
  * branch in isolation (SEC-8, DoD-9). `now()` is injectable so temporal
- * constraints are deterministic under test.
+ * constraints are deterministic under test. `random()` is injectable so the
+ * CAS backoff jitter is seedable for deterministic concurrency tests (DoD-6).
  *
- * @rules SEC-6, SEC-8, DoD-9
+ * @rules SEC-6, SEC-8, DoD-6, DoD-9, AC-3
  */
 export interface EditorialRepoConfig {
   readonly executor: QueryExecutor;
   readonly keyLookup: OperatorKeyLookup;
   readonly now: () => Date;
+  /** Seedable RNG for CAS backoff jitter (DoD-6). Defaults to `Math.random`. */
+  readonly random?: () => number;
+  /** Optional metrics sink for exhaustion/integrity alerts (AC-3). */
+  readonly metrics?: EditorialMetricSink;
 }

@@ -37,7 +37,10 @@ import type {
 } from '@iip/contracts';
 import type {
   AppendParams,
+  AppendFailure,
+  AppendOutcome,
   EditorialLogRepo,
+  EditorialMetricSink,
   EditorialRepoConfig,
   QueryExecutor,
 } from './types.js';
@@ -75,29 +78,33 @@ function asExecutor(client: ClientBase): QueryExecutor {
  */
 export function createEditorialLogRepo(config: EditorialRepoConfig): EditorialLogRepo {
   const { executor, keyLookup, now } = config;
+  const random = config.random ?? Math.random;
+  const metrics = config.metrics ?? NOOP_METRICS;
 
   /**
-   * Append a pre-built log entry using a single CAS attempt (DoD-4).
+   * Append a pre-built log entry using a single CAS attempt (DoD-4, AC-12(a)).
    *
-   * Returns the inserted seq. If a CAS conflict occurs (another writer
-   * inserted the same seq first), throws `ConcurrentAppendExhaustedError`.
-   * Callers needing automatic retry should use `appendToPartition`.
+   * Low-level primitive for internal use only. Returns an {@link AppendOutcome}
+   * — a failure is reported as a result, NOT a thrown error, so callers handle
+   * CAS conflict explicitly. Callers needing automatic retry should use
+   * `appendToPartition`.
    *
    * Genesis auto-bootstrap: if seq=1 and no seq=0 exists, insert a genesis
    * entry atomically first (AC-10).
    *
-   * @rules AC-1, AC-10, AC-16, DoD-4
+   * @rules AC-1, AC-10, AC-12, AC-16, DoD-4
    */
-  async function append(entry: LogEntry): Promise<Seq> {
+  async function append(entry: LogEntry): Promise<AppendOutcome> {
     // Validate the entry shape before any DB operation.
     LogEntry.parse(entry);
 
     // Reject non-positive sequence numbers before any DB operation.
     if (entry.seq <= 0) {
-      throw new EditorialError(
-        `append rejected: seq must be > 0, got ${entry.seq}`,
-        'INVALID_ENTRY',
-      );
+      return {
+        ok: false,
+        code: 'INVALID_ENTRY',
+        message: `append rejected: seq must be > 0, got ${entry.seq}`,
+      };
     }
 
     // Genesis auto-bootstrap: if this is seq=1 and no genesis exists, insert it.
@@ -107,36 +114,9 @@ export function createEditorialLogRepo(config: EditorialRepoConfig): EditorialLo
 
     // Enforce chain continuity against the current tip.
     const tip = await getTip(entry.partition_key);
-    if (entry.seq === 1) {
-      const genesisHash = hashEntry(GENESIS_PREV_HASH, {
-        seq: 0,
-        partition_key: entry.partition_key,
-        principal_sub: '__genesis__',
-        event: 'system.genesis',
-        jti: '__genesis__',
-        payload: {},
-        time: entry.time,
-      });
-      if ((entry.prev_hash as unknown as string) !== genesisHash) {
-        throw new EditorialError(
-          `append rejected: seq=1 must chain from genesis curr_hash (expected ${genesisHash})`,
-          'CHAIN_CONTINUITY_VIOLATION',
-        );
-      }
-    } else {
-      const continuityFailure =
-        tip === null ||
-        entry.seq !== tip.seq + 1 ||
-        (entry.prev_hash as unknown as string) !==
-          (tip.currHash as unknown as string);
-      if (continuityFailure) {
-        const tipSeq = tip === null ? 'none' : String(tip.seq);
-        const expectedSeq = tip === null ? '1' : String(tip.seq + 1);
-        throw new EditorialError(
-          `append rejected: seq/prev_hash does not continue the chain (tip=${tipSeq}, expected seq=${expectedSeq})`,
-          'CHAIN_CONTINUITY_VIOLATION',
-        );
-      }
+    const continuity = checkContinuity(entry, tip);
+    if (continuity !== null) {
+      return continuity;
     }
 
     // CAS insert: only insert if no entry exists at (partition_key, seq).
@@ -166,26 +146,36 @@ export function createEditorialLogRepo(config: EditorialRepoConfig): EditorialLo
       );
     } catch (err) {
       // Defensive normalization: under real DB-level concurrency, a race between
-      // the CAS guard and the unique index can surface as a unique-violation
-      // error. Map it to the same logical CAS conflict as a 0-row CAS result.
-      if (isUniqueViolation(err)) {
-        throw new EditorialError(
-          `CAS conflict at (partition_key=${entry.partition_key}, seq=${entry.seq})`,
-          'CONCURRENT_APPEND_EXHAUSTED',
-        );
+      // the CAS guard and a unique index can surface as SQLSTATE 23505.
+      const violation = classifyUniqueViolation(err);
+      if (violation === 'jti') {
+        return {
+          ok: false,
+          code: 'JTI_REPLAY',
+          message: `jti replay at (partition_key=${entry.partition_key}, jti=${entry.jti})`,
+        };
+      }
+      if (violation === 'seq') {
+        return {
+          ok: false,
+          code: 'DUPLICATE_SEQUENCE',
+          message: `CAS conflict at (partition_key=${entry.partition_key}, seq=${entry.seq})`,
+        };
       }
       throw err;
     }
 
     if (result.rows.length > 0) {
       const insertedSeq = Number(result.rows[0]!['seq']);
-      return Seq.parse(insertedSeq);
+      return { ok: true, seq: Seq.parse(insertedSeq) };
     }
 
-    throw new EditorialError(
-      `CAS conflict at (partition_key=${entry.partition_key}, seq=${entry.seq})`,
-      'CONCURRENT_APPEND_EXHAUSTED',
-    );
+    // 0-row CAS result: another writer inserted this seq first.
+    return {
+      ok: false,
+      code: 'DUPLICATE_SEQUENCE',
+      message: `CAS conflict at (partition_key=${entry.partition_key}, seq=${entry.seq})`,
+    };
   }
 
   /**
@@ -204,7 +194,7 @@ export function createEditorialLogRepo(config: EditorialRepoConfig): EditorialLo
    * @rules AC-1, AC-8, AC-10, DoD-2, DoD-13
    */
   async function appendToPartition(params: AppendParams): Promise<Seq> {
-    let lastError: Error | null = null;
+    let lastError: EditorialError | null = null;
 
     for (let attempt = 0; attempt <= CAS_MAX_RETRIES; attempt++) {
       // Step 1: read the current tip.
@@ -222,42 +212,75 @@ export function createEditorialLogRepo(config: EditorialRepoConfig): EditorialLo
       const prevHash = tip === null ? GENESIS_PREV_HASH : tip.currHash;
 
       // Step 4: build the entry via makeEntry with the signing callback.
+      // A callback failure propagates as SIGNING_CALLBACK_FAILED immediately —
+      // no swallowing, no fallback to unsigned entries (AC-11, review finding).
       const timeStr = now().toISOString();
-      const entry = await makeEntry({
-        partitionKey: params.partitionKey,
-        principalSub: params.principalSub,
-        event: params.event,
-        jti: params.jti,
-        payload: params.payload,
-        time: timeStr,
-        prevHash,
-        seq,
-        getSignature: params.getSignature,
-      });
+      let entry: LogEntry;
+      try {
+        entry = await makeEntry({
+          partitionKey: params.partitionKey,
+          principalSub: params.principalSub,
+          event: params.event,
+          jti: params.jti,
+          payload: params.payload,
+          time: timeStr,
+          prevHash,
+          seq,
+          getSignature: params.getSignature,
+        });
+      } catch (err) {
+        throw new EditorialError(
+          `signing callback failed during append to partition ${params.partitionKey}: ${err instanceof Error ? err.message : 'unknown'}`,
+          'SIGNING_CALLBACK_FAILED',
+        );
+      }
 
-      // Step 5: CAS insert.
-      const result = await executor.query(
-        `INSERT INTO editorial_log
-           (seq, partition_key, prev_hash, curr_hash, principal_sub, signature, event, jti, payload, time, witness_cursor)
-         SELECT $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11
-         WHERE NOT EXISTS (
-           SELECT 1 FROM editorial_log WHERE partition_key = $2 AND seq = $1
-         )
-         RETURNING seq`,
-        [
-          entry.seq,
-          entry.partition_key,
-          entry.prev_hash,
-          entry.curr_hash,
-          entry.principal_sub,
-          entry.signature,
-          entry.event,
-          entry.jti,
-          JSON.stringify(entry.payload),
-          entry.time,
-          null,
-        ],
-      );
+      // Step 5: CAS insert. Under READ COMMITTED, two writers can both miss the
+      // WHERE NOT EXISTS sub-select and hit the composite PK as SQLSTATE 23505.
+      // That must be caught here and treated as a CAS conflict (retry), not
+      // allowed to escape as a raw pg error past the retry loop (review finding:
+      // appendToPartition did not normalize 23505). A jti-unique violation is a
+      // BullMQ replay and is NOT retryable.
+      let result: { rows: readonly Record<string, unknown>[] };
+      try {
+        result = await executor.query(
+          `INSERT INTO editorial_log
+             (seq, partition_key, prev_hash, curr_hash, principal_sub, signature, event, jti, payload, time, witness_cursor)
+           SELECT $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11
+           WHERE NOT EXISTS (
+             SELECT 1 FROM editorial_log WHERE partition_key = $2 AND seq = $1
+           )
+           RETURNING seq`,
+          [
+            entry.seq,
+            entry.partition_key,
+            entry.prev_hash,
+            entry.curr_hash,
+            entry.principal_sub,
+            entry.signature,
+            entry.event,
+            entry.jti,
+            JSON.stringify(entry.payload),
+            entry.time,
+            null,
+          ],
+        );
+      } catch (err) {
+        const violation = classifyUniqueViolation(err);
+        if (violation === 'jti') {
+          // BullMQ redelivery of the same logical operation — not retryable.
+          throw new EditorialError(
+            `jti replay at (partition_key=${params.partitionKey}, jti=${params.jti})`,
+            'JTI_REPLAY',
+          );
+        }
+        if (violation === 'seq') {
+          // Composite-PK race — same as a 0-row CAS result: backoff and retry.
+          result = { rows: [] };
+        } else {
+          throw err;
+        }
+      }
 
       if (result.rows.length > 0) {
         return Seq.parse(Number(result.rows[0]!['seq']));
@@ -270,10 +293,14 @@ export function createEditorialLogRepo(config: EditorialRepoConfig): EditorialLo
       );
 
       if (attempt < CAS_MAX_RETRIES) {
-        await sleep(computeBackoffDelay(attempt));
+        await sleep(computeBackoffDelay(attempt, random));
       }
     }
 
+    // Step 7: exhausted all retries — emit WARNING metric (AC-3) and throw so
+    // BullMQ can re-enqueue with backoff. The job context is preserved on the
+    // rejected promise.
+    metrics.increment(METRIC_APPEND_EXHAUSTED, { partition_key: params.partitionKey });
     throw lastError;
   }
 
@@ -385,25 +412,46 @@ export function createEditorialLogRepo(config: EditorialRepoConfig): EditorialLo
       params.push(toSeq);
     }
 
-    const sql = `SELECT * FROM editorial_log WHERE ${conditions.join(' AND ')} ORDER BY seq ASC`;
-    const result = await executor.query(sql, params);
-    const entries = result.rows.map(rowToLogEntry);
-    let expectedSeq = fromSeq ?? 0;
-    let prevHash: string | null = null;
-
-    // Determine the witness cursor for truncation detection (AC-11).
-    let witnessCursor: number | null = null;
-    if (entries.length > 0) {
-      const witnessResult = await executor.query(
-        `SELECT witness_cursor FROM editorial_log
+    const entriesSql = `SELECT * FROM editorial_log WHERE ${conditions.join(' AND ')} ORDER BY seq ASC`;
+    const witnessSql = `SELECT witness_cursor FROM editorial_log
          WHERE partition_key = $1 AND witness_cursor IS NOT NULL
-         ORDER BY witness_cursor DESC LIMIT 1`,
-        [partitionKey],
-      );
-      if (witnessResult.rows.length > 0) {
-        witnessCursor = Number(witnessResult.rows[0]!['witness_cursor']);
+         ORDER BY witness_cursor DESC LIMIT 1`;
+
+    // AC-6: read a consistent snapshot. When the executor exposes a
+    // transaction (single held connection), run both reads inside a
+    // REPEATABLE READ transaction so a concurrent append cannot split the
+    // snapshot between the entries SELECT and the witness SELECT. Otherwise
+    // (autocommit-per-query executors) each statement is still individually
+    // snapshot-consistent under PostgreSQL READ COMMITTED.
+    let entries: LogEntry[];
+    let witnessCursor: number | null = null;
+    if (typeof executor.transaction === 'function') {
+      [entries, witnessCursor] = await executor.transaction(async (tx) => {
+        await tx.query('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ');
+        const er = await tx.query(entriesSql, params);
+        const entriesLocal = er.rows.map(rowToLogEntry);
+        let wc: number | null = null;
+        if (entriesLocal.length > 0) {
+          const wr = await tx.query(witnessSql, [partitionKey]);
+          if (wr.rows.length > 0) {
+            wc = Number(wr.rows[0]!['witness_cursor']);
+          }
+        }
+        return [entriesLocal, wc] as const;
+      });
+    } else {
+      const result = await executor.query(entriesSql, params);
+      entries = result.rows.map(rowToLogEntry);
+      if (entries.length > 0) {
+        const witnessResult = await executor.query(witnessSql, [partitionKey]);
+        if (witnessResult.rows.length > 0) {
+          witnessCursor = Number(witnessResult.rows[0]!['witness_cursor']);
+        }
       }
     }
+
+    let expectedSeq = fromSeq ?? 0;
+    let prevHash: string | null = null;
 
     for (const entry of entries) {
       // Sequence gap detection (AC-9).
@@ -539,10 +587,11 @@ export function createEditorialLogRepo(config: EditorialRepoConfig): EditorialLo
 
     const valid = failures.length === 0;
 
-    // Chain corruption alert (AC-14).
+    // Chain corruption alert (AC-3, AC-14): increment the integrity-failure
+    // metric so monitoring/alerting can fire. The forensic append of a
+    // `system.chain_integrity_failure` event is handled by the audit worker.
     if (!valid) {
-      // Best-effort: emit a chain_integrity_failure event if the log is writable.
-      // The alert metric increment is handled by the monitoring pipeline.
+      metrics.increment(METRIC_CHAIN_INTEGRITY_FAILURE, { partition_key: String(partitionKey) });
     }
 
     return {
@@ -563,18 +612,79 @@ export function createEditorialLogRepo(config: EditorialRepoConfig): EditorialLo
 // ─────────────────────────────────────────────────────────────────────────
 
 /**
- * Detect a PostgreSQL unique-constraint violation (SQLSTATE 23505).
+ * No-op metric sink used when none is injected (AC-3).
  *
- * This is a defensive helper: the CAS guard (WHERE NOT EXISTS) and the
- * composite primary key are a defense-in-depth pair, but under true DB-level
- * concurrency the race window between the sub-select and the insert can still
- * surface as 23505. We normalize that to the same logical CAS conflict the
- * rest of the code expects.
+ * Production wiring (@iip/config) injects the real client; tests inject a
+ * counter when they need to assert on increments.
  */
-function isUniqueViolation(err: unknown): boolean {
-  if (err === null || typeof err !== 'object') return false;
-  const code = (err as Record<string, unknown>)['code'];
-  return code === '23505';
+const NOOP_METRICS: EditorialMetricSink = { increment() {} };
+
+/**
+ * Metric names emitted by the repository (AC-3).
+ */
+const METRIC_APPEND_EXHAUSTED = 'editorial.append_exhausted';
+const METRIC_CHAIN_INTEGRITY_FAILURE = 'editorial.chain_integrity_failure';
+
+/**
+ * Classify a PostgreSQL unique-constraint violation (SQLSTATE 23505) by the
+ * constraint that fired (AC-3, AC-16).
+ *
+ * The composite PK `editorial_log_pk (partition_key, seq)` is a CAS conflict
+ * (retryable). The unique index `editorial_log_partition_jti_uq
+ * (partition_key, jti)` is a BullMQ replay (NOT retryable — re-enqueuing a
+ * duplicate-jti job would loop forever). Discriminating these prevents
+ * misclassifying a redelivery as contention (review finding: jti replay
+ * conflated into CONCURRENT_APPEND_EXHAUSTED).
+ *
+ * @returns `'seq'` | `'jti'` | null (not a 23505)
+ */
+function classifyUniqueViolation(err: unknown): 'seq' | 'jti' | null {
+  if (err === null || typeof err !== 'object') return null;
+  const e = err as Record<string, unknown>;
+  if (e['code'] !== '23505') return null;
+  const constraint = e['constraint'];
+  if (constraint === 'editorial_log_partition_jti_uq') return 'jti';
+  // editorial_log_pk or any other 23505 on this table is a seq conflict.
+  return 'seq';
+}
+
+/**
+ * Verify that `entry` chains correctly off the current `tip` (AC-16, AC-12).
+ *
+ * Uses the STORED tip `curr_hash` rather than recomputing the genesis hash
+ * from a guessed canonical form — the previous implementation recomputed the
+ * genesis hash from `entry.time`, falsely rejecting any seq=1 entry whose
+ * timestamp differed from genesis creation (review finding).
+ *
+ * @returns an {@link AppendFailure} if continuity is broken, else `null`.
+ */
+function checkContinuity(
+  entry: LogEntry,
+  tip: { seq: Seq; currHash: CorpusHash } | null,
+): AppendFailure | null {
+  if (tip === null) {
+    return {
+      ok: false,
+      code: 'CHAIN_CONTINUITY_VIOLATION',
+      message: `append rejected: seq/prev_hash does not continue the chain (tip=none, expected seq=1)`,
+    };
+  }
+  const expectedSeq = tip.seq + 1;
+  if (entry.seq !== expectedSeq) {
+    return {
+      ok: false,
+      code: 'CHAIN_CONTINUITY_VIOLATION',
+      message: `append rejected: seq/prev_hash does not continue the chain (tip=${tip.seq}, expected seq=${expectedSeq})`,
+    };
+  }
+  if ((entry.prev_hash as unknown as string) !== (tip.currHash as unknown as string)) {
+    return {
+      ok: false,
+      code: 'PREV_HASH_MISMATCH',
+      message: `append rejected: prev_hash does not match tip curr_hash at seq ${entry.seq} (expected ${tip.currHash})`,
+    };
+  }
+  return null;
 }
 
 /**
@@ -623,9 +733,9 @@ async function bootstrapGenesisIfMissing(
  *
  * @rules AC-8, DoD-13
  */
-function computeBackoffDelay(attempt: number): number {
+function computeBackoffDelay(attempt: number, random: () => number = Math.random): number {
   const cap = CAS_BASE_DELAY_MS * Math.pow(CAS_BACKOFF_MULTIPLIER, attempt);
-  return Math.random() * cap;
+  return random() * cap;
 }
 
 /**
