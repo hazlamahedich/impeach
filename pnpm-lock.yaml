@@ -273,6 +273,9 @@ importers:
 
   packages/editorial:
     dependencies:
+      '@iip/auth':
+        specifier: workspace:*
+        version: link:../auth
       '@iip/contracts':
         specifier: workspace:*
         version: link:../contracts
