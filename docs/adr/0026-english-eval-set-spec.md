@@ -6,7 +6,7 @@ date: 2026-07-03
 supersedes: null
 superseded_by: null
 deciders: [Winston (architect), Murat (test architect), Mary (analyst), Amelia (engineer), John (PM), user]
-related: [AC-1, SC-1, VAL-2, VAL-10, G-3, OQ-9, DR-4, ADR-001, ADR-011, ADR-014, ADR-025]
+related: [AC-1, SC-1, VAL-2, VAL-10, G-3, OQ-9, DR-4, ADR-001, ADR-011, ADR-014, ADR-025, ADR-028]
 evidence:
   # Spec-completeness evidence (Story 2.6c, 2026-07-03). ADR-0026 is a THIN
   # INSTANCE RECORD: it inherits the protocol spine from ADR-0025 (Part I) by

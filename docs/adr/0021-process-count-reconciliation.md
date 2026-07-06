@@ -6,7 +6,7 @@ date: 2026-06-23
 supersedes: null
 superseded_by: null
 deciders: [Winston (architect), user]
-related: [AR-3, STR-2, STR-3, NFR-D-1, ADR-001, ADR-019]
+related: [AR-3, STR-2, STR-3, NFR-D-1, ADR-001, ADR-019, ADR-029]
 evidence:
   - _bmad-output/planning-artifacts/architecture.md (STR-2, AR-3)
   - _bmad-output/planning-artifacts/epics.md (Story 1.3, 11 services)

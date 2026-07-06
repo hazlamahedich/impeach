@@ -6,7 +6,7 @@ date: 2026-07-03
 supersedes: null
 superseded_by: null
 deciders: [Winston (architect), Murat (test architect), Mary (analyst), Amelia (engineer), John (PM), anti lustay (interim Filipino annotator), user]
-related: [AC-1, SC-1, VAL-2, VAL-10, G-3, OQ-9, DR-4, ADR-001, ADR-005, ADR-007, ADR-008, ADR-011, ADR-014, ADR-017, ADR-020, ADR-026, ADR-027]
+related: [AC-1, SC-1, VAL-2, VAL-10, G-3, OQ-9, DR-4, ADR-001, ADR-005, ADR-007, ADR-008, ADR-011, ADR-014, ADR-017, ADR-020, ADR-026, ADR-027, ADR-028]
 evidence:
   # Spec-completeness evidence (Story 2.6b-code, 2026-07-03). Per the party-mode
   # panel (Winston, decider-of-record), ADR-0025 promotes to Accepted on

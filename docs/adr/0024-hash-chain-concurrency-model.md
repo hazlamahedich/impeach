@@ -6,7 +6,7 @@ date: 2026-07-01
 supersedes: null
 superseded_by: null
 deciders: [Winston (architect), Amelia (developer), Murat (test architect), anti lustay (user)]
-related: [AC-11, SEC-6, VAL-3.7, ADR-001, ADR-002, ADR-023]
+related: [AC-11, SEC-6, VAL-3.7, ADR-001, ADR-002, ADR-023, ADR-029]
 evidence:
   - _bmad-output/planning-artifacts/architecture.md
   - _bmad-output/planning-artifacts/epics.md
