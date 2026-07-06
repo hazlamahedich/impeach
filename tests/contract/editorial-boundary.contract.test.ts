@@ -62,7 +62,7 @@ describe('Story 2.4 — Editorial log boundary contracts (SEC-6)', () => {
   });
 
   // TC-2.2: Discriminated union schema
-  it('TC-2.2: @iip/contracts exports EditorialLogEvent as z.discriminatedUnion with 14 event variants', () => {
+  it('TC-2.2: @iip/contracts exports EditorialLogEvent as z.discriminatedUnion with 19 event variants', () => {
     const events = [
       'system.genesis',
       'auth.revoked',
@@ -78,6 +78,12 @@ describe('Story 2.4 — Editorial log boundary contracts (SEC-6)', () => {
       'editorial.signoff',
       'editorial.revoke_signoff',
       'system.chain_integrity_failure',
+      // Story 2.8 — PD-2 KPI cascade (AR-25, G-6)
+      'external.verification.observed',
+      'external.engagement.rationale',
+      'external.pd2.day90',
+      'gate.bypass_attempt',
+      'proceeding.early_termination',
     ];
     for (const event of events) {
       const sample = makeSampleEvent(event);
@@ -318,6 +324,14 @@ function makeSampleEvent(event: string): unknown {
     'editorial.signoff': { claim_id: 'c', citation_hash: 'h' },
     'editorial.revoke_signoff': { claim_id: 'c', reason: 'r' },
     'system.chain_integrity_failure': { partition_key: 'p', failure_count: 1 },
+    // Story 2.8 — PD-2 KPI cascade samples (AR-25). Day 90 uses the
+    // question_donated variant; partnership_committed is covered in the
+    // dedicated kpi-events contract test.
+    'external.verification.observed': { partner_name: 'PRESS_FORUM_X', sample_size: 1, errors_found: 0 },
+    'external.engagement.rationale': { partner_name: 'PRESS_FORUM_X', rationale_summary: 'x', provenance_cited: true },
+    'external.pd2.day90': { outcome: 'question_donated', partner_name: 'PRESS_FORUM_X', document_count: 1 },
+    'gate.bypass_attempt': { query: 'q' },
+    'proceeding.early_termination': { proceeding_id: 'p', termination_date: '2026-07-06', kpi_status: { day30: true } },
   };
   return payloads[event];
 }

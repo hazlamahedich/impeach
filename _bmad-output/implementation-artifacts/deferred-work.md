@@ -57,6 +57,11 @@
 - **`validateCorpusManifest()` consumed only by the English spec; Filipino spec + Python `tools/eval` bypass it** [packages/eval/src/manifest.ts] — the "shared-harness, every-language-instance" framing in ADR-0025 §2/§6 is aspirational: `filipino-oq9.spec.ts` hand-rolls its own `JSON.parse` + shape checks, and the Python side uses its own pydantic model. Wiring Filipino + Python in is sibling work outside this slice's scope; today the regression-guard value holds only for English.
 - **EN-DR-1 assumes `essence_sentence` derives from `answer_text`** [packages/render/src/gate-dr4-fallback.mutation.test.ts EN-DR-1] — the `expect(out.essence_sentence).toContain('coverage gap')` assertion is only robust if `renderGateLive` derives `essence_sentence` from `answer_text`; if it's generated from cited claims (of which there are none), the assertion could be vacuous. Needs `gate.ts` verification, which is outside the diff. Pre-existing render behavior, not introduced by this story.
 
+## Deferred from: code review of 2-8-pd-2-kpi-observation-gate-invocation-contract-test (2026-07-06)
+
+- **`ExternalPd2Day90Payload` only models success outcomes** (`question_donated`, `partnership_committed`) [packages/contracts/src/editorial-log.ts:283-287] — The spec defines only these two variants; future PD-2 iterations can extend the union if needed. [deferred, out of scope]
+- **Partner names are free-form strings rather than an enum/registry** [packages/contracts/src/editorial-log.ts:212-273] — Spec intentionally uses organizational free-form names plus the PII scan; central partner registry is out of scope. [deferred, out of scope]
+
 ## Deferred from: code review of 2-7-defamation-threshold-blast-radius-adrs (2026-07-06)
 
 - **Render gate does not yet mechanically enforce 0.00% allegation-as-fact detection target** [packages/render/src/gate.ts] — The current gate strips uncited claims and marks lone Tier-3 claims; it does not block a misclassified `claim_type='fact'` with a syntactically valid citation. Pre-existing implementation gap; Story 2.8/2.9 and the SEC-8 red-team battery are the enforcement path. [deferred, pre-existing]

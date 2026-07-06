@@ -147,14 +147,57 @@ export interface CitationVerifier {
 }
 
 /**
+ * Gate-invocation observation record (Story 2.8, VAL-9, AR-25).
+ *
+ * Emitted by `renderGateLive` on every invocation via the optional
+ * {@link GateContext.onInvocation} observer. The serve-worker wires this
+ * callback to the editorial log (`gate.invocation` / KPI logger) so that
+ * post-proceeding audit can verify the gate fired on every served response
+ * (VAL-9: "gate-invocation-per-served-response").
+ *
+ * The `responseId` is supplied by the caller (serve-worker) — it ties the
+ * gate invocation to a specific served response, making "was the gate
+ * invoked per served response?" a queryable property rather than an
+ * aspiration. `served` carries the gate's final decision: `true` only when
+ * the gate returned a document with at least one cited claim that survived
+ * the chain (i.e. the gate result WAS the deciding factor in serving —
+ * VAL-9: "invocation ≠ enforcement").
+ *
+ * @rules VAL-9, AR-25, SEC-5, AC-11
+ */
+export interface GateInvocationObservation {
+  /** Caller-supplied response identifier (ties invocation to served response). */
+  readonly responseId: string;
+  /** The gate's final decision — `true` only if the response is serve-eligible. */
+  readonly served: boolean;
+  /** Number of cited claim spans that survived the gate. */
+  readonly claimsServed: number;
+  /** Violations recorded during this invocation (may be empty). */
+  readonly violations: readonly GateViolationKind[];
+  /** ISO-8601 UTC timestamp of the invocation. */
+  readonly time: string;
+}
+
+/**
  * Bundle of injected gate dependencies. The gate is a pure function of
- * `(input, ctx)` — everything external (resolver, entailment, hash verifier)
- * flows through here.
+ * `(input, ctx)` — everything external (resolver, entailment, hash verifier,
+ * invocation observer) flows through here.
+ *
+ * `onInvocation` is OPTIONAL: when omitted, the gate runs unobserved (useful
+ * for unit tests). When present, the gate invokes it exactly once per
+ * `renderGateLive` call, after the chain completes, with the final decision.
+ * The observer MUST NOT throw — if it does, the gate records a `gate.degraded`
+ * violation (the gate never lets an observer failure block a render decision;
+ * SEC-5: render correctness > observability).
+ *
+ * @rules AC-2, SEC-5, EI-1, EI-8, SEC-3, VAL-9
  */
 export interface GateContext {
   readonly resolver: SourceResolver;
   readonly entailment: EntailmentChecker;
   readonly verifyCitation: CitationVerifier['verify'];
+  /** Optional gate-invocation observer for VAL-9 audit (Story 2.8). */
+  readonly onInvocation?: (obs: GateInvocationObservation) => void;
 }
 
 /** Discriminator for every violation the gate can emit (exhaustive). */

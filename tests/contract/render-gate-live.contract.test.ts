@@ -238,11 +238,29 @@ describe('Story 2.1 — Render Gate LIVE (AC-2 / SEC-5 / EI-1)', () => {
       expect(render.renderGateLive).toBeDefined();
     });
 
-    // @activates-in Story 2.8 (gate-invocation-per-served-response)
-    it.skip('TC-6.2: bypass attempt detected + logged (DEFERRED to Story 2.8 integration)', async () => {
-      // Full assertion: serving without invoking the gate logs gate.bypass_attempt to AC-11.
-      const render = await import('@iip/render');
-      expect(render.renderGateLive).toBeDefined();
+    // @activates-in Story 2.8 — ACTIVATED. The full behavioral assertion lives
+    // in tests/contract/gate-invocation-queue-pressure.contract.test.ts (the
+    // VAL-9 bypass-detection suite). This test is the structural smoke: the
+    // gate emits an observation that downstream bypass-detection consumes.
+    it('TC-6.2: bypass attempt detected + logged (Story 2.8 — gate emits observable invocation)', async () => {
+      // The gate now emits a GateInvocationObservation per call (Story 2.8
+      // VAL-9 wiring). A serve-path that consumes this observation as the
+      // deciding factor enforces the gate; one that ignores it is a bypass.
+      // The full bypass-attempt → gate.bypass_attempt → editorial-log chain
+      // is asserted in gate-invocation-queue-pressure.contract.test.ts.
+      const doc = DOC();
+      let observed = false;
+      await renderGateLive(
+        { query: 'q', answer_text: doc.text, spans: [liveCitedClaim(doc)] },
+        liveGateContext({
+          resolver: liveResolver([doc]),
+          onInvocation: () => {
+            observed = true;
+          },
+        }),
+        'resp-tc-6-2',
+      );
+      expect(observed).toBe(true);
     });
   });
 

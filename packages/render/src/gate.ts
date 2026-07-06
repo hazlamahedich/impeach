@@ -125,11 +125,24 @@ function withTimeout<T>(promise: Promise<T>, label: string, ms = DEFAULT_TIMEOUT
 /**
  * The canonical render gate. Fires on every render (SEC-5); fails closed into
  * structured silence on any uncited / unverifiable / degraded claim.
+ *
+ * Story 2.8 (VAL-9): when `ctx.onInvocation` is provided, the gate emits a
+ * {@link GateInvocationObservation} exactly once after the chain completes.
+ * The caller supplies `responseId` so the observation ties to a specific
+ * served response — making "was the gate invoked per served response?" a
+ * queryable property (VAL-9). The observer is OPTIONAL and its failure is
+ * swallowed (SEC-5: render correctness > observability).
+ *
+ * @param input  — the render input (spans + answer text)
+ * @param ctx    — injected dependencies (resolver, entailment, verifier, observer)
+ * @param responseId — caller-supplied response identifier for VAL-9 audit
  */
 export async function renderGateLive(
   input: GateInput,
   ctx: GateContext,
+  responseId?: string,
 ): Promise<GateOutput> {
+  const effectiveResponseId = responseId?.trim() ? responseId : 'unknown';
   const spans: GateSpan[] = [];
   const violations: GateViolation[] = [];
 
@@ -172,6 +185,33 @@ export async function renderGateLive(
   const essence = typeof input.answer_text === 'string'
     ? input.answer_text.slice(0, ESSENCE_LIMIT)
     : '';
+
+  const claimsServed = spans.filter((s) => s.is_claim).length;
+  const served = hasClaim;
+
+  // Story 2.8 (VAL-9): emit the gate-invocation observation. The observer is
+  // optional; if absent or if it throws, the gate decision is unaffected
+  // (SEC-5: render correctness > observability — a broken observer MUST NOT
+  // change what gets served). Observer failure is recorded as a gate.degraded
+  // violation so the audit trail knows observability was impaired.
+  if (ctx.onInvocation !== undefined) {
+    try {
+      ctx.onInvocation({
+        responseId: effectiveResponseId,
+        served,
+        claimsServed,
+        violations: violations.map((v) => v.kind),
+        time: new Date().toISOString(),
+      });
+    } catch (error) {
+      violations.push({
+        kind: 'gate.degraded',
+        source_doc_id: 'observer',
+        span_text: effectiveResponseId,
+        details: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
 
   if (!hasClaim) {
     return {
