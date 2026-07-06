@@ -6,7 +6,7 @@ date: 2026-06-26
 supersedes: null
 superseded_by: null
 deciders: [Winston (architect), Mary (analyst), user]
-related: [AC-11, SEC-6, FR-5.7, SC-8, ADR-010, ADR-016, ADR-025]
+related: [AC-11, SEC-6, FR-5.7, SC-8, ADR-010, ADR-016, ADR-025, ADR-027]
 evidence:
   - evidence pending F18/F19
 ---

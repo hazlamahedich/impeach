@@ -139,3 +139,17 @@ export type {
   VerificationReport,
   EditorialErrorCode,
 } from './editorial-log.js';
+
+// Story 2.10 — PC-2.6 / AR-23 / VAL-2 / VAL-8 config_history contract types
+export {
+  ConfigKeySchema,
+  ConfigHistoryIdSchema,
+  ConfigHistoryRetentionClassLiteral,
+  ConfigHistoryRetentionClass,
+} from './config-history.js';
+export type {
+  ConfigKey,
+  ConfigHistoryId,
+  ConfigHistoryRetentionClassLiteral as ConfigHistoryRetentionClassLiteralType,
+  ConfigHistoryRetentionClass as ConfigHistoryRetentionClassType,
+} from './config-history.js';

@@ -17,3 +17,27 @@ export {
   type IntakeOperatorKeyring,
   type IntakePartnerKeyring,
 } from './secrets.js';
+
+// Story 2.10 — config_history repository + onConfigChange hook (PC-2.6, VAL-8).
+//
+// The repository lives in the domain package (not in packages/db), mirroring
+// the editorial-log pattern (`packages/editorial/src/editorial-log-repo.ts`).
+// The `onConfigChange` hook is the integration point: when a knob changes at
+// runtime (e.g. a threshold is adjusted via operator action), the hook fires
+// and the registered listener (the ConfigHistoryRepository.append) records
+// the change to config_history. Production wiring is the operator-config
+// surface; tests inject a deterministic clock + a mock executor.
+export {
+  createConfigHistoryRepo,
+  type AppendParams,
+  type Clock,
+  type ConfigHistoryEntry,
+  type ConfigHistoryRepoConfig,
+  type ConfigHistoryRepository,
+  type QueryExecutor,
+  onConfigChange,
+  notifyConfigChange,
+} from './config-history-repo.js';
+
+// Story 2.10 — first concrete config knob wired to config_history (PC-2.6, AC #1).
+export { getLogLevel, setLogLevel, LOG_LEVEL_KEY, type LogLevel } from './log-level.js';

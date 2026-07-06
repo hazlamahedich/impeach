@@ -6,7 +6,7 @@ date: 2026-06-23
 supersedes: null
 superseded_by: null
 deciders: [Winston (architect), user]
-related: [AC-1, SC-5, PC-1a, PC-1b, STR-12, ADR-002, ADR-015]
+related: [AC-1, SC-5, PC-1a, PC-1b, STR-12, ADR-002, ADR-015, ADR-027]
 evidence:
   - _bmad-output/planning-artifacts/architecture.md (SC-5, SC-9, D1, PC-1)
   - _bmad-output/planning-artifacts/research/technical-iip-technology-stack-validation-research-2026-06-19.md
