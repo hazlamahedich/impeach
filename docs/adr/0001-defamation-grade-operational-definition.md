@@ -6,7 +6,7 @@ date: 2026-06-23
 supersedes: null
 superseded_by: null
 deciders: [Mary (analyst), Winston (architect), John (PM), Murat (test architect), user]
-related: [EI-1, EI-2, EI-3, EI-4, EI-5, EI-6, EI-7, EI-8, NFR-L-1, NFR-L-2, NFR-L-3, NFR-A-1, NFR-A-2, AC-2, SEC-5, SEC-6, FR-5.5, ADR-002, ADR-007, ADR-008, ADR-010, ADR-021, ADR-022, ADR-024, ADR-025, ADR-026, ADR-027]
+related: [EI-1, EI-2, EI-3, EI-4, EI-5, EI-6, EI-7, EI-8, NFR-L-1, NFR-L-2, NFR-L-3, NFR-A-1, NFR-A-2, AC-2, SEC-5, SEC-6, FR-5.5, ADR-002, ADR-007, ADR-008, ADR-010, ADR-021, ADR-022, ADR-024, ADR-025, ADR-026, ADR-027, ADR-028, ADR-029]
 evidence:
   - _bmad-output/planning-artifacts/prds/prd-impeachment-watch-2026-06-19/prd.md (EI-1 through EI-8, NFR-L-1 through NFR-L-5)
   - _bmad-output/planning-artifacts/architecture.md (AC-2, SEC-5, SEC-6, FR-5.5 gate)

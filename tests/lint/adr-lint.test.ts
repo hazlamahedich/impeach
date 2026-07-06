@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
  *
  * @rules AC-1, AC-2, AC-3, AC-4, AC-5, SC-9, VAL-4
  *
- * Validates the complete ADR set (ADR-001 … ADR-027) for:
+ * Validates the complete ADR set (ADR-001 … ADR-029) for:
  *  - Presence + filename convention (four-digit kebab-case)  (AC #1)
  *  - YAML frontmatter: required keys, exact types, 3-digit `id`  (AC #2)
  *  - The `supersedes_by` typo is rejected in favour of `superseded_by`  (AC #2)
@@ -33,14 +33,16 @@ import {
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ADR_DIR = path.resolve(__dirname, '../../docs/adr');
 
+const ADR_COUNT = 29;
+
 describe('adr-lint — PC-3 template compliance (AC #1–#5)', () => {
   const adrs = loadAdrs(ADR_DIR);
   const byId = new Map(adrs.map((a) => [a.id, a]));
 
-  it('docs/adr/ contains the complete ADR-001 … ADR-027 set with unique ids (AC #1)', () => {
-    expect(adrs.length).toBe(27);
+  it(`docs/adr/ contains the complete ADR-001 … ADR-${String(ADR_COUNT).padStart(3, '0')} set with unique ids (AC #1)`, () => {
+    expect(adrs.length).toBe(ADR_COUNT);
     const seenIds = new Set<string>();
-    for (let n = 1; n <= 27; n += 1) {
+    for (let n = 1; n <= ADR_COUNT; n += 1) {
       const id = `ADR-${String(n).padStart(3, '0')}`;
       expect(byId.has(id), `missing ${id}`).toBe(true);
     }
