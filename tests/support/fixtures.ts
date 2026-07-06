@@ -161,12 +161,14 @@ export function liveGateContext(opts: {
   resolver: SourceResolver;
   verify?: boolean | ((t: CitationTupleType, s: { content: string }) => Promise<boolean>);
   entailment?: EntailmentChecker;
+  /** Optional gate-invocation observer (Story 2.8 VAL-9). */
+  onInvocation?: GateContext['onInvocation'];
 }): GateContext {
   const verifyFn: GateContext['verifyCitation'] =
     typeof opts.verify === 'function'
       ? (opts.verify as GateContext['verifyCitation'])
       : async () => opts.verify !== false;
-  const ctx: { resolver: SourceResolver; verifyCitation: GateContext['verifyCitation']; entailment?: EntailmentChecker } = {
+  const ctx: { resolver: SourceResolver; verifyCitation: GateContext['verifyCitation']; entailment?: EntailmentChecker; onInvocation?: GateContext['onInvocation'] } = {
     resolver: opts.resolver,
     verifyCitation: verifyFn,
   };
@@ -174,6 +176,9 @@ export function liveGateContext(opts: {
     ctx.entailment = opts.entailment;
   } else {
     ctx.entailment = new StubEntailmentChecker();
+  }
+  if (opts.onInvocation !== undefined) {
+    ctx.onInvocation = opts.onInvocation;
   }
   return ctx;
 }

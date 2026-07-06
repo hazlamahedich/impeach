@@ -196,6 +196,135 @@ const SystemChainIntegrityFailurePayload = z
   })
   .strict();
 
+// ── Story 2.8 — PD-2 KPI Observation payloads (AR-25, G-6, DoD-18: no PII) ──
+//
+// The PD-2 cascade tracks external-audience engagement with the platform's
+// citation-provenance mechanism across 30/60/90 day horizons. Each payload
+// MUST be organizational/high-level — partner names are organization names
+// (e.g. "PRESS_FORUM_X"), never individual humans (DoD-18: no PII).
+
+/**
+ * Day 30 (leading indicator) — an external-audience-segment partner ran
+ * spot-verification on a self-sampled slice of IIP output (AR-25).
+ *
+ * @rules AR-25, G-6, DoD-18
+ */
+const ExternalVerificationObservedPayload = z
+  .object({
+    partner_name: z.string().min(1).max(128),
+    corpus_hash: z.string().min(1).max(128).optional(),
+    sample_size: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER),
+    errors_found: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER),
+    details: z.string().min(1).max(4096).optional(),
+  })
+  .strict()
+  .refine((data) => data.errors_found <= data.sample_size, {
+    message: 'errors_found cannot exceed sample_size',
+    path: ['errors_found'],
+  });
+
+/**
+ * Day 60 (mid indicator) — a partner published or shared a written rationale
+ * that cites IIP's citation-provenance or auditability as a reason for use
+ * (AR-25).
+ *
+ * @rules AR-25, G-6, DoD-18
+ */
+const ExternalEngagementRationalePayload = z
+  .object({
+    partner_name: z.string().min(1).max(128),
+    rationale_summary: z.string().min(1).max(4096),
+    provenance_cited: z.boolean(),
+    details: z.string().min(1).max(4096).optional(),
+  })
+  .strict();
+
+/**
+ * Day 90 (strongest indicator) — `question_donated` variant of the
+ * `external.pd2.day90` discriminated union. A partner has donated their own
+ * questions or source documents for IIP to process (AR-25).
+ *
+ * The XOR constraint between this and `ExternalPd2Day90PartnershipPayload` is
+ * enforced structurally by the single discriminated-union event type: a
+ * single `external.pd2.day90` event carries exactly one `outcome` value, so
+ * emitting both variants for the same PD-2 instance is impossible.
+ *
+ * @rules AR-25, G-6, DoD-18
+ */
+const ExternalPd2Day90QuestionDonatedPayload = z
+  .object({
+    outcome: z.literal('question_donated'),
+    partner_name: z.string().min(1).max(128),
+    document_count: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER),
+    details: z.string().min(1).max(4096).optional(),
+  })
+  .strict();
+
+/**
+ * Day 90 (strongest indicator) — `partnership_committed` variant of the
+ * `external.pd2.day90` discriminated union. A partner has committed to a
+ * concrete next step: pilot access, formal partnership, or funding (AR-25).
+ *
+ * @rules AR-25, G-6, DoD-18
+ */
+const ExternalPd2Day90PartnershipPayload = z
+  .object({
+    outcome: z.literal('partnership_committed'),
+    partner_name: z.string().min(1).max(128),
+    commitment_type: z.enum(['pilot_access', 'partnership', 'funding_next_step']),
+    details: z.string().min(1).max(4096).optional(),
+  })
+  .strict();
+
+/**
+ * Day 90 (strongest indicator) — discriminated union keyed on `outcome`
+ * (AR-25). This is the payload type for `external.pd2.day90`; the XOR between
+ * question-donated and partnership-committed is structural (one outcome per
+ * event), NOT behavioral.
+ *
+ * @rules AR-25, G-6, DoD-18
+ */
+export const ExternalPd2Day90Payload = z.discriminatedUnion('outcome', [
+  ExternalPd2Day90QuestionDonatedPayload,
+  ExternalPd2Day90PartnershipPayload,
+]);
+export type ExternalPd2Day90Payload = z.infer<typeof ExternalPd2Day90Payload>;
+
+/**
+ * Gate-bypass attempt — a serve-path component attempted to serve a response
+ * without invoking `renderGateLive`, or ignored the gate result (VAL-9).
+ *
+ * `query` is captured for forensic triage; it MUST NOT carry PII (DoD-18).
+ *
+ * @rules VAL-9, SEC-5, AC-11, DoD-18
+ */
+const GateBypassAttemptPayload = z
+  .object({
+    query: z.string().min(1).max(4096),
+    details: z.string().min(1).max(4096).optional(),
+  })
+  .strict();
+
+/**
+ * Proceeding early-termination — when the impeachment proceeding concludes
+ * before the PD-2 cascade completes, the KPI observation mechanism records
+ * the KPI status at the inflection point (PD-2, AC-7).
+ *
+ * `kpi_status` is an opaque object summarising which cascade stages fired
+ * before termination. It carries no PII.
+ *
+ * @rules PD-2, AC-7, DoD-18
+ */
+const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+const ProceedingEarlyTerminationPayload = z
+  .object({
+    proceeding_id: z.string().min(1).max(128),
+    termination_date: z.string().min(1).max(32).regex(ISO_DATE_RE),
+    kpi_status: z.record(z.string(), z.unknown()),
+    details: z.string().min(1).max(4096).optional(),
+  })
+  .strict();
+
 /**
  * EditorialLogEvent — the complete event catalog as a discriminated union
  * (DoD-6). Each variant has a typed payload Zod schema. Adding a new event
@@ -220,6 +349,27 @@ export const EditorialLogEvent = z.discriminatedUnion('event', [
   z.object({
     event: z.literal('system.chain_integrity_failure'),
     payload: SystemChainIntegrityFailurePayload,
+  }),
+  // Story 2.8 — PD-2 KPI Observation cascade (AR-25, G-6)
+  z.object({
+    event: z.literal('external.verification.observed'),
+    payload: ExternalVerificationObservedPayload,
+  }),
+  z.object({
+    event: z.literal('external.engagement.rationale'),
+    payload: ExternalEngagementRationalePayload,
+  }),
+  z.object({
+    event: z.literal('external.pd2.day90'),
+    payload: ExternalPd2Day90Payload,
+  }),
+  z.object({
+    event: z.literal('gate.bypass_attempt'),
+    payload: GateBypassAttemptPayload,
+  }),
+  z.object({
+    event: z.literal('proceeding.early_termination'),
+    payload: ProceedingEarlyTerminationPayload,
   }),
 ]);
 export type EditorialLogEvent = z.infer<typeof EditorialLogEvent>;
