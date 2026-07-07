@@ -163,11 +163,11 @@ export function createIntakeRoutes(deps: IntakeRouteDeps): FastifyPluginAsync {
     // POST /intake/:documentId/review
     app.post('/intake/:documentId/review', async (request, reply) => {
       const principal = principalOf(request);
-      requireIntakeScope(principal, 'intake:review' as Scope);
       const documentId = (request.params as { documentId: string }).documentId;
       const body = request.body as SignatureBody;
 
       try {
+        requireIntakeScope(principal, 'intake:review' as Scope);
         const result = await deps.withTx(async (txDeps) => {
           const doc = await mustLoad(txDeps, documentId);
           const input = buildReviewInput(principal, body);
@@ -184,11 +184,11 @@ export function createIntakeRoutes(deps: IntakeRouteDeps): FastifyPluginAsync {
     // POST /intake/:documentId/approve
     app.post('/intake/:documentId/approve', async (request, reply) => {
       const principal = principalOf(request);
-      requireIntakeScope(principal, 'intake:approve' as Scope);
       const documentId = (request.params as { documentId: string }).documentId;
       const body = request.body as SignatureBody;
 
       try {
+        requireIntakeScope(principal, 'intake:approve' as Scope);
         const result = await deps.withTx(async (txDeps) => {
           const doc = await mustLoad(txDeps, documentId);
           const input = buildReviewInput(principal, body);
@@ -214,11 +214,11 @@ export function createIntakeRoutes(deps: IntakeRouteDeps): FastifyPluginAsync {
     // POST /intake/:documentId/reject
     app.post('/intake/:documentId/reject', async (request, reply) => {
       const principal = principalOf(request);
-      requireIntakeScope(principal, 'intake:review' as Scope);
       const documentId = (request.params as { documentId: string }).documentId;
       const body = request.body as ReasonBody;
 
       try {
+        requireIntakeScope(principal, 'intake:review' as Scope);
         const result = await deps.withTx(async (txDeps) => {
           const doc = await mustLoad(txDeps, documentId);
           const input = buildReasonInput(principal, body);
@@ -235,11 +235,11 @@ export function createIntakeRoutes(deps: IntakeRouteDeps): FastifyPluginAsync {
     // POST /intake/:documentId/revise
     app.post('/intake/:documentId/revise', async (request, reply) => {
       const principal = principalOf(request);
-      requireIntakeScope(principal, 'intake:review' as Scope);
       const documentId = (request.params as { documentId: string }).documentId;
       const body = request.body as ReasonBody;
 
       try {
+        requireIntakeScope(principal, 'intake:review' as Scope);
         const result = await deps.withTx(async (txDeps) => {
           const doc = await mustLoad(txDeps, documentId);
           const input = buildReasonInput(principal, body);

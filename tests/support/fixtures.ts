@@ -85,7 +85,11 @@ export function liveSourceDoc(overrides: Partial<SourceDocSnapshot> = {}): Sourc
     trust_tier: 1,
     superseded_at: null,
     takedown_trigger: false,
-    retention_policy: 'defamation_grade_permanent',
+    // Neutral default from the canonical RetentionPolicyLiteral vocabulary
+    // (standard | litigation_hold | immediate_takedown) — see
+    // packages/contracts/src/intake/retention.ts. The gate does not yet consume
+    // this field; 'standard' is the safe neutral value.
+    retention_policy: 'standard',
     ...overrides,
   };
 }

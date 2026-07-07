@@ -1,0 +1,24 @@
+{
+  "schema_version": "0.1.0",
+  "evaluated_at": "2026-07-07T12:41:36Z",
+  "repo": "impeachment-watch",
+  "target": {
+    "type": "epic_release",
+    "id": "epic-2-in-progress",
+    "label": "Epic 2 (Provenance & Invariants) — trace of built surface"
+  },
+  "collection_status": "COLLECTED",
+  "gate_basis": "priority_thresholds",
+  "gate_status": "FAIL",
+  "rationale": "P0 FULL coverage is 64% (required: 100%). 1 P0 requirement (SEC-8 red-team) has NONE coverage. The remaining shortfall is PARTIAL coverage on T1 promotion-gate invariants (INV-002/003/005/007/009, SC-6, VAL-9, ADR-028) all with documented blockers (2.9b, Epic 3/4 corpus). Including partial coverage, P0=96%, P1=92%, overall=91%.",
+  "p0_status": "NOT_MET",
+  "p1_status": "NOT_MET",
+  "overall_status": "NOT_MET",
+  "critical_open": 1,
+  "critical_open_ids": ["SEC-8-redteam"],
+  "links": {
+    "trace_report_path": "_bmad-output/test-artifacts/traceability/traceability-matrix.md",
+    "trace_report_url": "",
+    "artifact_url": ""
+  }
+}

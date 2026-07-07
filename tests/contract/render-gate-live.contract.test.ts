@@ -197,10 +197,23 @@ describe('Story 2.1 — Render Gate LIVE (AC-2 / SEC-5 / EI-1)', () => {
     });
   });
 
-  describe('TC-5.x — Expired/Retracted (ADR-017, AR-23) — DEFERRED to Story 2.6', () => {
-    // @activates-in Epic 2 (Story 2.6 — retention/takedown schema)
-    it.skip('TC-5.1: fresh citation passes (DEFERRED — needs retention fields from 2.6)', async () => {
-      const doc = liveSourceDoc({ retention_policy: 'defamation_grade_permanent' });
+  describe('TC-5.x — Expired/Retracted (ADR-017, AR-23) — DEFERRED (gate enforcement not yet wired)', () => {
+    // NOTE: Story 2.6 shipped the contract fields (retention_policy, takedown_trigger on
+    // SourceDocSnapshot) and the DB columns (retention_class, takedown_trigger, legal_hold on
+    // intake_documents), plus the RetentionPolicyLiteral vocabulary
+    // (standard | litigation_hold | immediate_takedown) in packages/contracts/src/intake/retention.ts.
+    // The render gate (packages/render/src/gate.ts) does NOT yet consume these fields —
+    // it ignores retention_policy/takedown_trigger entirely, and `citation_expired` is a
+    // reserved-but-unemitted GateViolationKind (packages/contracts/src/render.ts). These tests
+    // would go RED if unskipped today. A future story must wire the gate to:
+    //   (a) emit citation_expired when takedown_trigger=true,
+    //   (b) emit citation_expired when created_at + TTL < now (needs a created_at/TTL field on
+    //       SourceDocSnapshot, which does not yet exist),
+    //   (c) accept a valid retention policy value (TC-5.1 uses 'defamation_grade_permanent',
+    //       which is NOT in the RetentionPolicyLiteral vocabulary — the docstring example in
+    //       render.ts is stale and must be updated when this test is activated).
+    it.skip('TC-5.1: fresh citation passes (DEFERRED — needs gate to consume retention_policy)', async () => {
+      const doc = liveSourceDoc({ retention_policy: 'litigation_hold' });
       const out = await renderGateLive(
         { query: 'q', answer_text: doc.text, spans: [liveCitedClaim(doc)] },
         liveGateContext({ resolver: liveResolver([doc]) }),
@@ -208,7 +221,7 @@ describe('Story 2.1 — Render Gate LIVE (AC-2 / SEC-5 / EI-1)', () => {
       expect(out.spans.find((s) => s.is_claim)?.citation).not.toBeNull();
     });
 
-    it.skip('TC-5.2: takedown_trigger=true → citation_expired (DEFERRED — needs 2.6)', async () => {
+    it.skip('TC-5.2: takedown_trigger=true → citation_expired (DEFERRED — gate does not emit citation_expired yet)', async () => {
       const doc = liveSourceDoc({ takedown_trigger: true });
       const out = await renderGateLive(
         { query: 'q', answer_text: doc.text, spans: [liveCitedClaim(doc)] },
@@ -217,7 +230,7 @@ describe('Story 2.1 — Render Gate LIVE (AC-2 / SEC-5 / EI-1)', () => {
       expect(out.violations).toContainEqual(expect.objectContaining({ kind: 'citation_expired' }));
     });
 
-    it.skip('TC-5.3: expired citation (created_at + TTL < now) → stripped (DEFERRED — needs 2.6)', async () => {
+    it.skip('TC-5.3: expired citation (created_at + TTL < now) → stripped (DEFERRED — needs created_at/TTL on SourceDocSnapshot + gate expiry logic)', async () => {
       const doc = DOC();
       const out = await renderGateLive(
         { query: 'q', answer_text: doc.text, spans: [liveCitedClaim(doc)] },

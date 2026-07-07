@@ -24,13 +24,20 @@
  * injected (`ClaimServingHandler`) so this route is unit-testable without the
  * Epic 5 RAG pipeline; production wires the serve-worker render path.
  *
+ * **Scope requirement (SEC-1):** the resolved principal MUST carry the `read`
+ * scope; callers without it receive `403 { error: { code: 'auth.insufficient_scope' } }`.
+ * The check runs after body validation but BEFORE the audit-health poll so an
+ * unauthorized caller never spends the audit-poll budget.
+ *
  * API envelope: success = resource; error = `{ error: { code, message, details? } }`.
  *
- * @rules ADR-0029 §5/§7, SEC-5, AC-2, AC-11, OQ-29.6
+ * @rules ADR-0029 §5/§7, SEC-1, SEC-5, AC-2, AC-11, OQ-29.6
  * @adr ADR-0029, ADR-0001
  */
 import type { FastifyInstance, FastifyPluginAsync, FastifyReply, FastifyRequest } from 'fastify';
 import type { AuditHealthClient, HealthStatus } from '@iip/config';
+import { AuthError, requireScope } from '@iip/auth';
+import type { ResolvedPrincipal } from '@iip/auth';
 
 /** Request body for POST /query. */
 export interface QueryBody {
@@ -66,10 +73,14 @@ export interface QueryRouteDeps {
   readonly serveClaims: ClaimServingHandler;
 }
 
+/** Read the principal from the verified request (SEC-1). Undefined if middleware not registered. */
+function principalOf(request: FastifyRequest): ResolvedPrincipal | undefined {
+  return (request as unknown as { principal?: ResolvedPrincipal }).principal;
+}
+
 /** Read the principal sub from the verified request (SEC-1). */
 function principalSubOf(request: FastifyRequest): string | undefined {
-  const principal = (request as unknown as { principal?: { sub?: string } }).principal;
-  return principal?.sub;
+  return principalOf(request)?.sub;
 }
 
 /** Structured 503 fail-closed response (AC #1). */
@@ -107,6 +118,27 @@ export function createQueryRoutes(deps: QueryRouteDeps): FastifyPluginAsync {
         return reply.code(400).send({
           error: { code: 'bad_request', message: 'query must be a non-empty string' },
         });
+      }
+
+      // SEC-1 scope enforcement: callers MUST carry `read` scope. Runs BEFORE
+      // the audit-health poll so an unauthorized caller never spends the
+      // audit-poll budget. If the Story 2.2 middleware is not registered
+      // upstream (principal undefined), the route fails-closed with 401.
+      const principal = principalOf(request);
+      if (principal === undefined) {
+        return reply.code(401).send({
+          error: { code: 'unauthenticated', message: 'missing authenticated principal' },
+        });
+      }
+      try {
+        requireScope(principal, ['read']);
+      } catch (err) {
+        if (err instanceof AuthError && err.code === 'auth.insufficient_scope') {
+          return reply.code(403).send({
+            error: { code: err.code, message: err.message },
+          });
+        }
+        throw err;
       }
 
       // Fresh health poll: only claim-serving requests pay this cost. The

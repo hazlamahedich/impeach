@@ -14,6 +14,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import Fastify from 'fastify';
 import { createQueryRoutes } from './query.js';
 import type { AuditHealthClient, HealthStatus } from '@iip/config';
+import type { ResolvedPrincipal } from '@iip/auth';
 
 /** Build a controllable audit-health stub. */
 function fakeAuditHealth(initial: HealthStatus): AuditHealthClient & {
@@ -62,6 +63,23 @@ async function buildApp(
   serveClaims: (input: { query: string; principalSub: string | undefined }) => Promise<unknown>,
 ) {
   const app = Fastify();
+  // Stub principal attachment (mirrors what verifyMiddleware does in production).
+  // This unit test focuses on the audit-health fail-closed gate; full auth +
+  // scope enforcement is covered by tests/integration/api-routes-query.integration.test.ts.
+  app.addHook('onRequest', async (req) => {
+    // Brand-cast via `unknown` (mirrors packages/auth/src/middleware.test.ts) —
+    // the principal fields are branded types (Principal, Issuer, Kid, Jti) that
+    // are erased at runtime; the unit test only needs a structurally-valid stub
+    // carrying the `read` scope so the route's requireScope check passes.
+    req.principal = {
+      sub: 'unit-test-operator',
+      iss: 'iip-issuer',
+      kid: 'test-key-1',
+      scope: ['read'],
+      jti: 'unit-test-jti',
+      iat: Math.floor(Date.now() / 1000),
+    } as unknown as ResolvedPrincipal;
+  });
   await app.register(createQueryRoutes({ auditHealth, serveClaims }));
   return app;
 }

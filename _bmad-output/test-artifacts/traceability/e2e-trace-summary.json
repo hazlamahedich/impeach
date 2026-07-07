@@ -1,0 +1,147 @@
+{
+  "schema_version": "0.1.0",
+  "snapshot_at": "2026-07-07T12:41:36Z",
+  "repo": "impeachment-watch",
+  "collection_mode": "formal_requirements",
+  "collection_status": "COLLECTED",
+  "inventory_basis": "acceptance_criteria",
+  "gate_basis": "priority_thresholds",
+  "source_sha": "",
+  "target": {
+    "type": "epic_release",
+    "id": "epic-2-in-progress",
+    "label": "Epic 2 (Provenance & Invariants) — trace of built surface"
+  },
+  "decision_mode": "deterministic_plus_project_overlay",
+  "evaluator": "anti lustay",
+  "confidence": "high",
+  "oracle": {
+    "resolution_mode": "formal_requirements",
+    "confidence": "high",
+    "sources": [
+      "_bmad-output/planning-artifacts/architecture.md",
+      "_bmad-output/planning-artifacts/epics.md",
+      "docs/adr/*.md (ADR-001..029)",
+      "docs/invariant-ledger.yaml",
+      "_bmad-output/implementation-artifacts/sprint-status.yaml",
+      "packages/contracts/src/**/*.ts"
+    ],
+    "external_pointer_status": "not_used",
+    "synthetic": false
+  },
+
+  "gate_status": "FAIL",
+  "gate_criteria": {
+    "p0_coverage_required": "100%",
+    "p0_coverage_actual": "64% (FULL-only); 96% including partial",
+    "p0_status": "NOT_MET",
+    "p1_coverage_target": "90%",
+    "p1_coverage_minimum": "80%",
+    "p1_coverage_actual": "77% (FULL-only); 92% including partial",
+    "p1_status": "NOT_MET",
+    "overall_coverage_minimum": "80%",
+    "overall_coverage_actual": "66% (FULL-only); 91% including partial",
+    "overall_status": "NOT_MET",
+    "note": "Gate uses FULL-only coverage per Step 5 §2 decision tree. FAIL is driven by SEC-8 red-team (P0 NONE) + deferred T1 promotion-gate items (2.9b / Epic 3-4) that are PARTIAL with documented blockers."
+  },
+
+  "project_overlay": {
+    "model": "T1/T2/T3 severity (defamation-grade), not generic P×I",
+    "pr_check_invariants": {
+      "INV-001_citation_or_silence": "FULL",
+      "INV-004_hash_chain": "FULL",
+      "INV-008_mutation_100pct": "FULL",
+      "verdict": "All 3 pr-check T1 invariants FULL — the merge-time defamation-defense spine holds"
+    },
+    "promotion_gate_t1_invariants": {
+      "FULL": 3,
+      "PARTIAL_with_documented_blockers": 5,
+      "NONE_backlog": 1,
+      "verdict": "PARTIAL items are all launch-blocking (PD-3), not merge-blocking; each has an owned blocker (SEC-8 red-team, 2.9b, Epic 3/4 corpus)"
+    },
+    "interpretation": "Generic FAIL is technically correct but misframes the result. This is a release-gate (PD-3) FAIL, not a regression or unknown gap. The built surface (Epic 1 + Epic 2 active) is densely covered at the PR level. The failing items are forward-looking promotion requirements not yet due."
+  },
+
+  "coverage": {
+    "inventory": {
+      "covered": 31,
+      "total": 47,
+      "pct": 66,
+      "covered_including_partial": 43,
+      "pct_including_partial": 91
+    },
+    "priority_breakdown": {
+      "P0": { "total": 28, "covered_full": 18, "covered_partial": 9, "none": 1, "pct_full": 64, "pct_including_partial": 96 },
+      "P1": { "total": 13, "covered_full": 10, "covered_partial": 2, "none": 1, "pct_full": 77, "pct_including_partial": 92 },
+      "P2": { "total": 4, "covered_full": 2, "covered_partial": 1, "none": 1, "pct_full": 50, "pct_including_partial": 75 },
+      "P3": { "total": 0, "covered_full": 0, "pct_full": 100 }
+    },
+    "by_level": {
+      "unit": { "files": 80 },
+      "component": { "files": 11 },
+      "contract": { "files": 14 },
+      "integration": { "files": 14 },
+      "chaos": { "files": 2 },
+      "perf": { "files": 2 },
+      "lint": { "files": 3 },
+      "redteam": { "files": 1, "note": "EMPTY HULL" },
+      "mutation": { "configs": 7 },
+      "python": { "files": 1 },
+      "smoke": { "files": 1 }
+    }
+  },
+
+  "tests": {
+    "files_ts": 139,
+    "files_python": 1,
+    "files_k6": 1,
+    "files_bash_harness": 1,
+    "cases_approx": 850,
+    "skipped_intentional": 4,
+    "skipped_conditional": 3,
+    "fixme_cases": 0,
+    "empty_hulls": 1
+  },
+
+  "risk_summary": {
+    "critical_open": 1,
+    "critical_open_ids": ["SEC-8-redteam"],
+    "high_open_partial": 8,
+    "medium_open": 3,
+    "backlog": 3,
+    "note": "critical_open counts P0-NONE only. The 8 high_open_partial are T1 invariants with documented blockers (2.9b/Epic 3-4)."
+  },
+
+  "heuristics": {
+    "endpoint_gaps": 3,
+    "auth_negative_path_status": "partial",
+    "error_path_status": "partial",
+    "ui_journey_status": "not_applicable",
+    "ui_state_status": "not_applicable"
+  },
+
+  "blockers": [
+    { "id": "tests/redteam/red-team-stub.test.ts", "severity": "high", "reason": "EMPTY HULL — SEC-8 red-team not implemented", "test_file": "tests/redteam/red-team-stub.test.ts" },
+    { "id": "TC-4.1", "severity": "medium", "reason": "Deferred to Epic 4/5 (multi-source corroboration)", "test_file": "tests/contract/render-gate-live.contract.test.ts" },
+    { "id": "TC-5.1/5.2/5.3", "severity": "medium", "reason": "Deferred — retention fields now shipped in 2.6 (candidate to unskip)", "test_file": "tests/contract/render-gate-live.contract.test.ts" }
+  ],
+
+  "recommendations": [
+    { "priority": "URGENT", "action": "Implement SEC-8 red-team suite (promptfoo + frozen libel-injection corpus). Single binding constraint on INV-002, INV-005, PD-3.", "requirements": ["SEC-8-redteam", "INV-002", "INV-005"] },
+    { "priority": "HIGH", "action": "Add HTTP-level integration tests (Fastify.inject) for /query and /intake/* with auth+DB.", "requirements": ["endpoint:/query", "endpoint:/intake/*"] },
+    { "priority": "HIGH", "action": "Add route-level scope-denied test (valid JWT, insufficient scope).", "requirements": ["SEC-1-route-scope"] },
+    { "priority": "HIGH", "action": "Close 2.9b: 500 RPS citation-invariant verification (blocked on Epic 4 corpus + 2.11).", "requirements": ["INV-007", "INV-009", "SC-6", "VAL-9"] },
+    { "priority": "MEDIUM", "action": "Unskip TC-5.1/5.2/5.3 — retention fields shipped in Story 2.6.", "requirements": ["TC-5.x"] },
+    { "priority": "MEDIUM", "action": "Add extract-worker retry/DLQ/poison-message behavior test.", "requirements": ["SEC-2-dlq"] },
+    { "priority": "MEDIUM", "action": "Add integration test for STR-5 restricted @iip/graph/writer export.", "requirements": ["STR-5"] },
+    { "priority": "LOW", "action": "Run /bmad:tea:test-review for test-quality assessment.", "requirements": [] },
+    { "priority": "LOW", "action": "Refresh docs/invariant-ledger.yaml status fields — INV-004/INV-008 should be GREEN.", "requirements": ["INV-004", "INV-008"] }
+  ],
+
+  "links": {
+    "trace_report_path": "_bmad-output/test-artifacts/traceability/traceability-matrix.md",
+    "trace_report_url": "",
+    "artifact_url": "",
+    "journey_evidence_url": ""
+  }
+}

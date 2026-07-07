@@ -45,7 +45,9 @@ export function sourceDoc(overrides: Partial<SourceDocSnapshot> = {}): SourceDoc
     trust_tier: 1,
     superseded_at: null,
     takedown_trigger: false,
-    retention_policy: 'defamation_grade_permanent',
+    // Neutral default from the RetentionPolicyLiteral vocabulary (standard |
+    // litigation_hold | immediate_takedown). Gate does not yet consume this.
+    retention_policy: 'standard',
     ...overrides,
   };
 }

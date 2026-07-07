@@ -109,7 +109,16 @@ export interface SourceDocSnapshot {
   /** ISO-8601 UTC; `null` = live (not superseded). */
   readonly superseded_at: string | null;
   readonly takedown_trigger: boolean;
-  /** e.g. `defamation_grade_permanent` — lands concretely in Story 2.6. */
+  /**
+   * Retention class of the source document. Free-form `string` at the contract
+   * level so the gate can pass through values without a hard dependency on the
+   * intake vocabulary; the canonical literals live in
+   * `packages/contracts/src/intake/retention.ts` (`RetentionPolicyLiteral` =
+   * `standard` | `litigation_hold` | `immediate_takedown`). The render gate does
+   * NOT yet consume this field (Story 2.6 shipped the schema, not gate
+   * enforcement); it is reserved for a future gate-wiring story that will emit
+   * `citation_expired` violations.
+   */
   readonly retention_policy: string;
 }
 
@@ -242,7 +251,10 @@ export type GateViolationKind =
   | 'empty_span'
   | 'inverted_span'
   | 'out_of_bounds'
-  // Reserved — emitted when Story 2.6 (retention/takedown schema) lands:
+  // Reserved — emitted by a future gate-enforcement story that wires the render
+  // gate to consume `retention_policy` / `takedown_trigger` / a created_at+TTL
+  // field on SourceDocSnapshot. Story 2.6 shipped the contract fields + DB
+  // columns + RetentionPolicyLiteral vocabulary but NOT the gate logic.
   | 'citation_expired'
   // Story 2.11 — audit-worker unreachable: claim WITHHELD because the audit
   // trail cannot be kept (ADR-0029 §5). The render gate reads the

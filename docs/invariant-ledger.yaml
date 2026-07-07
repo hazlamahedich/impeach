@@ -19,15 +19,11 @@
   assertion_signature: "citation-or-silence.test.ts — POSITIVE + NEGATIVE + PC-9 invariant"
   fixtures: [golden/v1/, fixtures/citation/]
   gate: promotion
-  status: yellow
-  yellow_reason: "renderGate stub enforces basic null-check (null-citation claims stripped, no_evidence flag set); full validation (substring verification, trust-tier gating, source-document accessibility, corroboration requirements) deferred to Epic 2 Story 2.1"
-  deferred_to: "Epic 2 Story 2.1"
+  status: green
+  green_evidence: "Core citation-or-silence invariant fully enforced by packages/render/src/gate.ts (Story 2.1 done). Multi-level coverage: unit (gate-live, gate-resilience, gate-silence-context, substring), contract (citation-or-silence, render-gate-live, render-gate-substring.property), integration (render-gate-live), chaos (k6 structural). Stryker 100/100/100 on gate.ts. Runtime enforcement proven via gate-invocation-queue-pressure contract test (Story 2.8)."
   deferred_items:
-    - "Citation factual accuracy / cross-reference validity"
-    - "Source document accessibility / chain-of-custody"
-    - "Trust-tier gating and corroboration requirements"
-    - "Expired/retracted citation detection"
-    - "Runtime enforcement when lint is bypassed"
+    - "Retention/expiry citation detection (gate does not yet consume retention_policy/takedown_trigger; citation_expired violation kind reserved but unemitted — needs gate-enforcement follow-up)"
+    - "Multi-source corroboration (single-source tier-based only; Epic 4/5)"
   owner: Amelia
 
 - id: INV-002
@@ -36,11 +32,11 @@
   adr: ADR-001
   technique: [red-team, mutation-test, eval]
   severity: T1
-  assertion_signature: "render/gate.ts Stryker 100% — pending implementation"
+  assertion_signature: "render/gate.ts Stryker 100% + SEC-8 red-team allegation-as-fact battery"
   fixtures: [fixtures/libel-injection/, fixtures/republication-framing/]
   gate: promotion
   status: pending
-  pending_reason: "render/gate.ts does not exist yet — Epic 2"
+  pending_reason: "Gate logic + Stryker 100% landed (Story 2.1); remaining blocker is the SEC-8 red-team adversarial battery (libel-injection / slow-poisoning / republication-framing) which is gated on the Epic 4 golden corpus + ADR-0028 numeric defamation thresholds. tests/redteam/red-team-stub.test.ts is an empty hull (Foundation Action Plan P5)."
   owner: Murat
 
 - id: INV-003
@@ -65,8 +61,8 @@
   assertion_signature: "hash-chain integrity test on every append"
   fixtures: [fixtures/editorial-log/]
   gate: pr-check
-  status: pending
-  pending_reason: "Editorial log package stubbed — Epic 2"
+  status: green
+  green_evidence: "Editorial log fully implemented (Stories 2.4 + 2.5 done). Six-level coverage: unit (packages/editorial), contract (editorial-boundary.contract), integration (editorial-log 35 cases + editorial-log-concurrency + editorial-log-verifychain-expansion), chaos (editorial-log.chaos + editorial-log-concurrency.chaos), perf (editorial-log.perf + concurrency.perf), mutation (Stryker >=95% on editorial-log-repo.ts). ADR-024 hash-chain concurrency model (CAS append + unique constraint) proven under concurrent writers."
   owner: Amelia
 
 - id: INV-005
@@ -117,8 +113,8 @@
   assertion_signature: "Stryker { high: 100, low: 100, break: 100 }"
   fixtures: []
   gate: pr-check
-  status: pending
-  pending_reason: "Target files do not exist yet — Epic 2"
+  status: green
+  green_evidence: "Both target files exist and have 100/100/100 Stryker configs + companion mutation tests. packages/render/src/gate.ts (Story 2.1) covered by stryker.config.json (root) + packages/render/stryker.config.json with gate.mutation.test.ts + gate-dr4-fallback.mutation.test.ts. packages/auth/src/verify.ts (Story 2.2) covered by packages/auth/stryker.config.json with verify.mutation.test.ts. Five additional 90% Stryker configs cover intake/editorial/ingest-worker per SEC-8."
   owner: Murat
 
 - id: INV-009
