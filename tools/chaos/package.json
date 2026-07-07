@@ -2,6 +2,8 @@
   "name": "@iip/tools-chaos",
   "version": "0.0.1",
   "private": true,
-  "description": "k6 + Playwright chaos workspace shim - NOT a pnpm workspace member (STR-12). No JS business logic in 1.1; no pyproject.toml in 1.1.",
-  "scripts": {}
+  "description": "k6 chaos workspace shim - NOT a pnpm workspace member (STR-12). k6 is a Go binary invoked directly; no JS business logic lives here. No dependencies (intentional).",
+  "scripts": {
+    "chaos": "k6 run chaos-suite.js"
+  }
 }

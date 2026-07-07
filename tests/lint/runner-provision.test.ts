@@ -158,13 +158,32 @@ describe('Story 1.11 — Task 6: GitHub Actions CI workflow (AC-F1-07)', () => {
   });
 });
 
-describe('Story 1.11 — Task 7: chaos gate placeholder (deferred → Story 2.9)', () => {
+describe('Story 1.11 — Task 7: chaos gate CI surface (Story 2.9a landed)', () => {
+  // Story 2.9a (2026-07-07) replaced the pure placeholder with a pointer job
+  // AND added a real chaos workflow at .github/workflows/chaos.yml (soft gate,
+  // self-hosted runner, k6 baseline ramp + failure injection). This describe
+  // block now asserts BOTH surfaces: the ci.yml pointer keeps the AC-F1-07
+  // parallel-pipeline matrix green, and chaos.yml holds the substantive suite.
   const CI_YML = resolve(ROOT, '.github/workflows/ci.yml');
-  const yml = existsSync(CI_YML) ? readFileSync(CI_YML, 'utf8') : '';
+  const CHAOS_YML = resolve(ROOT, '.github/workflows/chaos.yml');
+  const ciYml = existsSync(CI_YML) ? readFileSync(CI_YML, 'utf8') : '';
+  const chaosYml = existsSync(CHAOS_YML) ? readFileSync(CHAOS_YML, 'utf8') : '';
 
-  it('has a chaos job that exits 0 with a deferral note', () => {
-    expect(yml).toMatch(/\bchaos:\s/m);
-    expect(yml).toMatch(/chaos gate deferred to Epic 2 \(Story 2\.9\)/);
-    expect(yml).toMatch(/exit 0/);
+  it('ci.yml keeps a chaos job that exits 0 (AC-F1-07 matrix pointer)', () => {
+    expect(ciYml).toMatch(/\bchaos:\s/m);
+    expect(ciYml).toMatch(/exit 0/);
+  });
+
+  it('chaos.yml exists and is a SOFT gate (Story 2.9a, AC #5)', () => {
+    expect(existsSync(CHAOS_YML)).toBe(true);
+    // Soft gate = non-blocking. continue-on-error at the job level is the
+    // mechanical signal; the hard gate is Story 2.9b.
+    expect(chaosYml).toMatch(/continue-on-error:\s*true/);
+    expect(chaosYml).toMatch(/Story 2\.9a/);
+  });
+
+  it('chaos.yml runs on self-hosted runners with Docker Compose (AC #5)', () => {
+    expect(chaosYml).toMatch(/self-hosted/);
+    expect(chaosYml).toMatch(/docker compose/i);
   });
 });

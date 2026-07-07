@@ -355,14 +355,17 @@ jobs:
         run: pnpm vitest run --project lint tests/lint/adr-lint.test.ts
 
   # ───────────────────────────────────────────────────────────────────────
-  # chaos — placeholder job. Real chaos infrastructure (k6 + Playwright
-  # fault injection, 500 RPS citation-invariant assertion) is implemented
-  # in Epic 2 Story 2.9. This placeholder keeps the job name in CI so the
-  # AC-F1-07 coverage check passes without blocking Epic 1.
+  # chaos — pointer job. Story 2.9a landed the real chaos workflow
+  # (.github/workflows/chaos.yml): k6 baseline ramp + failure-injection
+  # harness, SOFT gate (non-blocking). This placeholder keeps the job name
+  # in the AC-F1-07 coverage matrix so the parallel-pipeline check passes.
+  # The substantive chaos gate lives in chaos.yml on the self-hosted runner
+  # (Docker Compose + k6). Full verification (500 RPS, golden corpus,
+  # citation-invariant, hard gate) is Story 2.9b.
   # ───────────────────────────────────────────────────────────────────────
   chaos:
     name: chaos gate (deferred → Story 2.9)
     runs-on: ubuntu-latest
     steps:
-      - name: Chaos gate placeholder (Story 2.9)
-        run: echo "chaos gate deferred to Epic 2 (Story 2.9)" && exit 0
+      - name: Chaos gate placeholder (real suite in chaos.yml — Story 2.9a)
+        run: echo "chaos suite lives in .github/workflows/chaos.yml (Story 2.9a, soft gate). Full verification is Story 2.9b." && exit 0

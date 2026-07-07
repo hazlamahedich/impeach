@@ -49,6 +49,9 @@
       ],
       "outputs": [],
       "cache": false
+    },
+    "chaos": {
+      "cache": false
     }
   }
 }
