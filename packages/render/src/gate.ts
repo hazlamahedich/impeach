@@ -146,6 +146,15 @@ export async function renderGateLive(
   const spans: GateSpan[] = [];
   const violations: GateViolation[] = [];
 
+  // Story 2.11 (ADR-0029 §5): audit-health probe. When provided AND it reports
+  // audit-worker unreachable, EVERY claim is WITHHELD with an `audit_offline`
+  // violation — the citation-or-silence invariant cannot be upheld without an
+  // intact audit trail. The gate reads the circuit-breaker state from the
+  // injected probe (single source of truth in @iip/config); it does NOT
+  // independently poll audit-worker. Optional: when omitted (Story 2.1–2.10
+  // callers), this check is skipped and behavior is unchanged.
+  const auditReachable = ctx.auditHealth?.isAuditReachable() ?? true;
+
   for (const span of input.spans) {
     // Non-claim context spans always pass through unchanged.
     if (!span.is_claim) {
@@ -161,6 +170,18 @@ export async function renderGateLive(
     if (citation == null) {
       // Uncited declarative claim — fail-closed strip (no violation logged;
       // mirrors the structural subset; the absence IS the silence).
+      continue;
+    }
+
+    // Story 2.11 (ADR-0029 §5): audit-worker unreachable → WITHHOLD before any
+    // citation validation. An auditable trail is a precondition for serving a
+    // claim; without it the claim is unsafe regardless of citation validity.
+    if (!auditReachable) {
+      violations.push({
+        kind: 'audit_offline',
+        source_doc_id: citation.tuple.source_doc_id,
+        span_text: span.text,
+      });
       continue;
     }
 

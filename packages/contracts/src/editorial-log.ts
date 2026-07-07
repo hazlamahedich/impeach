@@ -325,6 +325,45 @@ const ProceedingEarlyTerminationPayload = z
   })
   .strict();
 
+// ── Story 2.11 — Audit circuit-breaker transition payloads (ADR-0029 §5) ──
+//
+// The serving-path audit health gate records its state-machine transitions to
+// the editorial log so the audit trail can answer "when did the platform stop
+// serving claims because audit-worker was unreachable, and when did it resume?"
+// (AC-11, ADR-0029 §5). These are the mechanism events for OQ-29.6.
+
+/**
+ * Audit circuit-breaker opened — `audit-worker` is unreachable (or its fresh
+ * health poll exceeded the 100ms budget), so the serving path is fail-closed
+ * for claim-serving `/query` requests (ADR-0029 §5). Carries the triggering
+ * reason and the poll latency for forensic triage.
+ *
+ * @rules ADR-0029 §5, SEC-5, AC-11
+ */
+const AuditCircuitBreakerOpenedPayload = z
+  .object({
+    reason: z.string().min(1).max(256),
+    /** Latency of the triggering health poll in milliseconds (0 if the poll never completed). */
+    poll_latency_ms: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER),
+    details: z.string().min(1).max(4096).optional(),
+  })
+  .strict();
+
+/**
+ * Audit circuit-breaker closed — a fresh health poll succeeded in Half-Open
+ * state, so the serving path resumes serving claims (ADR-0029 §5). Carries the
+ * successful poll latency.
+ *
+ * @rules ADR-0029 §5, SEC-5, AC-11
+ */
+const AuditCircuitBreakerClosedPayload = z
+  .object({
+    /** Latency of the successful health poll in milliseconds. */
+    poll_latency_ms: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER),
+    details: z.string().min(1).max(4096).optional(),
+  })
+  .strict();
+
 /**
  * EditorialLogEvent — the complete event catalog as a discriminated union
  * (DoD-6). Each variant has a typed payload Zod schema. Adding a new event
@@ -370,6 +409,15 @@ export const EditorialLogEvent = z.discriminatedUnion('event', [
   z.object({
     event: z.literal('proceeding.early_termination'),
     payload: ProceedingEarlyTerminationPayload,
+  }),
+  // Story 2.11 — audit circuit-breaker transitions (ADR-0029 §5, AC-11)
+  z.object({
+    event: z.literal('audit.circuit_breaker.opened'),
+    payload: AuditCircuitBreakerOpenedPayload,
+  }),
+  z.object({
+    event: z.literal('audit.circuit_breaker.closed'),
+    payload: AuditCircuitBreakerClosedPayload,
   }),
 ]);
 export type EditorialLogEvent = z.infer<typeof EditorialLogEvent>;

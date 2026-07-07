@@ -41,3 +41,20 @@ export {
 
 // Story 2.10 — first concrete config knob wired to config_history (PC-2.6, AC #1).
 export { getLogLevel, setLogLevel, LOG_LEVEL_KEY, type LogLevel } from './log-level.js';
+
+// Story 2.11 — Audit Health Client + Circuit-Breaker (ADR-0029 §5, OQ-29.6).
+//
+// The single load-bearing mechanism for the 6-process blast-radius matrix:
+// when audit-worker is unreachable, the serving path fail-closes for
+// claim-serving /query. Fresh poll per request (no cached authorization),
+// 100ms correctness budget, in-memory per-process state (no Redis dep), and
+// editorial-log transition events. The API /query route and the render gate
+// both read the circuit-breaker state through this client.
+export {
+  createAuditHealthClient,
+  type AuditHealthConfig,
+  type AuditHealthClient,
+  type CircuitState,
+  type HealthStatus,
+  type TransitionObserver,
+} from './audit-health.js';

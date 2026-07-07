@@ -147,6 +147,28 @@ export interface CitationVerifier {
 }
 
 /**
+ * Audit-health probe — injected from `@iip/config` so the render gate can read
+ * the audit-worker circuit-breaker state (Story 2.11, ADR-0029 §5) without
+ * importing `@iip/config` directly, preserving the SC-3 boundary
+ * (`packages/render` imports ONLY `@iip/contracts`).
+ *
+ * When `isAuditReachable()` returns `false`, the render gate treats every claim
+ * as a citation-support failure → WITHHOLD (`audit_offline` violation). The
+ * gate does NOT independently poll audit-worker — single source of truth lives
+ * in `@iip/config`'s circuit-breaker.
+ *
+ * The probe is OPTIONAL: when omitted (Story 2.1–2.10 callers), the gate runs
+ * without the audit-health check, preserving backward compatibility. The
+ * serve-worker wires the real probe; unit tests inject a stub.
+ *
+ * @rules ADR-0029 §5, SEC-5, SC-3, AC-2
+ */
+export interface AuditHealthProbe {
+  /** Returns `true` only when the audit-worker circuit-breaker is Closed (healthy). */
+  isAuditReachable(): boolean;
+}
+
+/**
  * Gate-invocation observation record (Story 2.8, VAL-9, AR-25).
  *
  * Emitted by `renderGateLive` on every invocation via the optional
@@ -198,6 +220,13 @@ export interface GateContext {
   readonly verifyCitation: CitationVerifier['verify'];
   /** Optional gate-invocation observer for VAL-9 audit (Story 2.8). */
   readonly onInvocation?: (obs: GateInvocationObservation) => void;
+  /**
+   * Optional audit-health probe for ADR-0029 §5 fail-closed on audit-death
+   * (Story 2.11). When provided AND it reports audit unreachable, every claim
+   * is WITHHELD with an `audit_offline` violation. When omitted, the gate runs
+   * without the audit-health check (backward compatible).
+   */
+  readonly auditHealth?: AuditHealthProbe;
 }
 
 /** Discriminator for every violation the gate can emit (exhaustive). */
@@ -214,7 +243,11 @@ export type GateViolationKind =
   | 'inverted_span'
   | 'out_of_bounds'
   // Reserved — emitted when Story 2.6 (retention/takedown schema) lands:
-  | 'citation_expired';
+  | 'citation_expired'
+  // Story 2.11 — audit-worker unreachable: claim WITHHELD because the audit
+  // trail cannot be kept (ADR-0029 §5). The render gate reads the
+  // circuit-breaker state from @iip/config; it does NOT independently poll.
+  | 'audit_offline';
 
 /** A single gate violation logged to the output document's `violations` array. */
 export interface GateViolation {

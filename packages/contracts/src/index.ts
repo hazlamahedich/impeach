@@ -26,6 +26,7 @@ export type {
   SourceResolver,
   EntailmentChecker,
   CitationVerifier,
+  AuditHealthProbe,
   GateContext,
   GateInvocationObservation,
   GateViolation,

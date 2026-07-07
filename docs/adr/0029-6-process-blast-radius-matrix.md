@@ -241,8 +241,32 @@ health-read is in flight, the serving path may briefly believe `audit-worker` is
 healthy. This transient state is classified as **🟡 Acceptable CONDITIONAL** in
 the matrix, bounded by the 100ms dependency-check budget. The window is **not**
 the 5s cache TTL — the 5s TTL applies only to background advisory refresh. Once
-the fresh poll completes, the system fail-closes. The follow-up engineering story
-(OQ-29.6) will implement and validate this behavior.
+the fresh poll completes, the system fail-closes. ~~The follow-up engineering
+story (OQ-29.6) will implement and validate this behavior.~~
+
+> **Implementation (Story 2.11, 2026-07-07 — OQ-29.6 RESOLVED).** The
+> fail-closed mechanism is implemented as:
+> - `packages/config/src/audit-health.ts` — the circuit-breaker + fresh-poll
+>   client. `pollAuditHealthForClaim()` performs the fresh HTTP GET
+>   `audit-worker/healthz` per claim-serving request; a 50ms default poll timeout
+>   leaves headroom under the 100ms total budget (§7). State machine:
+>   Closed → Open → Half-Open → Closed, in-memory per-process (no Redis
+>   dependency), exponential backoff 1s → 2s → 4s → 8s → 30s max. Transitions
+>   emit `audit.circuit_breaker.opened` / `audit.circuit_breaker.closed` to the
+>   editorial log (AC-11).
+> - `apps/api/src/routes/query.ts` — the `/query` route performs the fresh poll
+>   as its first action; on unhealthy/slow → `503` with `{ error: { code:
+>   "degraded", reason: "audit_offline", … } }`. The advisory cache is
+>   intentionally NOT consulted for claim serving (AC #2).
+> - `packages/render/src/gate.ts` — the render gate reads the circuit-breaker
+>   state via an injected `AuditHealthProbe` (single source of truth; SC-3
+>   preserved — the gate imports only `@iip/contracts`). When Open, every claim
+>   is WITHHELD with an `audit_offline` violation (defense-in-depth).
+> - `tests/integration/audit-health-gate.integration.test.ts` — 7 integration
+>   tests exercising the real mechanism end-to-end (AC #1, #2, #3, #4, #6, #7).
+>
+> The 500 RPS chaos verification of this mechanism under load remains Story
+> 2.9b's scope, which requires the real serving pipeline + golden corpus.
 
 ### 6. Extension to timeout and corrupt-output classes (AC #6)
 
@@ -405,11 +429,11 @@ what 2.9 must verify.
 
 ## Open questions
 
-| # | Question | Owner | Trigger |
-|---|----------|-------|---------|
-| 1 | **Circuit-breaker implementation for audit-death fail-closed.** §5 requires `api` to perform a fresh health poll per claim-serving `/query` (or treat any cached state as advisory-only). Where does the circuit-breaker/health client live (`@iip/config`? a dedicated health package?), and what is its Open/Half-Open/Closed transition logic? | Architect + Engineer | Story 2.8 or a dedicated health/circuit-breaker story |
-| 2 | **Timeout thresholds per process for the timeout failure class (§6).** The 100ms budget (§7) is for the dependency healthcheck. What are the per-process timeout thresholds for declaring a process dead (crash-stop escalation)? | Test architect + Engineer | Story 2.9 chaos suite (informs thresholds empirically) |
-| 3 | **Validate the 100ms performance budget under load.** §7 sets the dependency-check budget at 100ms p99. Validate empirically under Story 2.9's queue-backpressure scenario; adjust if false-negative healthchecks appear. | Test architect | Story 2.9 chaos suite |
-| 4 | **`web` client-side render-gate bypass detection (§6).** ADR-021 Open Question #1 (binding) requires `web` SSR to use the shared render gate. How is a client-side bypass mechanically prevented (ESLint rule? runtime check?), and is it in the Story 2.9 chaos scope? | Architect + Test architect | Story 2.9 / a dedicated web-gate story |
-| 5 | **Corrupt-output detection coverage.** §6 lists 6 corrupt-output processes with defenses. Which are covered by existing tests (render gate Stryker 100%, hash-chain verifyChain) and which need new coverage? Is the `api`-corrupts-response case covered by VAL-9 (Story 2.8)? | Test architect | Story 2.8 / Story 2.9 |
-| 6 | **Serving-path audit health gate implementation.** §5 now requires a fresh health poll per claim-serving `/query`. Implement the `/query` route in `apps/api`, the audit health client, and the fail-closed behavior, then validate with phase-aligned chaos tests under 500 RPS. | Engineer + Test architect | New engineering story (e.g., Story 2.11: Serving-Path Audit Health Gate) |
+| # | Question | Owner | Trigger | Status |
+|---|----------|-------|---------|---------|
+| 1 | **Circuit-breaker implementation for audit-death fail-closed.** §5 requires `api` to perform a fresh health poll per claim-serving `/query` (or treat any cached state as advisory-only). Where does the circuit-breaker/health client live (`@iip/config`? a dedicated health package?), and what is its Open/Half-Open/Closed transition logic? | Architect + Engineer | Story 2.8 or a dedicated health/circuit-breaker story | **RESOLVED (Story 2.11, 2026-07-07).** Lives in `@iip/config` (`packages/config/src/audit-health.ts`). Closed → Open → Half-Open → Closed, in-memory per-process (no Redis dep), exponential backoff 1s → 2s → 4s → 8s → 30s. |
+| 2 | **Timeout thresholds per process for the timeout failure class (§6).** The 100ms budget (§7) is for the dependency healthcheck. What are the per-process timeout thresholds for declaring a process dead (crash-stop escalation)? | Test architect + Engineer | Story 2.9 chaos suite (informs thresholds empirically) | Open — deferred to Story 2.9b chaos verification. |
+| 3 | **Validate the 100ms performance budget under load.** §7 sets the dependency-check budget at 100ms p99. Validate empirically under Story 2.9's queue-backpressure scenario; adjust if false-negative healthchecks appear. | Test architect | Story 2.9 chaos suite | Open — deferred to Story 2.9b chaos verification (requires the real serving pipeline + golden corpus). |
+| 4 | **`web` client-side render-gate bypass detection (§6).** ADR-021 Open Question #1 (binding) requires `web` SSR to use the shared render gate. How is a client-side bypass mechanically prevented (ESLint rule? runtime check?), and is it in the Story 2.9 chaos scope? | Architect + Test architect | Story 2.9 / a dedicated web-gate story | Open. |
+| 5 | **Corrupt-output detection coverage.** §6 lists 6 corrupt-output processes with defenses. Which are covered by existing tests (render gate Stryker 100%, hash-chain verifyChain) and which need new coverage? Is the `api`-corrupts-response case covered by VAL-9 (Story 2.8)? | Test architect | Story 2.8 / Story 2.9 | Partially open — VAL-9 (Story 2.8) covers the `api`-corrupts-response row. |
+| 6 | **Serving-path audit health gate implementation.** §5 now requires a fresh health poll per claim-serving `/query`. Implement the `/query` route in `apps/api`, the audit health client, and the fail-closed behavior, then validate with phase-aligned chaos tests under 500 RPS. | Engineer + Test architect | New engineering story (e.g., Story 2.11: Serving-Path Audit Health Gate) | **RESOLVED (Story 2.11, 2026-07-07).** Implemented: `packages/config/src/audit-health.ts` (circuit-breaker + fresh-poll client) + `apps/api/src/routes/query.ts` (fresh-poll pre-handler, 503 fail-closed) + `packages/render/src/gate.ts` (`audit_offline` violation via injected `AuditHealthProbe`). Integration test: `tests/integration/audit-health-gate.integration.test.ts` (7 tests, AC #1/#2/#3/#4/#6/#7). The 500 RPS chaos verification remains Story 2.9b's scope. |
