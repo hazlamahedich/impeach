@@ -7,7 +7,22 @@
     ".": {
       "types": "./src/index.ts",
       "default": "./src/index.ts"
+    },
+    "./cypher": {
+      "types": "./src/cypher.ts",
+      "default": "./src/cypher.ts"
+    },
+    "./reader": {
+      "types": "./src/reader.ts",
+      "default": "./src/reader.ts"
+    },
+    "./writer": {
+      "types": "./src/writer.ts",
+      "default": "./src/writer.ts"
     }
+  },
+  "dependencies": {
+    "@iip/contracts": "workspace:*"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",

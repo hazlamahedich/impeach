@@ -2,8 +2,8 @@
 story_id: '2.11'
 story_key: '2-11-serving-path-audit-health-gate'
 epic: 'Epic 2: Provenance & Invariants'
-status: review
-last_updated: '2026-07-07'
+status: done
+last_updated: '2026-07-08'
 baseline_commit: 'ba2e38d788dc59b315fd14ad4b42f15c86a2e16b'
 depends_on:
   - '2-8-pd-2-kpi-observation-gate-invocation-contract-test'
@@ -32,7 +32,7 @@ adversarial_review:
 > the fail-closed architecture that ADR-0029 mandates. Without it, the core
 > pipeline is fail-open on audit-death, and Epic 2 cannot be declared done.
 
-Status: review
+Status: done
 
 ## Story
 

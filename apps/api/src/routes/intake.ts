@@ -20,15 +20,15 @@
  */
 import type { FastifyInstance, FastifyPluginAsync } from 'fastify';
 import type { Scope } from '@iip/contracts';
-import type { IntakeErrorCode } from '@iip/intake';
-import { IntakeError } from '@iip/intake';
+import type { IntakeErrorCode } from '@iip/ingest';
+import { IntakeError } from '@iip/ingest';
 import type {
   IntakeDocument,
   IntakeGate,
   ReasonInput,
   ReviewInput,
   SignedAttestation,
-} from '@iip/intake';
+} from '@iip/ingest';
 import type { ResolvedPrincipal } from '@iip/auth';
 
 /** Minimal principal shape the routes consume (SEC-1). */

@@ -39,6 +39,7 @@ import {
   clopperPearsonLcb95,
   OQ9_METRICS,
   TAU_STRATUM_LCB,
+  TAU_STRATUM_LCB_PHASE_2,
   type StratumMetricInput,
 } from '../oq9.js';
 import { fleissKappa, cohenKappa } from '../kappa.js';
@@ -184,11 +185,14 @@ describe('Filipino OQ-9 gate machinery — synthetic fixtures (deferred measurem
     expect(r.kappa).toBeGreaterThan(0.70);
   });
 
-  it('FIL-8: CP-LCB at the defamation-relevant boundary (n=100 needs 100/100)', () => {
-    // CP conservatism: at n=100, only k=100 clears the 0.95 LOWER bound.
-    // This is the defamation-grade threshold semantics — a maintainer who
-    // thinks "95% accuracy clears a 0.95 floor" is wrong, and this test pins it.
-    expect(clopperPearsonLcb95(99, 100)).toBeLessThan(TAU_STRATUM_LCB);
-    expect(clopperPearsonLcb95(100, 100)).toBeGreaterThan(TAU_STRATUM_LCB);
+  it('FIL-8: CP-LCB at the defamation-relevant boundary (recalibrated O-3, Phase-1)', () => {
+    // Recalibrated (O-3, Story 2.6c): the Phase-1 LCB floor is 0.90 (reachable).
+    // At n=100, k=99 → LCB ≈ 0.9455 (ABOVE the 0.90 Phase-1 floor, but BELOW the
+    // 0.95 Phase-2 target). k=100 → LCB ≈ 0.964 (above both). The point-estimate
+    // conjunct (k/n ≥ 0.95) is what now discriminates k=99 (0.99 ≥ 0.95 ✓) from
+    // a borderline case — the LCB floor alone no longer carries the whole gate.
+    expect(clopperPearsonLcb95(99, 100)).toBeGreaterThan(TAU_STRATUM_LCB); // 0.9455 > 0.90 (Phase-1)
+    expect(clopperPearsonLcb95(99, 100)).toBeLessThan(TAU_STRATUM_LCB_PHASE_2); // 0.9455 < 0.95 (Phase-2 target)
+    expect(clopperPearsonLcb95(100, 100)).toBeGreaterThan(TAU_STRATUM_LCB_PHASE_2); // 0.964 > 0.95
   });
 });

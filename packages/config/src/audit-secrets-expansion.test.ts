@@ -320,3 +320,49 @@ describe('secrets — E2-G14 [P0] timing-knob validation (AC-8 two-person timing
     }
   });
 });
+
+describe('rate-limit config — NFR-S-3 / ADR-0004 knobs', () => {
+  it('falls back to defaults (window 60s, max 30) when RATE_LIMIT_* are absent', () => {
+    const env = { ...VALID_ENV };
+    delete env['RATE_LIMIT_WINDOW_MS'];
+    delete env['RATE_LIMIT_MAX_REQUESTS'];
+    const result = validateConfig(env);
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.value.rateLimit.windowMs).toBe(60_000);
+      expect(result.value.rateLimit.max).toBe(30);
+    }
+  });
+
+  it('accepts explicit positive-integer values', () => {
+    const env = {
+      ...VALID_ENV,
+      ['RATE_LIMIT_WINDOW_MS']: '15000',
+      ['RATE_LIMIT_MAX_REQUESTS']: '100',
+    };
+    const result = validateConfig(env);
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.value.rateLimit.windowMs).toBe(15_000);
+      expect(result.value.rateLimit.max).toBe(100);
+    }
+  });
+
+  it('[negative] rejects a non-positive RATE_LIMIT_MAX_REQUESTS', () => {
+    const env = { ...VALID_ENV, ['RATE_LIMIT_MAX_REQUESTS']: '0' };
+    const result = validateConfig(env);
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error.name).toBe('RATE_LIMIT_MAX_REQUESTS');
+    }
+  });
+
+  it('[negative] rejects a non-integer RATE_LIMIT_WINDOW_MS', () => {
+    const env = { ...VALID_ENV, ['RATE_LIMIT_WINDOW_MS']: '1.5' };
+    const result = validateConfig(env);
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error.name).toBe('RATE_LIMIT_WINDOW_MS');
+    }
+  });
+});

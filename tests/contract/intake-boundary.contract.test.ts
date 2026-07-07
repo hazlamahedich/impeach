@@ -21,8 +21,8 @@ import {
   createIntakeGate,
   createOperatorKeyRegistry,
   createPartnerKeyRegistry,
-} from '@iip/intake';
-import type { IntakeGate, IntakeGateConfig } from '@iip/intake';
+} from '@iip/ingest';
+import type { IntakeGate, IntakeGateConfig } from '@iip/ingest';
 import { createKeyPair } from '@iip/test-utils';
 
 describe('Story 2.3 — Intake boundary contracts (SEC-2)', () => {

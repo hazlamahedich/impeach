@@ -1,29 +1,36 @@
 export { noInternalImport } from './rules/no-internal-import.js';
 export type { Restriction } from './rules/no-internal-import.js';
+export { noRawCypher } from './rules/no-raw-cypher.js';
 
 import { noInternalImport } from './rules/no-internal-import.js';
+import { noRawCypher } from './rules/no-raw-cypher.js';
 
 /**
  * Plugin definition (ESLint flat-config plugin object).
  *
- * @rules STR-5, PC-1
+ * @rules STR-5, PC-1, PC-1e
  */
 export const plugin = {
   meta: { name: '@iip/eslint-plugin' },
   rules: {
     'no-internal-import': noInternalImport,
+    'no-raw-cypher': noRawCypher,
   },
 };
 
 /**
- * Flat-config preset (PC-1, STR-5).
+ * Flat-config preset (PC-1, PC-1e, STR-5).
  *
- * Seeds the load-bearing graph-writer seam: `@iip/graph/writer` is write-only
- * and may only be imported from `apps/ingest-worker/src/graph-builder/**`.
- * Reads via `@iip/graph/reader` remain public. Extend this preset's `rules`
- * with more restrictions as later stories harden additional seams.
+ * Seeds two load-bearing seams:
+ *  - `@iip/graph/writer` is write-only and may only be imported from
+ *    `apps/ingest-worker/src/graph-builder/**` (STR-5). Reads via
+ *    `@iip/graph/reader` remain public.
+ *  - Raw `ag_catalog.cypher(` is banned outside the sole Cypher seam
+ *    `packages/graph/src/cypher.ts` (PC-1e). Use `cypher()` from `@iip/graph`.
  *
- * Spread this object into the root `eslint.config.js` flat-config array.
+ * Extend this preset's `rules` with more restrictions as later stories harden
+ * additional seams. Spread this object into the root `eslint.config.js`
+ * flat-config array.
  */
 export const importBoundaryPreset = {
   name: '@iip/eslint-plugin/import-boundary-preset',
@@ -42,5 +49,6 @@ export const importBoundaryPreset = {
         ],
       },
     ],
+    '@iip/no-raw-cypher': 'error',
   },
 };

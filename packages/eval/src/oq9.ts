@@ -48,11 +48,55 @@ export const TAU_DOC = 0.90;
 
 /**
  * Stratum-level floor applied to the Clopper–Pearson 95% LOWER bound on the
- * within-stratum pass rate, for every metric. ADR-0025 §4 + §8 (interim floor,
- * fixed by defamation-safety tolerance — Citation Recall/Precision: 0% absolute
- * regression; NOT subject to calibration).
+ * within-stratum pass rate, for every metric.
+ *
+ * **Recalibrated (ADR-0025 §4 amended, Story 2.6c, Open Item O-3 resolved):**
+ * the original `0.95` LCB floor is **unreachable by construction** — a perfect
+ * corpus (0 errors at n=30) yields a 95% LCB of ~0.886–0.905, failing the gate.
+ * Phase-1 lowers the LCB floor to **0.90** (reachable) AND adds a point-estimate
+ * conjunct (`TAU_POINT_ESTIMATE = 0.95`, see below) so the gate is no longer
+ * structurally impossible. Phase-2 (before broad public launch) re-tightens
+ * toward 0.95 once the annotated corpus is large enough to clear it.
+ *
+ * ADR-0025 §4 (as amended) tolerance schedule (exact one-sided CP):
+ *  - Phase-1 (0.90 floor): n≈36 @ 0 errors, n≈54 @ 1 error, n≈72 @ 2 errors
+ *  - Phase-2 (0.95 floor): n≈72 @ 0 errors, n≈110 @ 1 error
+ *
+ * @rules ADR-0025 §4 (amended), VAL-2, O-3
  */
-export const TAU_STRATUM_LCB = 0.95;
+export const TAU_STRATUM_LCB = 0.90;
+
+/**
+ * Phase-2 stratum LCB floor — the re-tightened target before broad public
+ * launch. Retained as a constant so the Phase-1→Phase-2 transition is a
+ * one-line change (`TAU_STRATUM_LCB = TAU_STRATUM_LCB_PHASE_2`).
+ *
+ * @rules ADR-0025 §4 (amended), Phase-2
+ */
+export const TAU_STRATUM_LCB_PHASE_2 = 0.95;
+
+/**
+ * Point-estimate floor: the raw pass rate `k/n` must be ≥ 0.95 for a stratum
+ * to pass. This conjunct was ADDED in the recalibration (O-3) — the old rule
+ * checked only the LCB, which is unreachable at the 0.95 floor. The point
+ * estimate is the "we actually observed ≥95% passes" leg; the LCB floor (0.90)
+ * is the "and the sample is large enough that the lower bound clears" leg.
+ * BOTH must hold (AND-joined per stratum).
+ *
+ * @rules ADR-0025 §4 (amended), O-3
+ */
+export const TAU_POINT_ESTIMATE = 0.95;
+
+/**
+ * Minimum per-stratum sample size. Below this, the stratum is INCONCLUSIVE
+ * (not pass, not fail) — the gate cannot make a defamation-safety call on too
+ * few documents. The operator must raise n. ADR-0025 §4 tolerance schedule
+ * shows n≈36 @ 0 errors clears the Phase-1 floor; n_min=30 is the floor below
+ * which even a perfect corpus is statistically inconclusive.
+ *
+ * @rules ADR-0025 §4 (amended), O-3
+ */
+export const N_MIN_PER_STRATUM = 30;
 
 /** License (§9 Role-2 admission) κ threshold: Gemini↔human Cohen's κ ≥ 0.70. */
 export const KAPPA_LICENSE_THRESHOLD = 0.70;
@@ -117,7 +161,11 @@ export interface StratumMetricResult {
   readonly n: number;
   /** Clopper–Pearson 95% lower confidence bound on k/n (Decimal-precise). */
   readonly cpLcb95: number;
-  /** True iff `cpLcb95 ≥ τ_stratum` (outside the boundary tolerance band). */
+  /** Raw pass rate k/n (the point-estimate conjunct, O-3). */
+  readonly pointEstimate: number;
+  /** True iff n ≥ N_MIN_PER_STRATUM (O-3 — below this, INCONCLUSIVE). */
+  readonly meetsNMin: boolean;
+  /** True iff the stratum passes the recalibrated 4-part rule (O-3). */
   readonly passesStratum: boolean;
   /** True iff every doc scored ≥ τ_red (no red-line violation). */
   readonly passesRedLine: boolean;
@@ -131,6 +179,8 @@ export interface OQ9Result {
   readonly strata: readonly StratumMetricResult[];
   /** Sample-size conjunct: n ≥ minTotal ∧ every stratum ≥ minPerStratum. */
   readonly meetsSampleSize: boolean;
+  /** Aggregate-head conjunct (O-3): every stratum passes → AND-joined, non-rescuing. */
+  readonly aggregateHeadPasses: boolean;
   /** Provenance-manifest SHA-256 conjunct. */
   readonly manifestShaMatches: boolean;
   /** Human-only baseline Fleiss' κ (reported alongside; ADR-0025 §4). */
@@ -482,21 +532,44 @@ export function evaluateOQ9Grouped(input: OQ9GroupedInput): OQ9Result {
   const strata: StratumMetricResult[] = [];
   const failureParts: string[] = [];
 
-  // Per-stratum, per-metric Clopper–Pearson + red-line.
+  // Per-stratum, per-metric 4-part recalibrated pass rule (O-3).
+  // A stratum passes iff ALL of:
+  //   (1) n ≥ N_MIN_PER_STRATUM (else INCONCLUSIVE — too few docs to call)
+  //   (2) pointEstimate k/n ≥ TAU_POINT_ESTIMATE (0.95 — "we saw ≥95% passes")
+  //   (3) cpLcb95 ≥ TAU_STRATUM_LCB (0.90 Phase-1 — "lower bound clears floor")
+  //   (4) noRedLineViolation (every doc ≥ τ_red — unchanged)
+  // The aggregate head is AND-joined: every stratum must pass. The aggregate
+  // may VETO but never RESCUE — defamation harm does not average across strata.
   for (const sm of input.stratumMetrics) {
     const cpLcb95 = clopperPearsonLcb95(sm.k, sm.n);
-    // Boundary policy: fail-closed within ±BOUNDARY_TOLERANCE of threshold.
-    // diverges — see ADR-0025 §4: the spec rule is `CP_LCB_95 ≥ 0.95`, but a
-    // result within ±1e-9 of the floor is treated as INCONCLUSIVE (fail-closed)
-    // rather than pass, because that is exactly the IEEE-754 cliff the Decimal
-    // path exists to surface. Equality at exactly 0.95 therefore fails; this is
-    // a deliberate defamation-safety conservatism, not a spec contradiction.
-    const lower = TAU_STRATUM_LCB - BOUNDARY_TOLERANCE;
-    const inBand = cpLcb95 >= lower && cpLcb95 <= TAU_STRATUM_LCB + BOUNDARY_TOLERANCE;
-    const passesStratum = inBand
-      ? false // inconclusive band → fail-closed
-      : cpLcb95 >= TAU_STRATUM_LCB;
+    const pointEstimate = sm.n > 0 ? sm.k / sm.n : 0;
+    const meetsNMin = sm.n >= N_MIN_PER_STRATUM;
     const passesRedLine = sm.noRedLineViolation;
+
+    // INCONCLUSIVE on small n (O-3): below n_min, the gate cannot make a
+    // defamation-safety call. This is NOT a fail — the operator must raise n.
+    if (!meetsNMin) {
+      failureParts.push(
+        `${sm.stratum}/${sm.metric} INCONCLUSIVE: n=${sm.n} < N_MIN=${N_MIN_PER_STRATUM} (raise n)`,
+      );
+    }
+    // Point-estimate conjunct (O-3, NEW): raw pass rate must be ≥ 0.95.
+    if (meetsNMin && pointEstimate < TAU_POINT_ESTIMATE) {
+      failureParts.push(
+        `${sm.stratum}/${sm.metric} point-estimate=${pointEstimate.toFixed(6)} < ${TAU_POINT_ESTIMATE}`,
+      );
+    }
+    // LCB floor conjunct (O-3, recalibrated to 0.90 Phase-1).
+    if (meetsNMin && cpLcb95 < TAU_STRATUM_LCB) {
+      failureParts.push(
+        `${sm.stratum}/${sm.metric} CP-LCB=${cpLcb95.toFixed(6)} < ${TAU_STRATUM_LCB} (Phase-1 floor)`,
+      );
+    }
+    if (!passesRedLine) {
+      failureParts.push(`red-line violation in ${sm.stratum}/${sm.metric}`);
+    }
+
+    const passesStratum = meetsNMin && pointEstimate >= TAU_POINT_ESTIMATE && cpLcb95 >= TAU_STRATUM_LCB && passesRedLine;
 
     strata.push({
       stratum: sm.stratum,
@@ -504,19 +577,11 @@ export function evaluateOQ9Grouped(input: OQ9GroupedInput): OQ9Result {
       k: sm.k,
       n: sm.n,
       cpLcb95,
+      pointEstimate,
+      meetsNMin,
       passesStratum,
       passesRedLine,
     });
-
-    if (!passesRedLine) {
-      failureParts.push(`red-line violation in ${sm.stratum}/${sm.metric}`);
-    }
-    if (!passesStratum) {
-      failureParts.push(
-        `${sm.stratum}/${sm.metric} CP-LCB=${cpLcb95.toFixed(6)} < ${TAU_STRATUM_LCB}` +
-        (inBand ? ' [INCONCLUSIVE BAND — operator must resolve]' : ''),
-      );
-    }
   }
 
   // Sample-size conjunct.
@@ -546,20 +611,28 @@ export function evaluateOQ9Grouped(input: OQ9GroupedInput): OQ9Result {
   if (input.humanBaselineKappa === null || Number.isNaN(input.humanBaselineKappa)) {
     failureParts.push('human-only baseline κ not reported (null or NaN)');
   }
-  // NOTE (code review 2026-07-03): KAPPA_GATE_THRESHOLD (0.75) and
-  // KAPPA_LICENSE_THRESHOLD (0.70) are exported but intentionally NOT enforced
-  // here in this slice. AC #2 requires the baseline be "reported"; the κ
-  // *measurement* (and thus the threshold comparison) is deferred to Story
-  // 2.6b-measure, which lands the annotated corpus. The constants are pinned
-  // now so the threshold values are version-controlled alongside the gate code;
-  // a future caller in 2.6b-measure will compare `humanBaselineKappa >=
-  // KAPPA_GATE_THRESHOLD` and `licenseKappa >= KAPPA_LICENSE_THRESHOLD`.
+
+  // Aggregate-head conjunct (O-3, AND-joined non-rescuing): every stratum must
+  // pass. The aggregate may VETO (any failing stratum fails the gate) but NEVER
+  // RESCUE (a failing stratum cannot be averaged away by passing strata).
+  // Defamation harm does not average across strata — a libel-relevant Tagalog
+  // stratum failing is not offset by a passing English stratum.
+  const aggregateHeadPasses = strata.length > 0 && strata.every((s) => s.passesStratum);
+  if (!aggregateHeadPasses) {
+    // Per-stratum failures already pushed above; this is the aggregate veto.
+    // Only add a distinct message if no per-stratum reason was pushed (e.g.
+    // empty strata input — a degenerate case).
+    if (strata.length === 0) {
+      failureParts.push('aggregate head: no strata scored (cannot pass an empty gate)');
+    }
+  }
 
   const pass = failureParts.length === 0;
   return {
     pass,
     strata,
     meetsSampleSize,
+    aggregateHeadPasses,
     manifestShaMatches,
     humanBaselineKappa: input.humanBaselineKappa,
     licenseKappa: input.licenseKappa,

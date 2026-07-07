@@ -81,6 +81,13 @@ export interface ValidatedConfig {
     /** Minimum milliseconds between review and approval signatures (AC-8). */
     readonly minInterSignatureDelayMs: number;
   };
+  /** Per-IP rate limiting on query endpoints (NFR-S-3, ADR-0004). */
+  readonly rateLimit: {
+    /** Sliding window length in milliseconds. Default 60000 (1 minute). */
+    readonly windowMs: number;
+    /** Maximum requests per window per IP. Default 30. */
+    readonly max: number;
+  };
 }
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -184,13 +191,14 @@ function validatePartnerKeyring(
   return { ok: true, value: raw as IntakePartnerKeyring };
 }
 
-/** Validate a positive integer config value. */
+/** Validate a positive integer config value. Falls back to `defaultValue` when absent/empty. */
 function validatePositiveInt(
   raw: string | undefined,
   name: string,
+  defaultValue: number,
 ): Result<number, ConfigError> {
   if (raw === undefined || raw.trim().length === 0) {
-    return { ok: true, value: name === 'INTAKE_APPROVAL_WINDOW_SECONDS' ? 3600 : 60000 };
+    return { ok: true, value: defaultValue };
   }
   const value = Number(raw);
   if (!Number.isFinite(value) || !Number.isInteger(value) || value <= 0) {
@@ -280,14 +288,31 @@ export function validateConfig(
   const approvalWindowSeconds = validatePositiveInt(
     source['INTAKE_APPROVAL_WINDOW_SECONDS'],
     'INTAKE_APPROVAL_WINDOW_SECONDS',
+    3600,
   );
   if (!approvalWindowSeconds.ok) return approvalWindowSeconds;
 
   const minInterSignatureDelayMs = validatePositiveInt(
     source['INTAKE_MIN_INTER_SIGNATURE_DELAY_MS'],
     'INTAKE_MIN_INTER_SIGNATURE_DELAY_MS',
+    60000,
   );
   if (!minInterSignatureDelayMs.ok) return minInterSignatureDelayMs;
+
+  // NFR-S-3 / ADR-0004 — per-IP rate limiting on query endpoints.
+  const rateLimitWindowMs = validatePositiveInt(
+    source['RATE_LIMIT_WINDOW_MS'],
+    'RATE_LIMIT_WINDOW_MS',
+    60_000,
+  );
+  if (!rateLimitWindowMs.ok) return rateLimitWindowMs;
+
+  const rateLimitMax = validatePositiveInt(
+    source['RATE_LIMIT_MAX_REQUESTS'],
+    'RATE_LIMIT_MAX_REQUESTS',
+    30,
+  );
+  if (!rateLimitMax.ok) return rateLimitMax;
 
   return {
     ok: true,
@@ -299,6 +324,10 @@ export function validateConfig(
         partnerPublicKeys: partnerKeyring.value,
         approvalWindowSeconds: approvalWindowSeconds.value,
         minInterSignatureDelayMs: minInterSignatureDelayMs.value,
+      },
+      rateLimit: {
+        windowMs: rateLimitWindowMs.value,
+        max: rateLimitMax.value,
       },
     },
   };

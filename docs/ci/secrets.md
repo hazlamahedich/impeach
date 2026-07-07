@@ -133,3 +133,60 @@ IIP_SOPS_AGE_KEY=$(cat ~/.config/sops/age/keys.txt) pnpm --filter @iip/config ex
 # Without key → fails closed (exit 1, logs var name only)
 pnpm --filter @iip/config exec node --import tsx/esm src/cli.ts validate --strict
 ```
+
+---
+
+## Epic 3 prep — API server bootstrap keys (TD1 + TD5)
+
+The real API server bootstrap (`apps/api/src/server.ts`) reads additional env
+vars not covered by the original sops template. Generate these keys and add
+them to `secrets/dev.sops.yaml` under the new `jwt`, `api`, and
+`system_signing` sections (see `secrets/.env.sops.template`).
+
+### System signing key (TD5 — editorial-log system events)
+
+System-emitted editorial events (audit circuit-breaker transitions, auth
+events) have no client signer, so the server holds a dedicated Ed25519 key.
+This is the sanctioned exception to "server never holds private keys" — that
+rule governs OPERATOR keys; a service-owned key for platform-integrity events
+is a distinct custody domain (precedent: intake's `systemSignKey`).
+
+```sh
+# Generate the Ed25519 keypair
+openssl genpkey -algorithm Ed25519 -out /tmp/sys.key
+
+# Private key (PKCS#8 DER, base64) — for SYSTEM_SIGNING_PRIVATE_KEY
+openssl pkey -in /tmp/sys.key -outform DER | base64 | tr -d '\n'
+
+# Public key (SPKI DER, base64) — for SYSTEM_SIGNING_PUBLIC_KEY
+openssl pkey -in /tmp/sys.key -pubout -outform DER | base64 | tr -d '\n'
+```
+
+Both values go in `secrets/dev.sops.yaml` under `system_signing:`. The public
+key is also registered in the editorial-log key lookup so `verifyChain` resolves
+`__system__` entries.
+
+### JWT issuer keys (TD1 — auth verification)
+
+The API verifies JWTs signed by the issuer keyring. These are DISTINCT from
+intake operator keys (which sign intake transitions). Generate an issuer keypair
+and register the public key:
+
+```sh
+openssl genpkey -algorithm Ed25519 -out /tmp/issuer.key
+# Public key (SPKI DER, base64) — for JWT_ISSUER_PUBLIC_KEYS
+openssl pkey -in /tmp/issuer.key -pubout -outform DER | base64 | tr -d '\n'
+```
+
+Set `JWT_ISSUER_PUBLIC_KEYS` to `{"issuer-1":"<base64>"}`. The private key
+stays with the token issuer (a separate service or CLI; not the API server).
+
+### After generating all keys
+
+Re-encrypt and verify:
+
+```sh
+sops --encrypt --in-place secrets/dev.sops.yaml
+pnpm --filter @iip/api typecheck   # confirms the bootstrap compiles
+pnpm --filter @iip/api dev         # boots the real server (needs Docker compose up)
+```

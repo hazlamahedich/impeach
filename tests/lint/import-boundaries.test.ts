@@ -84,3 +84,24 @@ describe('render boundary lint fixtures (AC #7, STR-4 / SC-3)', () => {
     expect(errorCount).toBe(0);
   });
 });
+
+describe('raw cypher lint fixture (PC-1e — ag_catalog.cypher ban)', () => {
+  it('flags raw ag_catalog.cypher() with the @iip/no-raw-cypher rule', async () => {
+    const { errorCount, ruleIds } = await lintVirtual(
+      fixture('raw-cypher-call.ts'),
+      'packages/rag/src/illegal.ts',
+    );
+    expect(errorCount).toBeGreaterThan(0);
+    expect(ruleIds).toContain('@iip/no-raw-cypher');
+  });
+
+  it('does not flag the sanctioned seam file packages/graph/src/cypher.ts', async () => {
+    // The seam itself emits `ag_catalog.cypher($1, ...)` — that is the ONE
+    // sanctioned call site. It must not be flagged.
+    const { errorCount } = await lintVirtual(
+      "export const sql = `SELECT * FROM ag_catalog.cypher($1, $$ RETURN 1 $$) AS (a agtype)`;\n",
+      'packages/graph/src/cypher.ts',
+    );
+    expect(errorCount).toBe(0);
+  });
+});
