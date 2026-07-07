@@ -62,6 +62,12 @@
 - **`ExternalPd2Day90Payload` only models success outcomes** (`question_donated`, `partnership_committed`) [packages/contracts/src/editorial-log.ts:283-287] — The spec defines only these two variants; future PD-2 iterations can extend the union if needed. [deferred, out of scope]
 - **Partner names are free-form strings rather than an enum/registry** [packages/contracts/src/editorial-log.ts:212-273] — Spec intentionally uses organizational free-form names plus the PII scan; central partner registry is out of scope. [deferred, out of scope]
 
+## Deferred from: code review of 2-11-serving-path-audit-health-gate (2026-07-07)
+
+- **Editorial-log append wiring is not boot-wired** [apps/api/src/index.ts, packages/config/src/audit-health.ts] — The `audit.circuit_breaker.opened` / `.closed` event schemas and `onTransition` seam exist, but `apps/api/src/index.ts` is still the Story 1.1 stub with no running Fastify server or editorial repo. Production wiring lands with the API server bootstrap (Epic 3+). [deferred, documented deviation]
+- **Docker Compose-level audit-death integration test not implemented** [tests/integration/audit-health-gate.integration.test.ts] — Documented deviation: `apps/api` and `audit-worker` are stubs, so a real `docker compose stop audit-worker` test would exercise stubs only. The integration test instead wires real components against an injected fetch. Compose-level 500 RPS chaos verification remains Story 2.9b's scope. [deferred, documented deviation]
+- **`pollOnce()` does not consume the `/healthz` response body** [packages/config/src/audit-health.ts:167-206] — Under extreme load, unread response bodies may keep HTTP sockets in `TIME_WAIT`. Low severity; can be addressed later with `await res.text()` or `res.body?.cancel()`. [deferred, low impact]
+
 ## Deferred from: code review of 2-7-defamation-threshold-blast-radius-adrs (2026-07-06)
 
 - **Render gate does not yet mechanically enforce 0.00% allegation-as-fact detection target** [packages/render/src/gate.ts] — The current gate strips uncited claims and marks lone Tier-3 claims; it does not block a misclassified `claim_type='fact'` with a syntactically valid citation. Pre-existing implementation gap; Story 2.8/2.9 and the SEC-8 red-team battery are the enforcement path. [deferred, pre-existing]

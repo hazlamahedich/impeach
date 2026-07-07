@@ -62,7 +62,7 @@ describe('Story 2.4 — Editorial log boundary contracts (SEC-6)', () => {
   });
 
   // TC-2.2: Discriminated union schema
-  it('TC-2.2: @iip/contracts exports EditorialLogEvent as z.discriminatedUnion with 19 event variants', () => {
+  it('TC-2.2: @iip/contracts exports EditorialLogEvent as z.discriminatedUnion with 21 event variants', () => {
     const events = [
       'system.genesis',
       'auth.revoked',
@@ -84,6 +84,9 @@ describe('Story 2.4 — Editorial log boundary contracts (SEC-6)', () => {
       'external.pd2.day90',
       'gate.bypass_attempt',
       'proceeding.early_termination',
+      // Story 2.11 — audit circuit-breaker transitions (ADR-0029 §5)
+      'audit.circuit_breaker.opened',
+      'audit.circuit_breaker.closed',
     ];
     for (const event of events) {
       const sample = makeSampleEvent(event);
@@ -332,6 +335,9 @@ function makeSampleEvent(event: string): unknown {
     'external.pd2.day90': { outcome: 'question_donated', partner_name: 'PRESS_FORUM_X', document_count: 1 },
     'gate.bypass_attempt': { query: 'q' },
     'proceeding.early_termination': { proceeding_id: 'p', termination_date: '2026-07-06', kpi_status: { day30: true } },
+    // Story 2.11 — audit circuit-breaker transitions (ADR-0029 §5)
+    'audit.circuit_breaker.opened': { reason: 'audit-worker unreachable', poll_latency_ms: 50 },
+    'audit.circuit_breaker.closed': { poll_latency_ms: 12 },
   };
   return payloads[event];
 }

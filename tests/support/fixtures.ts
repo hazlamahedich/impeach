@@ -163,12 +163,14 @@ export function liveGateContext(opts: {
   entailment?: EntailmentChecker;
   /** Optional gate-invocation observer (Story 2.8 VAL-9). */
   onInvocation?: GateContext['onInvocation'];
+  /** Optional audit-health probe (Story 2.11, ADR-0029 §5). */
+  auditHealth?: GateContext['auditHealth'];
 }): GateContext {
   const verifyFn: GateContext['verifyCitation'] =
     typeof opts.verify === 'function'
       ? (opts.verify as GateContext['verifyCitation'])
       : async () => opts.verify !== false;
-  const ctx: { resolver: SourceResolver; verifyCitation: GateContext['verifyCitation']; entailment?: EntailmentChecker; onInvocation?: GateContext['onInvocation'] } = {
+  const ctx: { resolver: SourceResolver; verifyCitation: GateContext['verifyCitation']; entailment?: EntailmentChecker; onInvocation?: GateContext['onInvocation']; auditHealth?: GateContext['auditHealth'] } = {
     resolver: opts.resolver,
     verifyCitation: verifyFn,
   };
@@ -179,6 +181,9 @@ export function liveGateContext(opts: {
   }
   if (opts.onInvocation !== undefined) {
     ctx.onInvocation = opts.onInvocation;
+  }
+  if (opts.auditHealth !== undefined) {
+    ctx.auditHealth = opts.auditHealth;
   }
   return ctx;
 }

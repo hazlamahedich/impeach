@@ -28,6 +28,7 @@ interface CtxOpts {
   resolver?: SourceResolver;
   verify?: boolean | ((t: CitationTuple, s: { content: string }) => Promise<boolean>);
   entailment?: GateContext['entailment'];
+  auditHealth?: GateContext['auditHealth'];
 }
 
 function ctxFor(docs: SourceDocSnapshot[], opts: CtxOpts = {}): GateContext {
@@ -39,6 +40,9 @@ function ctxFor(docs: SourceDocSnapshot[], opts: CtxOpts = {}): GateContext {
   }
   if (opts.entailment !== undefined) {
     args.entailment = opts.entailment;
+  }
+  if (opts.auditHealth !== undefined) {
+    args.auditHealth = opts.auditHealth;
   }
   return makeGateContext(args);
 }
@@ -475,5 +479,102 @@ describe('renderGateLive — citation shape carried through', () => {
     const claim = out.spans.find((s) => s.is_claim);
     expect(claim!.citation).toStrictEqual(ref);
     expect(claim!.claim_type).toBe('fact');
+  });
+});
+
+// ───────────────────────────────────────────────────────────────────────────
+// Story 2.11 — ADR-0029 §5 audit-health fail-closed in the render gate.
+//
+// When the injected AuditHealthProbe reports audit-worker unreachable, every
+// claim is WITHHELD with an `audit_offline` violation — the citation-or-silence
+// invariant cannot be upheld without an intact audit trail. The gate reads the
+// circuit-breaker state from the probe (single source of truth); it does NOT
+// independently poll. Optional + backward-compatible: when omitted, the gate
+// runs without the check (Story 2.1–2.10 behavior preserved).
+// @rules ADR-0029 §5, SEC-5, AC-2
+// @adr ADR-0029
+// ───────────────────────────────────────────────────────────────────────────
+
+describe('renderGateLive — Story 2.11 audit-health fail-closed (ADR-0029 §5)', () => {
+  it('WITHHOLDs every claim when auditHealth reports audit unreachable', async () => {
+    const doc = sourceDoc();
+    const out = await renderGateLive(
+      { query: 'q', answer_text: doc.text, spans: [citedClaimFor(doc)] },
+      ctxFor([doc], { auditHealth: { isAuditReachable: () => false } }),
+    );
+
+    // No claim served — fail-closed.
+    expect(out.spans.filter((s) => s.is_claim)).toHaveLength(0);
+    expect(out.no_evidence).toBe(true);
+    // audit_offline violation recorded against the withheld span.
+    expect(out.violations).toContainEqual(
+      expect.objectContaining({
+        kind: 'audit_offline',
+        source_doc_id: doc.id,
+      }),
+    );
+  });
+
+  it('serves claims normally when auditHealth reports audit reachable', async () => {
+    const doc = sourceDoc();
+    const out = await renderGateLive(
+      { query: 'q', answer_text: doc.text, spans: [citedClaimFor(doc)] },
+      ctxFor([doc], { auditHealth: { isAuditReachable: () => true } }),
+    );
+
+    const claim = out.spans.find((s) => s.is_claim);
+    expect(claim).toBeDefined();
+    expect(out.violations).toEqual([]);
+    expect(out.no_evidence).toBe(false);
+  });
+
+  it('WITHHOLDs claims but passes non-claim context spans through (audit offline)', async () => {
+    const doc = sourceDoc();
+    const out = await renderGateLive(
+      {
+        query: 'q',
+        answer_text: `Context. ${doc.text}`,
+        spans: [
+          { text: 'Context.', is_claim: false, citation_ref: null },
+          citedClaimFor(doc),
+        ],
+      },
+      ctxFor([doc], { auditHealth: { isAuditReachable: () => false } }),
+    );
+
+    // Non-claim context survives; the claim is stripped.
+    const context = out.spans.find((s) => !s.is_claim);
+    expect(context).toBeDefined();
+    expect(out.spans.filter((s) => s.is_claim)).toHaveLength(0);
+    expect(out.violations).toContainEqual(expect.objectContaining({ kind: 'audit_offline' }));
+  });
+
+  it('omitting auditHealth preserves Story 2.1–2.10 behavior (backward compatible)', async () => {
+    const doc = sourceDoc();
+    const out = await renderGateLive(
+      { query: 'q', answer_text: doc.text, spans: [citedClaimFor(doc)] },
+      ctxFor([doc]), // no auditHealth
+    );
+
+    const claim = out.spans.find((s) => s.is_claim);
+    expect(claim).toBeDefined();
+    expect(out.violations).toEqual([]);
+  });
+
+  it('multiple cited claims under audit-offline all become audit_offline violations', async () => {
+    const doc1 = sourceDoc({ id: '00000000-0000-4000-8000-000000000001' });
+    const doc2 = sourceDoc({ id: '00000000-0000-4000-8000-000000000002' });
+    const out = await renderGateLive(
+      {
+        query: 'q',
+        answer_text: `${doc1.text} ${doc2.text}`,
+        spans: [citedClaimFor(doc1), citedClaimFor(doc2)],
+      },
+      ctxFor([doc1, doc2], { auditHealth: { isAuditReachable: () => false } }),
+    );
+
+    expect(out.spans.filter((s) => s.is_claim)).toHaveLength(0);
+    const offline = out.violations.filter((v) => v.kind === 'audit_offline');
+    expect(offline).toHaveLength(2);
   });
 });

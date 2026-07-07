@@ -145,6 +145,7 @@ export function makeGateContext(opts: {
   resolver: SourceResolver;
   verify?: boolean | ((t: CitationTupleType, s: { content: string }) => Promise<boolean>);
   entailment?: GateContext['entailment'];
+  auditHealth?: GateContext['auditHealth'];
 }): GateContext {
   const verifyFn: GateContext['verifyCitation'] =
     typeof opts.verify === 'function'
@@ -154,5 +155,6 @@ export function makeGateContext(opts: {
     resolver: opts.resolver,
     verifyCitation: verifyFn,
     entailment: opts.entailment ?? new StubEntailmentChecker(),
+    ...(opts.auditHealth !== undefined ? { auditHealth: opts.auditHealth } : {}),
   };
 }

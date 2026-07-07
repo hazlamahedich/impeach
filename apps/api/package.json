@@ -11,6 +11,10 @@
     "./routes/intake": {
       "types": "./src/routes/intake.ts",
       "default": "./src/routes/intake.ts"
+    },
+    "./routes/query": {
+      "types": "./src/routes/query.ts",
+      "default": "./src/routes/query.ts"
     }
   },
   "scripts": {
@@ -21,6 +25,7 @@
   },
   "dependencies": {
     "@iip/auth": "workspace:*",
+    "@iip/config": "workspace:*",
     "@iip/contracts": "workspace:*",
     "@iip/db": "workspace:*",
     "@iip/intake": "workspace:*"

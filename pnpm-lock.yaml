@@ -107,6 +107,9 @@ importers:
       '@iip/auth':
         specifier: workspace:*
         version: link:../../packages/auth
+      '@iip/config':
+        specifier: workspace:*
+        version: link:../../packages/config
       '@iip/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
