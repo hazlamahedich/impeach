@@ -1,14 +1,14 @@
 {
   "$schema": "https://raw.githubusercontent.com/StrykerMutator/stryker/master/packages/api/schema/stryker-core.json",
+  "_comment": "Epic 2 expansion — mutation testing on oq9.ts (the extraction-quality gate). E2-G5 (manifestShaMatches empty-string guard) + the manifest/oq9 guards expansion tests should kill mutants on the provenance conjunct. Threshold >=90% (oq9.ts is defamation-grade gate logic; the 100/100/100 bar is reserved for gate.ts/verify.ts per project-context).",
   "packageManager": "pnpm",
   "reporters": ["clear-text", "progress"],
   "testRunner": "vitest",
   "coverageAnalysis": "perTest",
   "concurrency": 1,
-  "thresholds": { "high": 100, "low": 100, "break": 100 },
+  "thresholds": { "high": 90, "low": 90, "break": 90 },
   "mutate": [
-    "packages/render/src/gate.ts",
-    "packages/render/src/substring.ts"
+    "src/oq9.ts"
   ],
   "ignorePatterns": [
     "**/._*",
@@ -22,6 +22,6 @@
     "**/dist/**"
   ],
   "vitest": {
-    "configFile": "vitest.config.ts"
+    "configFile": "vitest.stryker.config.ts"
   }
 }

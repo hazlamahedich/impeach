@@ -9,6 +9,7 @@ __pycache__/
 pilot-corpus/
 .env
 .stryker-tmp/
+**/reports/mutation/
 
 # Node / Turborepo build artifacts
 node_modules/

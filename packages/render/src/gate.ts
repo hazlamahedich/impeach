@@ -153,7 +153,28 @@ export async function renderGateLive(
   // injected probe (single source of truth in @iip/config); it does NOT
   // independently poll audit-worker. Optional: when omitted (Story 2.1–2.10
   // callers), this check is skipped and behavior is unchanged.
-  const auditReachable = ctx.auditHealth?.isAuditReachable() ?? true;
+  //
+  // E2-G2 hardening: a THROWING probe must not crash the serve path. The probe
+  // is injected from @iip/config; a misconfigured circuit-breaker, a poisoned
+  // cache, or an internal @iip/config throw would otherwise escape the gate and
+  // surface as an unstructured 500. Fail-closed: treat a throwing probe as
+  // audit-unreachable (claims WITHHELD) and record a `gate.degraded` violation
+  // so the audit trail knows observability was impaired. SEC-5: unavailable >
+  // wrong; the gate never propagates a probe failure.
+  let auditReachable = true;
+  if (ctx.auditHealth !== undefined) {
+    try {
+      auditReachable = ctx.auditHealth.isAuditReachable();
+    } catch (error) {
+      auditReachable = false;
+      violations.push({
+        kind: 'gate.degraded',
+        source_doc_id: 'audit-health-probe',
+        span_text: effectiveResponseId,
+        details: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
 
   for (const span of input.spans) {
     // Non-claim context spans always pass through unchanged.
