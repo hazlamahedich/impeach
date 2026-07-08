@@ -27,7 +27,7 @@ import Fastify, { type FastifyInstance } from 'fastify';
 import { createVerifyMiddleware, InMemoryReplayDetector, NoopAuthEventLogger } from '@iip/auth';
 import type { KeyRegistry, RevocationChecker } from '@iip/auth';
 import { createKeyPair, asConfigKey } from '@iip/test-utils';
-import { SourceSourceType, CrawlStrategy } from '@iip/contracts';
+import { SourceSourceType } from '@iip/contracts';
 import { makeValidSourceId } from '../support/helpers/ingest';
 
 // ─── RED-PHASE STUB ────────────────────────────────────────────────────────
