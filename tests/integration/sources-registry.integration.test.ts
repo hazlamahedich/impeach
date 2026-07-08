@@ -93,7 +93,7 @@ async function signTestToken(opts: {
 
 function makeRepo(): SourceRegistryRepo & { store: Map<string, SourceResponse> } {
   const store = new Map<string, SourceResponse>();
-  let urlIndex = new Map<string, string>(); // normalized url → id
+  const urlIndex = new Map<string, string>(); // normalized url → id
 
   const repo: SourceRegistryRepo = {
     async create(input) {

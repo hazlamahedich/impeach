@@ -36,7 +36,6 @@ import {
   UpdateSourcePayloadSchema,
   SourceListFiltersSchema,
   SourceIdSchema,
-  SourceResponseSchema,
 } from '@iip/contracts';
 import type { SourceRegistryRepo } from '@iip/db';
 import type { SourceId } from '@iip/contracts';
