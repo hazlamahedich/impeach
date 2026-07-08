@@ -28,6 +28,10 @@ const DRIZZLE_DIR = new URL('../../packages/db/drizzle/', import.meta.url);
 
 const MIGRATION_0004 = readFileSync(new URL('0004_epic3_ingest_tables.sql', DRIZZLE_DIR), 'utf8');
 
+// Story 3.1 — 0005 adds the AC-7 deferred fields + aligns EI-2 provenance
+// columns (is_wire_service, original_publisher_id) to the amended schema.
+const MIGRATION_0005 = readFileSync(new URL('0005_sources_deferred_fields.sql', DRIZZLE_DIR), 'utf8');
+
 /**
  * The DOWN block is documented as commented SQL inside the migration file
  * (drizzle-kit migrate is forward-only). Parsing it from the file catches drift
@@ -59,6 +63,8 @@ beforeAll(async () => {
   client = new Client({ connectionString });
   await client.connect();
   await client.query(MIGRATION_0004);
+  // Story 3.1 — apply 0005 after 0004 (adds AC-7 fields, drops superseded text cols).
+  await client.query(MIGRATION_0005);
 }, 240_000);
 
 afterAll(async () => {
@@ -148,9 +154,21 @@ describe('TD3 — sources columns (FR-1.1)', () => {
     expect(col?.is_nullable).toBe('NO');
     expect(col?.column_default).toContain('false');
   });
-  it('wire_service + original_publisher are nullable text', async () => {
-    expect((await getColumn('sources', 'wire_service'))?.is_nullable).toBe('YES');
-    expect((await getColumn('sources', 'original_publisher'))?.is_nullable).toBe('YES');
+  it('is_wire_service is NOT NULL boolean default false (EI-2, AC-7)', async () => {
+    const col = await getColumn('sources', 'is_wire_service');
+    expect(col?.data_type).toBe('boolean');
+    expect(col?.is_nullable).toBe('NO');
+    expect(col?.column_default).toContain('false');
+  });
+  it('original_publisher_id is nullable uuid (EI-2 self-ref FK, AC-7)', async () => {
+    const col = await getColumn('sources', 'original_publisher_id');
+    expect(col?.data_type).toBe('uuid');
+    expect(col?.is_nullable).toBe('YES');
+  });
+  it('confirmed_by/confirmed_at/confirmation_rationale are nullable (AC-7 deferred)', async () => {
+    expect((await getColumn('sources', 'confirmed_by'))?.is_nullable).toBe('YES');
+    expect((await getColumn('sources', 'confirmed_at'))?.is_nullable).toBe('YES');
+    expect((await getColumn('sources', 'confirmation_rationale'))?.is_nullable).toBe('YES');
   });
 });
 

@@ -32,6 +32,7 @@ import { Buffer } from 'node:buffer';
 import { bootOrDie, type ValidatedConfig } from '@iip/config';
 import { createAuditHealthClient, type AuditHealthClient } from '@iip/config';
 import { createDb, closeDb, type DbHandle } from '@iip/db';
+import { createSourcesRepository } from '@iip/db';
 import {
   createEditorialLogRepo,
   EditorialAuthEventLogger,
@@ -55,6 +56,7 @@ import { NoopIntakeEventLogger } from '@iip/contracts';
 
 import { createIntakeRoutes } from './routes/intake.js';
 import { createQueryRoutes } from './routes/query.js';
+import { createSourceRoutes } from './routes/sources.js';
 import { createRateLimitPlugin } from './routes/rate-limit.js';
 import { createRepositoryForTx } from './intake/repository.js';
 
@@ -233,6 +235,9 @@ async function buildApp(config: ValidatedConfig): Promise<{
   // ── DB ──────────────────────────────────────────────────────────────────
   const dbHandle = createDb(config.databaseUrl);
 
+  // ── Source registry repository (Story 3.1, FR-1.1) ──────────────────────
+  const sourcesRepo = createSourcesRepository(dbHandle.db);
+
   // ── System signing key + signer (TD5) ───────────────────────────────────
   const { privateKey: systemPrivateKey, publicKey: systemPublicKey } = await loadSystemSigningKey();
   const systemSigner = buildSystemSigner(systemPrivateKey);
@@ -389,7 +394,10 @@ async function buildApp(config: ValidatedConfig): Promise<{
   // 3. Intake routes.
   await app.register(createIntakeRoutes({ gate, withTx } as never));
 
-  // 4. Query routes (ADR-0029 §5 fail-closed).
+  // 4. Source registry routes (Story 3.1, FR-1.1).
+  await app.register(createSourceRoutes({ repo: sourcesRepo }));
+
+  // 5. Query routes (ADR-0029 §5 fail-closed).
   await app.register(createQueryRoutes({ auditHealth, serveClaims }));
 
   return { app, dbHandle };
