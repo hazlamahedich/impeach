@@ -58,6 +58,17 @@ export default defineWorkspace([
     },
   },
   {
+    // B3 — shared test support helpers (pure functions). Epic 3 ingest helpers
+    // land here (tests/support/helpers/ingest.ts); co-located *.test.ts files
+    // are picked up by this project so they don't go undiscovered.
+    test: {
+      name: 'support',
+      environment: 'node',
+      include: ['tests/support/**/*.test.ts'],
+      exclude: ['**/node_modules/**', '**/dist/**', '**/._*'],
+    },
+  },
+  {
     test: {
       name: 'perf',
       environment: 'node',
