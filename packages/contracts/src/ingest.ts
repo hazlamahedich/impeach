@@ -15,6 +15,7 @@
  * @adr ADR-001
  */
 import { z } from 'zod';
+import { isValidTrustTier } from './trust-tier.js';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Source registry (FR-1.1, SEC-3 — trust tier assigned + confirmed at ingest)
@@ -94,7 +95,169 @@ export type CrawlStrategy = z.infer<typeof CrawlStrategy>;
 // NOTE: TrustTier (1 | 2 | 3) is already defined in trust-tier.ts (TrustTierNumber).
 // Re-exported here for ingest-domain convenience; the canonical home remains
 // trust-tier.ts so the render gate (the load-bearing consumer) imports from one
-// place. Do NOT duplicate the taxonomy (PC-4 #14).
+// place. Do NOT duplicate the taxonomy (PC-4 #14). `isValidTrustTier` is
+// imported above for local use in the source-registry schemas and re-exported
+// here so ingest-domain consumers can import it from one place.
+export { isValidTrustTier } from './trust-tier.js';
+export type { TrustTierNumber } from './trust-tier.js';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Source registry API schemas (FR-1.1, Story 3.1)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Default `trust_tier` mapping by `source_type` (AC-2, SEC-3).
+ *
+ * A source's tentative tier is derived from its classification at registration
+ * time. The operator MAY override the tier to 1, 2, or 3 in the payload — the
+ * override is validated server-side (DoD-3); clients cannot self-attest trust.
+ *
+ * The tier is always persisted as provisional (`confirmed = false`) until the
+ * deferred legal/editorial confirmation workflow runs (AC-8).
+ *
+ * @rules FR-1.1, SEC-3, AC-2
+ */
+export const DEFAULT_TRUST_TIER_BY_SOURCE_TYPE: Readonly<Record<SourceSourceTypeLiteral, 1 | 2>> = {
+  government: 1,
+  court: 1,
+  transcript: 1,
+  media: 2,
+  press_release: 2,
+};
+
+/**
+ * RegisterSourcePayloadSchema — the request body for `POST /sources` (FR-1.1).
+ *
+ * The `trust_tier` field is OPTIONAL: when omitted the server assigns the
+ * `DEFAULT_TRUST_TIER_BY_SOURCE_TYPE` default (AC-2). When present it MUST be a
+ * valid tier (1 | 2 | 3) — `isValidTrustTier` enforces the closed set (SEC-3).
+ *
+ * The `confirmed` field is REJECTED via `.strict()`: callers cannot self-attest
+ * trust (DoD-3, AC-4). Any unknown key (including `confirmed`) is a validation
+ * error — the server is the sole authority over `confirmed`, always `false` on
+ * registration. Confirmation is a separate deferred workflow (AC-8).
+ *
+ * `trust_tier` is OPTIONAL: when omitted the server assigns the default tier
+ * from `DEFAULT_TRUST_TIER_BY_SOURCE_TYPE` (AC-2); when present it must be a
+ * valid tier (1 | 2 | 3). The operator MAY override the default.
+ *
+ * `original_publisher_id` is the nullable FK to `sources.id` for EI-2
+ * independence tracking (a wire-service story syndicated across outlets is NOT
+ * independent corroboration). Nullable + optional: a primary origin has none.
+ *
+ * @rules FR-1.1, SEC-3, AC-1, AC-2, AC-7, DoD-3
+ */
+export const RegisterSourcePayloadSchema = z
+  .object({
+    name: z.string().min(1),
+    url: z.string().url(),
+    source_type: SourceSourceTypeLiteral,
+    crawl_strategy: CrawlStrategyLiteral,
+    trust_tier: z
+      .number()
+      .int()
+      .refine(isValidTrustTier, {
+        message: 'trust_tier must be one of: 1, 2, 3',
+      })
+      .optional(),
+    is_wire_service: z.boolean().default(false),
+    original_publisher_id: SourceIdSchema.optional(),
+  })
+  // REJECT `confirmed` + all unknown keys: callers cannot self-attest trust
+  // (DoD-3). `.strict()` makes any unrecognized key a validation error so the
+  // schema itself (not just the route handler) enforces that `confirmed` is
+  // server-controlled. The contract test (TC-2.1) asserts `confirmed: true`
+  // fails parse; the integration test (TC-1.4) asserts the 400.
+  .strict();
+export type RegisterSourcePayload = z.infer<typeof RegisterSourcePayloadSchema>;
+
+/**
+ * UpdateSourcePayloadSchema — the request body for `PATCH /sources/:id` (AC-6).
+ *
+ * Every mutable registration field is optional here (partial update). The
+ * `confirmed` field is ABSENT from this schema entirely — confirmation is a
+ * separate deferred workflow (AC-8) and must not be reachable via the update
+ * endpoint. Unknown keys are stripped (`.strip()`).
+ *
+ * @rules FR-1.1, AC-6, DoD-3
+ */
+export const UpdateSourcePayloadSchema = z
+  .object({
+    name: z.string().min(1).optional(),
+    url: z.string().url().optional(),
+    source_type: SourceSourceTypeLiteral.optional(),
+    crawl_strategy: CrawlStrategyLiteral.optional(),
+    trust_tier: z
+      .number()
+      .int()
+      .refine(isValidTrustTier, { message: 'trust_tier must be one of: 1, 2, 3' })
+      .optional(),
+    is_wire_service: z.boolean().optional(),
+    original_publisher_id: SourceIdSchema.nullable().optional(),
+  })
+  .strict();
+export type UpdateSourcePayload = z.infer<typeof UpdateSourcePayloadSchema>;
+
+/**
+ * ConfirmationStatus — the derived transparency flag (AC-3).
+ *
+ * `"tentative"` when `confirmed = false` (the tier is provisional, subject to
+ * legal/editorial review); `"confirmed"` when the deferred confirmation
+ * workflow has run. The API derives this from `confirmed`; it is never written
+ * directly.
+ *
+ * @rules FR-1.1, AC-3
+ */
+export const ConfirmationStatusLiteral = z.enum(['tentative', 'confirmed']);
+export type ConfirmationStatusLiteral = z.infer<typeof ConfirmationStatusLiteral>;
+
+/**
+ * SourceResponseSchema — the API response shape for a single source (AC-5, AC-7).
+ *
+ * Carries every `sources` column plus the derived `confirmation_status`. The
+ * AC-7 deferred fields (`confirmed_by`, `confirmed_at`, `confirmation_rationale`)
+ * are nullable — they exist in the schema from day one but are NOT writable in
+ * this story (the confirmation workflow is deferred, AC-8).
+ *
+ * `original_publisher_id` is a nullable `SourceId` FK (EI-2 independence). On
+ * responses it is `null` for a primary origin.
+ *
+ * @rules FR-1.1, AC-3, AC-5, AC-7
+ */
+export const SourceResponseSchema = z.object({
+  id: SourceIdSchema,
+  name: z.string(),
+  url: z.string(),
+  source_type: SourceSourceTypeLiteral,
+  crawl_strategy: CrawlStrategyLiteral,
+  trust_tier: z.number().int(),
+  confirmed: z.boolean(),
+  confirmation_status: ConfirmationStatusLiteral,
+  is_wire_service: z.boolean(),
+  original_publisher_id: SourceIdSchema.nullable(),
+  confirmed_by: z.string().nullable(),
+  confirmed_at: z.string().datetime().nullable(),
+  confirmation_rationale: z.string().nullable(),
+  created_at: z.string().datetime(),
+  updated_at: z.string().datetime(),
+});
+export type SourceResponse = z.infer<typeof SourceResponseSchema>;
+
+/**
+ * SourceListFiltersSchema — the query-string filters for `GET /sources` (AC-5).
+ *
+ * All optional. `confirmed` is a boolean coerced from the query string.
+ *
+ * @rules FR-1.1, AC-5
+ */
+export const SourceListFiltersSchema = z
+  .object({
+    source_type: SourceSourceTypeLiteral.optional(),
+    trust_tier: z.coerce.number().int().refine(isValidTrustTier).optional(),
+    confirmed: z.coerce.boolean().optional(),
+  })
+  .strip();
+export type SourceListFilters = z.infer<typeof SourceListFiltersSchema>;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Documents (FR-1.3, FR-1.5 — per-artifact provenance + content_checksum dedupe)

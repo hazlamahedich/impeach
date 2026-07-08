@@ -44,15 +44,18 @@ export function asCrawlStrategy(
 /**
  * TestSource — a single `sources` row.
  *
- * Mirrors the `sources` Drizzle schema
- * (`packages/db/src/schema/sources.ts`, migration `0004_epic3_ingest_tables.sql`).
+ * Mirrors the `sources` Drizzle schema (`packages/db/src/schema/sources.ts`,
+ * migrations `0004_epic3_ingest_tables.sql` + `0005_sources_deferred_fields.sql`).
  * The branded types prevent transposition with other string IDs (SEC-6).
  *
- * `wire_service` and `original_publisher` are nullable text columns: `null`
- * is the honest "not a wire-service syndication / no distinct original
- * publisher".
+ * `is_wire_service` is NOT NULL with a `false` default (EI-2 independence — a
+ * source is a wire service only when explicitly marked). `original_publisher_id`
+ * is a nullable self-referential FK to `sources(id)` (a republisher points at
+ * its primary origin; `null` = primary origin). The confirmation provenance
+ * fields (`confirmed_by`, `confirmed_at`, `confirmation_rationale`) are nullable
+ * and populated by the deferred confirmation workflow (AC-8).
  *
- * @rules FR-1.1, SEC-3, EI-8
+ * @rules FR-1.1, SEC-3, EI-2, EI-8, AC-7
  */
 export interface TestSource {
   readonly id: SourceId;
@@ -62,8 +65,11 @@ export interface TestSource {
   readonly crawl_strategy: CrawlStrategy;
   readonly trust_tier: number;
   readonly confirmed: boolean;
-  readonly wire_service: string | null;
-  readonly original_publisher: string | null;
+  readonly is_wire_service: boolean;
+  readonly original_publisher_id: SourceId | null;
+  readonly confirmed_by: string | null;
+  readonly confirmed_at: Date | null;
+  readonly confirmation_rationale: string | null;
   readonly created_at: Date;
   readonly updated_at: Date;
 }
@@ -81,8 +87,9 @@ const DEFAULT_NOW = () => new Date('2026-07-08T00:00:00.000Z');
  *  - `crawl_strategy`: `rss`
  *  - `trust_tier`: `1` (highest trust — SEC-3)
  *  - `confirmed`: `false` (NOT NULL DEFAULT false — unconfirmed until operator sign-off)
- *  - `wire_service`: `null`
- *  - `original_publisher`: `null`
+ *  - `is_wire_service`: `false` (NOT NULL DEFAULT false — EI-2 honest-by-default)
+ *  - `original_publisher_id`: `null` (primary origin — no upstream publisher)
+ *  - `confirmed_by` / `confirmed_at` / `confirmation_rationale`: `null` (deferred workflow, AC-8)
  *  - `created_at` / `updated_at`: `2026-07-08T00:00:00.000Z` (deterministic)
  *
  * Deterministic timestamps + IDs (rather than `new Date()` / `crypto.randomUUID()`)
@@ -100,8 +107,11 @@ export function makeSource(overrides: Partial<TestSource> = {}): TestSource {
     crawl_strategy: overrides.crawl_strategy ?? asCrawlStrategy('rss'),
     trust_tier: overrides.trust_tier ?? 1,
     confirmed: overrides.confirmed ?? false,
-    wire_service: overrides.wire_service ?? null,
-    original_publisher: overrides.original_publisher ?? null,
+    is_wire_service: overrides.is_wire_service ?? false,
+    original_publisher_id: overrides.original_publisher_id ?? null,
+    confirmed_by: overrides.confirmed_by ?? null,
+    confirmed_at: overrides.confirmed_at ?? null,
+    confirmation_rationale: overrides.confirmation_rationale ?? null,
     created_at: overrides.created_at ?? DEFAULT_NOW(),
     updated_at: now,
   };

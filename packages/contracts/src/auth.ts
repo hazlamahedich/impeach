@@ -23,7 +23,10 @@ import { z } from 'zod';
  * Story 2.3 adds the two-person intake scopes (`intake:review`,
  * `intake:approve`) — the two cryptographic roles in the SEC-2 state machine.
  *
- * @rules SEC-1, SEC-2
+ * Story 3.1 adds the source-registry scopes (`sources:write`, `sources:read`)
+ * — the resource-specific scopes for the FR-1.1 source registry CRUD surface.
+ *
+ * @rules SEC-1, SEC-2, FR-1.1
  */
 export const Scope = z.enum([
   'read',
@@ -32,6 +35,8 @@ export const Scope = z.enum([
   'audit',
   'intake:review',
   'intake:approve',
+  'sources:write',
+  'sources:read',
 ]);
 export type Scope = z.infer<typeof Scope>;
 

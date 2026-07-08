@@ -179,6 +179,13 @@ export {
   INGEST_QUEUE_NAME,
   INGEST_DLQ_NAME,
   STAGE_COMPLETED_SUFFIX,
+  // Story 3.1 — source registry API schemas (FR-1.1)
+  DEFAULT_TRUST_TIER_BY_SOURCE_TYPE,
+  RegisterSourcePayloadSchema,
+  UpdateSourcePayloadSchema,
+  ConfirmationStatusLiteral,
+  SourceResponseSchema,
+  SourceListFiltersSchema,
 } from './ingest.js';
 export type {
   SourceId,
@@ -194,4 +201,10 @@ export type {
   JobState as JobStateType,
   StateRunId,
   IngestJobPayload,
+  // Story 3.1 — source registry API schemas (FR-1.1)
+  RegisterSourcePayload,
+  UpdateSourcePayload,
+  ConfirmationStatusLiteral as ConfirmationStatusLiteralType,
+  SourceResponse,
+  SourceListFilters,
 } from './ingest.js';

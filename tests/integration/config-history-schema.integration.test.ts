@@ -568,12 +568,16 @@ describe('Story 2.10 — UP/DOWN migration round-trip + idempotent re-run', () =
     await expect(insertRow()).resolves.toBeUndefined();
   });
 
-  it('meta/_journal.json has exactly 4 entries (idx 0–3)', async () => {
+  it('meta/_journal.json has exactly 6 entries (idx 0–5)', async () => {
     const raw = readFileSync(new URL('meta/_journal.json', DRIZZLE_DIR), 'utf8');
     const journal = JournalSchema.parse(JSON.parse(raw));
-    expect(journal.entries.length).toBe(4);
+    expect(journal.entries.length).toBe(6);
     expect(journal.entries[3]?.tag).toBe('0003_config_history');
     expect(journal.entries[3]?.idx).toBe(3);
+    expect(journal.entries[4]?.tag).toBe('0004_epic3_ingest_tables');
+    expect(journal.entries[4]?.idx).toBe(4);
+    expect(journal.entries[5]?.tag).toBe('0005_sources_deferred_fields');
+    expect(journal.entries[5]?.idx).toBe(5);
   });
 });
 

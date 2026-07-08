@@ -16,6 +16,10 @@
       "types": "./src/routes/query.ts",
       "default": "./src/routes/query.ts"
     },
+    "./routes/sources": {
+      "types": "./src/routes/sources.ts",
+      "default": "./src/routes/sources.ts"
+    },
     "./routes/rate-limit": {
       "types": "./src/routes/rate-limit.ts",
       "default": "./src/routes/rate-limit.ts"
