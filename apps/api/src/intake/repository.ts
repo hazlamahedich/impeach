@@ -17,7 +17,7 @@ import { eq } from 'drizzle-orm';
 import type { Db } from '@iip/db';
 import { intakeDocuments } from '@iip/db';
 import type { DocumentStatus, IntakeContentHash } from '@iip/contracts';
-import type { IntakeDocument } from '@iip/intake';
+import type { IntakeDocument } from '@iip/ingest';
 
 /** A raw intake_documents row (Drizzle inferred type). */
 type IntakeRow = typeof intakeDocuments.$inferSelect;

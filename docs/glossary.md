@@ -138,3 +138,64 @@ freeze, adversarial pass, hard CI gates, recall split, independent
 spot-verification, editorial sign-off, legal clearance, honest-framing
 slide. Machine-checkable where possible; human gates recorded in editorial
 log. See [ADR-001](adr/0001-defamation-grade-operational-definition.md) §7.
+
+## T-017 — Source
+
+A publishable origin of documents registered in the source registry
+(FR-1.1, SEC-3): a government site, a court, a media outlet, a press-release
+feed, or a transcript archive. Each source carries a confirmed trust tier
+(1 primary → 3 aggregator) — "confirmed" means source-authenticity validated,
+not self-declared. The tier is assigned AT INGEST and persisted as a
+structural graph property (SEC-3). Upstream feed provenance
+(`wire_service`, `original_publisher`) is tracked for EI-2 independence: a
+wire-service story syndicated across multiple outlets is NOT independent
+corroboration. Stored in the `sources` table (packages/db/src/schema/sources.ts).
+
+## T-018 — Document
+
+A single cleaned, provenance-bearing artifact produced by ingestion (FR-1.5).
+A document records `source_id` + `content_checksum` + `raw_snapshot_key` +
+fetch metadata; per-artifact provenance (`source_doc_id` + character span) is
+wired into the citation package (T-005). Documents are deduplicated by
+`content_checksum` (FR-1.3): the same content ingested twice is processed
+once. Provenance is decoupled from embeddings (AC-4): re-embedding preserves
+the citation. Distinct from `intake_documents` (the SEC-2 gate state): a
+`documents` row is the cleaned record post-ingest; `intake_documents` is the
+two-person-intake gate state. Stored in the `documents` table
+(packages/db/src/schema/documents.ts).
+
+## T-019 — Content Checksum
+
+The SHA-256 hex digest of cleaned document content (FR-1.3, PC-1a). The
+dedupe anchor for idempotent ingestion: the same document ingested twice
+produces the same checksum and is processed once. 64-char lowercase hex.
+Branded `ContentChecksum` in packages/contracts/src/ingest.ts to prevent
+transposition with `IntakeContentHash` (raw pre-clean hash) and `CorpusHash`
+(editorial-log hash chain).
+
+## T-020 — Raw Snapshot
+
+The immutable, content-addressed (SHA-256) copy of original fetched content
+(HTML/PDF bytes + fetch metadata: url, timestamp, headers) written to MinIO
+(FR-1.4, NFR-S-5). Off the public serving path. Versioned append-only bucket.
+Pointed to by `documents.raw_snapshot_key`. Branded `RawSnapshotKey` in
+packages/contracts/src/ingest.ts.
+
+## T-021 — Ingestion Job
+
+The unit of idempotent, observable, resilient ingestion work (FR-1.6,
+PC-2.4, NFR-R-1..3). `job_id = sha256(dedupe-anchor)`: re-enqueuing the same
+anchor yields the same id, so a crashed-and-retried job resumes rather than
+duplicates. Lifecycle: `pending → running → completed` (happy path) or
+`→ failed → dead_lettered` (DLQ triage). `state_run_id` is the JOIN key to
+the LangGraph checkpoint store (NFR-R-3): resume-after-crash reloads the
+graph from the last checkpoint. Stored in the `ingestion_jobs` table
+(packages/db/src/schema/ingestion-jobs.ts).
+
+## T-022 — Dedupe Anchor
+
+The stable input to the `job_id = sha256(dedupe-anchor)` hash (PC-2.4,
+FR-1.6). Composed from the fields that make a job idempotent (typically
+`content_checksum` + `source_id` + stage). Two jobs with the same anchor
+produce the same `job_id`, so BullMQ treats the second as a duplicate and
+the work runs exactly once. Branded `JobId` in packages/contracts/src/ingest.ts.

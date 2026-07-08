@@ -9,8 +9,8 @@ import type { DocumentStatus, IntakeContentHash, RetentionPolicy } from '@iip/co
  * A document cannot be extracted or indexed until two distinct operators
  * (reviewer + approver) have each signed off with an Ed25519 signature
  * over the content hash payload. The `status` column is the state-machine
- * cursor; transitions are enforced by `@iip/intake` (the gate), not by ad-hoc
- * SQL updates.
+ * cursor; transitions are enforced by `@iip/ingest` (the gate — STR-1 merged
+ * from `@iip/intake`), not by ad-hoc SQL updates.
  *
  * Nullability discipline (project-context: `.notNull()` by default): the
  * signature/sub/kid/timestamp fields are `.nullable()` because they are

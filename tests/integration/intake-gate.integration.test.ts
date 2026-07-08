@@ -18,12 +18,12 @@ import {
   createPartnerKeyRegistry,
   verifyAttestation,
   InMemoryIntakeReplayDetector,
-} from '@iip/intake';
+} from '@iip/ingest';
 import type {
   IntakeGate,
   IntakeDocument,
   ReviewInput,
-} from '@iip/intake';
+} from '@iip/ingest';
 import type { IntakeEvent } from '@iip/contracts';import {
   createKeyPair,
   createSignature,

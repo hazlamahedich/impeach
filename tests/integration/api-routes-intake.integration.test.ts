@@ -27,7 +27,7 @@ import { createVerifyJwt, createVerifyMiddleware, InMemoryReplayDetector, NoopAu
 import type { KeyRegistry, ResolvedPrincipal, RevocationChecker } from '@iip/auth';
 import { createIntakeRoutes } from '@iip/api/routes/intake';
 import type { IntakeRouteDeps } from '@iip/api/routes/intake';
-import type { IntakeDocument, IntakeGate, SignedAttestation } from '@iip/intake';
+import type { IntakeDocument, IntakeGate, SignedAttestation } from '@iip/ingest';
 
 // ─────────────────────────────────────────────────────────────────────────
 // Test fixtures (mirror jwt-auth.integration.test.ts)

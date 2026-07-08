@@ -5,7 +5,14 @@
   "type": "module",
   "scripts": {
     "build": "tsc -p tsconfig.json",
+    "dev": "tsx watch src/index.ts",
+    "start": "node dist/index.js",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "lint": "eslint src"
+  },
+  "dependencies": {
+    "@iip/config": "workspace:*",
+    "@iip/contracts": "workspace:*",
+    "ioredis": "^5.11.1"
   }
 }

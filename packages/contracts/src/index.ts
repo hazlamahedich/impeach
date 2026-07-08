@@ -156,3 +156,42 @@ export type {
   ConfigHistoryRetentionClassLiteral as ConfigHistoryRetentionClassLiteralType,
   ConfigHistoryRetentionClass as ConfigHistoryRetentionClassType,
 } from './config-history.js';
+
+// PC-1e — AGE named-graph identity for the sole Cypher seam (packages/graph/src/cypher.ts)
+export { GraphName, IIP_GRAPH } from './graph.js';
+export type { GraphName as GraphNameType } from './graph.js';
+
+// Epic 3 prep (TD3) — ingest domain contract types (FR-1.1, FR-1.3, FR-1.4, FR-1.5, FR-1.6)
+export {
+  SourceIdSchema,
+  SourceSourceTypeLiteral,
+  SourceSourceType,
+  CrawlStrategyLiteral,
+  CrawlStrategy,
+  DocumentIdSchema,
+  ContentChecksumSchema,
+  RawSnapshotKeySchema,
+  JobIdSchema,
+  JobStateLiteral,
+  JobState,
+  StateRunIdSchema,
+  IngestJobPayloadSchema,
+  INGEST_QUEUE_NAME,
+  INGEST_DLQ_NAME,
+  STAGE_COMPLETED_SUFFIX,
+} from './ingest.js';
+export type {
+  SourceId,
+  SourceSourceTypeLiteral as SourceSourceTypeLiteralType,
+  SourceSourceType as SourceSourceTypeType,
+  CrawlStrategyLiteral as CrawlStrategyLiteralType,
+  CrawlStrategy as CrawlStrategyType,
+  DocumentId,
+  ContentChecksum,
+  RawSnapshotKey,
+  JobId,
+  JobStateLiteral as JobStateLiteralType,
+  JobState as JobStateType,
+  StateRunId,
+  IngestJobPayload,
+} from './ingest.js';

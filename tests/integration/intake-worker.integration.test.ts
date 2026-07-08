@@ -16,8 +16,8 @@ import {
   createOperatorKeyRegistry,
   createPartnerKeyRegistry,
   InMemoryIntakeReplayDetector,
-} from '@iip/intake';
-import type { IntakeGate, IntakeDocument } from '@iip/intake';
+} from '@iip/ingest';
+import type { IntakeGate, IntakeDocument } from '@iip/ingest';
 import { processIntakeDocument } from '@iip/ingest-worker/worker';
 import { createKeyPair } from '@iip/test-utils';
 import type { TestKeyPair } from '@iip/test-utils';

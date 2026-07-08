@@ -39,7 +39,7 @@
     "@iip/eslint-plugin": "workspace:*",
     "@iip/eval": "workspace:*",
     "@iip/ingest-worker": "workspace:*",
-    "@iip/intake": "workspace:*",
+    "@iip/ingest": "workspace:*",
     "@iip/render": "workspace:*",
     "@iip/test-utils": "workspace:*",
     "@stryker-mutator/core": "^8",

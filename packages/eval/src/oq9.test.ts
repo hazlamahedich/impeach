@@ -17,7 +17,9 @@ import {
   TAU_DOC,
   TAU_RED,
   TAU_STRATUM_LCB,
-  BOUNDARY_TOLERANCE,
+  TAU_STRATUM_LCB_PHASE_2,
+  TAU_POINT_ESTIMATE,
+  N_MIN_PER_STRATUM,
   KAPPA_GATE_THRESHOLD,
   KAPPA_LICENSE_THRESHOLD,
   OQ9_METRICS,
@@ -92,25 +94,27 @@ describe('clopperPearsonLcb95 (AC #3 — Decimal precision at the gate boundary)
     expect(clopperPearsonLcb95(n, n)).toBeGreaterThan(0.95);
   });
 
-  it('CP-4: CP conservatism — the 0.95 floor needs 100/100 at n=100', () => {
-    // CP is EXACT (not approximate), so the lower bound is conservative: very
-    // high pass rates are required to clear a 0.95 LOWER bound at n=100:
-    //   k=95  → LCB ≈ 0.887 (FAILS)
-    //   k=97  → LCB ≈ 0.915 (FAILS)
-    //   k=99  → LCB ≈ 0.946 (FAILS — just below!)
-    //   k=100 → LCB ≈ 0.964 (PASSES — only all-pass clears at n=100)
-    // This is the well-known CP conservatism and is the reason the OQ-9 protocol
-    // requires n≥100 with the §4 power note targeting n≈250 (at n=250, k=245
-    // → LCB ≈ 0.956, which clears with headroom). A maintainer who thinks "95%
-    // accuracy clears a 0.95 floor" will be surprised here — the test documents
-    // the reality and pins the defamation-grade threshold semantics.
+  it('CP-4: CP conservatism — Phase-1 (0.90) vs Phase-2 (0.95) floor discrimination (recalibrated O-3)', () => {
+    // CP is EXACT (not approximate), so the lower bound is conservative. The
+    // recalibration (O-3, Story 2.6c) split the single unreachable 0.95 floor
+    // into a reachable Phase-1 floor (0.90) + a Phase-2 target (0.95) + a
+    // point-estimate conjunct (k/n ≥ 0.95). This test pins the discrimination:
+    //   k=95  → LCB ≈ 0.887 (FAILS Phase-1 0.90; FAILS Phase-2 0.95)
+    //   k=97  → LCB ≈ 0.915 (PASSES Phase-1 0.90; FAILS Phase-2 0.95)
+    //   k=99  → LCB ≈ 0.946 (PASSES Phase-1 0.90; FAILS Phase-2 0.95)
+    //   k=100 → LCB ≈ 0.964 (PASSES both)
+    // The point-estimate conjunct (k/n ≥ 0.95) is what now carries the "we saw
+    // ≥95% passes" leg; the LCB floor (0.90) carries the "lower bound clears"
+    // leg. Both must hold for a stratum to pass.
     expect(clopperPearsonLcb95(95, 100)).toBeCloseTo(0.887, 2);
-    expect(clopperPearsonLcb95(95, 100)).toBeLessThan(TAU_STRATUM_LCB - BOUNDARY_TOLERANCE);
+    expect(clopperPearsonLcb95(95, 100)).toBeLessThan(TAU_STRATUM_LCB); // fails Phase-1 0.90
     expect(clopperPearsonLcb95(97, 100)).toBeCloseTo(0.915, 2);
-    expect(clopperPearsonLcb95(97, 100)).toBeLessThan(TAU_STRATUM_LCB);
+    expect(clopperPearsonLcb95(97, 100)).toBeGreaterThan(TAU_STRATUM_LCB); // passes Phase-1 0.90
+    expect(clopperPearsonLcb95(97, 100)).toBeLessThan(TAU_STRATUM_LCB_PHASE_2); // fails Phase-2 0.95
     expect(clopperPearsonLcb95(99, 100)).toBeCloseTo(0.946, 2);
-    expect(clopperPearsonLcb95(99, 100)).toBeLessThan(TAU_STRATUM_LCB);
-    expect(clopperPearsonLcb95(100, 100)).toBeGreaterThan(TAU_STRATUM_LCB + BOUNDARY_TOLERANCE);
+    expect(clopperPearsonLcb95(99, 100)).toBeGreaterThan(TAU_STRATUM_LCB); // passes Phase-1 0.90
+    expect(clopperPearsonLcb95(99, 100)).toBeLessThan(TAU_STRATUM_LCB_PHASE_2); // fails Phase-2 0.95
+    expect(clopperPearsonLcb95(100, 100)).toBeGreaterThan(TAU_STRATUM_LCB_PHASE_2); // passes both
   });
 
   it('CP-5: monotonic in k (more passes → higher LCB)', () => {
@@ -316,12 +320,18 @@ describe('evaluateOQ9Grouped (AC #2 — the pass rule with pinned CI unit)', () 
     // test above proves the boundary is resolved, not a cliff.
   });
 
-  it('OQ-9: thresholds are pinned to ADR-0025 §4 values', () => {
+  it('OQ-9: thresholds are pinned to ADR-0025 §4 values (recalibrated O-3, Phase-1)', () => {
     // Pin the defamation-grade constants. A change here is a gate redefinition
     // and MUST re-open ADR-0025 §8 (threshold provenance).
+    // Recalibrated (O-3, Story 2.6c): TAU_STRATUM_LCB lowered 0.95→0.90 (Phase-1,
+    // reachable); TAU_POINT_ESTIMATE (0.95) added as a conjunct. Phase-2 target
+    // is TAU_STRATUM_LCB_PHASE_2 (0.95), applied before broad public launch.
     expect(TAU_RED).toBe(0.50);
     expect(TAU_DOC).toBe(0.90);
-    expect(TAU_STRATUM_LCB).toBe(0.95);
+    expect(TAU_STRATUM_LCB).toBe(0.90);
+    expect(TAU_STRATUM_LCB_PHASE_2).toBe(0.95);
+    expect(TAU_POINT_ESTIMATE).toBe(0.95);
+    expect(N_MIN_PER_STRATUM).toBe(30);
     expect(KAPPA_GATE_THRESHOLD).toBe(0.75);
     expect(KAPPA_LICENSE_THRESHOLD).toBe(0.70);
     expect(OQ9_METRICS).toEqual([

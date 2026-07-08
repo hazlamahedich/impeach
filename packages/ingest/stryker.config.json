@@ -1,6 +1,6 @@
 {
   "$schema": "https://raw.githubusercontent.com/StrykerMutator/stryker/master/packages/api/schema/stryker-core.json",
-  "_comment": "Story 2.3 Stryker mutation config (SEC-2, DoD-2). Run from packages/intake: npx stryker run. Targets the state machine gate + crypto verification + attestation. Threshold >=90% score. Mutation targets TC-3.1..TC-3.10 are killed by tests/integration/intake-gate.integration.test.ts (24) + intake-worker.integration.test.ts (6) + tests/contract/intake-boundary.contract.test.ts (6).",
+  "_comment": "Story 2.3 Stryker mutation config (SEC-2, DoD-2). Run from packages/ingest: npx stryker run. Targets the state machine gate + crypto verification + attestation. Threshold >=90% score. Mutation targets TC-3.1..TC-3.10 are killed by tests/integration/intake-gate.integration.test.ts (24) + intake-worker.integration.test.ts (6) + tests/contract/intake-boundary.contract.test.ts (6). STR-1: merged from packages/intake.",
   "packageManager": "pnpm",
   "reporters": ["html", "clear-text", "progress"],
   "testRunner": "vitest",

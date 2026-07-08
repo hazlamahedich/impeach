@@ -14,7 +14,7 @@ import {
   requireIntakeScope,
   errorResponse,
 } from '@iip/api/routes/intake';
-import { IntakeError } from '@iip/intake';
+import { IntakeError } from '@iip/ingest';
 import type { RoutePrincipal, IntakeRouteDeps } from '@iip/api/routes/intake';
 
 function principal(scope: string[]): RoutePrincipal {
@@ -74,9 +74,9 @@ describe('Story 2.3 — Intake route helpers (SEC-2, DoD-8)', () => {
       fn({
         loadDoc: async (id: string) => {
           calls.push(`load:${id}`);
-          return { id, status: 'staging' } as unknown as import('@iip/intake').IntakeDocument;
+          return { id, status: 'staging' } as unknown as import('@iip/ingest').IntakeDocument;
         },
-        saveDoc: async (doc: import('@iip/intake').IntakeDocument) => {
+        saveDoc: async (doc: import('@iip/ingest').IntakeDocument) => {
           calls.push(`save:${doc.id}:${doc.status}`);
         },
       });

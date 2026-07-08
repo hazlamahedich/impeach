@@ -42,6 +42,15 @@ export {
 // Story 2.10 — first concrete config knob wired to config_history (PC-2.6, AC #1).
 export { getLogLevel, setLogLevel, LOG_LEVEL_KEY, type LogLevel } from './log-level.js';
 
+// Epic 3 prep (TD4) — ingest-queue backoff config knob (PC-1d, PC-2.4, NFR-R-2).
+export {
+  getBackoff,
+  setBackoff,
+  backoffDelayMs,
+  QUEUES_BACKOFF_KEY,
+  type BackoffConfig,
+} from './queues.js';
+
 // Story 2.11 — Audit Health Client + Circuit-Breaker (ADR-0029 §5, OQ-29.6).
 //
 // The single load-bearing mechanism for the 6-process blast-radius matrix:

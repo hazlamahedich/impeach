@@ -16,7 +16,7 @@
  * @rules SEC-2, AC-6, DoD-2
  * @adr ADR-0001
  */
-import type { IntakeDocument, IntakeGate } from '@iip/intake';
+import type { IntakeDocument, IntakeGate } from '@iip/ingest';
 
 /** Principal identity the worker acts under (system/service account). */
 export interface WorkerPrincipal {
@@ -36,7 +36,7 @@ export interface WorkerPrincipal {
  *    `indexed` (idempotent).
  *
  * @returns the final (`indexed`) document
- * @throws {import('@iip/intake').IntakeError} on bypass attempt or invalid state
+ * @throws {import('@iip/ingest').IntakeError} on bypass attempt or invalid state
  *
  * @rules SEC-2, AC-6, DoD-2
  */

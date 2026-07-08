@@ -15,22 +15,30 @@
     "./routes/query": {
       "types": "./src/routes/query.ts",
       "default": "./src/routes/query.ts"
+    },
+    "./routes/rate-limit": {
+      "types": "./src/routes/rate-limit.ts",
+      "default": "./src/routes/rate-limit.ts"
     }
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
+    "dev": "tsx watch src/server.ts",
+    "start": "node dist/server.js",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "vitest run --config vitest.config.ts --passWithNoTests",
     "lint": "eslint src"
   },
   "dependencies": {
+    "@fastify/rate-limit": "^10.2.2",
     "@iip/auth": "workspace:*",
     "@iip/config": "workspace:*",
     "@iip/contracts": "workspace:*",
     "@iip/db": "workspace:*",
-    "@iip/intake": "workspace:*"
-  },
-  "devDependencies": {
-    "fastify": "^5.9.0"
+    "@iip/editorial": "workspace:*",
+    "@iip/ingest": "workspace:*",
+    "@iip/render": "workspace:*",
+    "fastify": "^5.9.0",
+    "fastify-plugin": "^5.0.1"
   }
 }
