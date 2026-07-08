@@ -181,8 +181,8 @@ development_status:
   # ─────────────────────────────────────────────────────────
   # Epic 3: Source Onboarding & Intelligence Ingestion
   # ─────────────────────────────────────────────────────────
-  epic-3: backlog
-  3-1-source-registry-confirmed-trust-tiers: backlog
+  epic-3: in-progress
+  3-1-source-registry-confirmed-trust-tiers: ready-for-dev
   3-2-lawful-access-gate: backlog
   3-3-discover-fetch-deduplicate: backlog
   3-4-immutable-raw-snapshots: backlog
