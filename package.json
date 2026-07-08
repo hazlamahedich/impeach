@@ -26,11 +26,15 @@
     "py:typecheck": "uv run --project tools/eval --directory tools/eval mypy src/eval",
     "py:test": "uv run --project tools/eval --directory tools/eval pytest",
     "py:codegen": "tsx packages/contracts/scripts/gen-pydantic.ts",
-    "eval:uv": "uv run --project tools/eval python -m eval"
+    "eval:uv": "uv run --project tools/eval python -m eval",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:report": "playwright show-report"
   },
   "devDependencies": {
     "@eslint/js": "^9.18.0",
     "@iip/api": "workspace:*",
+    "@playwright/test": "1.55.1",
     "@iip/auth": "workspace:*",
     "@iip/config": "workspace:*",
     "@iip/contracts": "workspace:*",

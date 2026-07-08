@@ -26,3 +26,28 @@ export {
   makeConfigHistoryEntry,
 } from './factories/config-history.js';
 export type { ConfigHistoryEntry } from '@iip/config';
+
+// Epic 3 — ingest domain factories (FR-1.1, FR-1.3, FR-1.5, FR-1.6)
+export {
+  asSourceId,
+  asSourceSourceType,
+  asCrawlStrategy,
+  makeSource,
+} from './factories/source.js';
+export type { TestSource } from './factories/source.js';
+
+export {
+  asDocumentId,
+  asContentChecksum,
+  asRawSnapshotKey,
+  makeDocument,
+} from './factories/document.js';
+export type { TestDocument, TestFetchMetadata } from './factories/document.js';
+
+export {
+  asJobId,
+  asJobState,
+  asStateRunId,
+  makeIngestionJob,
+} from './factories/ingestion-job.js';
+export type { TestIngestionJob, TestJobError } from './factories/ingestion-job.js';
