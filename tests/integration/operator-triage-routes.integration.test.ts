@@ -11,6 +11,7 @@
  *
  * @rules FR-1.7, SEC-1, NFR-O-1
  * @adr ADR-001
+ * @activates-in Epic 3 (Story 3.7 — createTriageRoutes handler + lawful-access re-check)
  *
  * GIVEN the operator accesses the ingestion dashboard
  * WHEN viewing the triage surface

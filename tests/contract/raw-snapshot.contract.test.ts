@@ -12,6 +12,7 @@
  *
  * @rules FR-1.4, NFR-S-5, SEC-5
  * @adr ADR-001
+ * @activates-in Epic 3 (Story 3.4 — RawSnapshotStore MinIO client)
  *
  * GIVEN a document is fetched and cleaned
  * WHEN the raw snapshot is stored

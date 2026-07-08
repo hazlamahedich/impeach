@@ -13,6 +13,7 @@
  *
  * @rules FR-1.3, SC-5, ADR-0006, ADR-0007
  * @adr ADR-001
+ * @activates-in Epic 3 (Story 3.3 — Crawler port + Firecrawl/Manual adapters + dedup)
  *
  * GIVEN a source is approved and its crawl strategy is configured
  * WHEN the discover/fetch job runs
@@ -24,7 +25,6 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { SourceSourceType, CrawlStrategy } from '@iip/contracts';
 import { makeValidContentChecksum } from '../support/helpers/ingest';
 
 // ─── RED-PHASE STUB ────────────────────────────────────────────────────────

@@ -14,6 +14,7 @@
  *
  * @rules FR-1.6, STR-3, NFR-R-1, NFR-R-2, NFR-R-3, PC-2.4
  * @adr ADR-001
+ * @activates-in Epic 3 (Story 3.6 — orchestrator.ts + LangGraph DAG + checkpoint slice)
  *
  * GIVEN ingestion jobs are running
  * WHEN a job is processed

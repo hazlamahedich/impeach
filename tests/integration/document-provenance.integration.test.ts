@@ -13,6 +13,7 @@
  *
  * @rules FR-1.5, AC-4, PC-1a, SEC-2
  * @adr ADR-001, ADR-010
+ * @activates-in Epic 3 (Story 3.5 — provenance-wiring service under packages/ingest/src/provenance/)
  *
  * GIVEN a document is ingested and stored
  * WHEN the documents table record is created

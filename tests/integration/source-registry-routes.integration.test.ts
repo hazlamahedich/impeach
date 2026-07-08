@@ -13,6 +13,7 @@
  *
  * @rules FR-1.1, SEC-1, SEC-3, EI-8
  * @adr ADR-001
+ * @activates-in Epic 3 (Story 3.1 — createSourceRoutes handler + Fastify registration)
  *
  * GIVEN the operator accesses the source registry
  * WHEN a new source is registered

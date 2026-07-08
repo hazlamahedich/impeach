@@ -12,6 +12,7 @@
  *
  * @rules FR-1.2, NFR-L-1, SEC-5, AC-11
  * @adr ADR-001, ADR-0007
+ * @activates-in Epic 3 (Story 3.2 — assessLawfulAccess gate module)
  *
  * GIVEN a source is registered for automated crawling
  * WHEN the lawful-access gate runs

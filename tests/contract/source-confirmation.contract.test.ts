@@ -20,6 +20,7 @@
  *
  * @rules FR-1.1, SEC-3, EI-8
  * @adr ADR-001
+ * @activates-in Epic 3 (Story 3.1 — SourceRegistrationSchema with confirmation-evidence refinement)
  *
  * GIVEN the operator registers a source
  * WHEN trust_tier is assigned

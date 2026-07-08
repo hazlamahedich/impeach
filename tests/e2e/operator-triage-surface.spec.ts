@@ -12,6 +12,7 @@
  *
  * @rules FR-1.7, NFR-O-1
  * @adr ADR-001
+ * @activates-in Epic 3 (Story 3.7 — /admin/ingest route + triage components)
  *
  * GIVEN the operator accesses the ingestion dashboard
  * WHEN viewing the triage surface
