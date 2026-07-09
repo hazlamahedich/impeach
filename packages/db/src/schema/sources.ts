@@ -1,4 +1,4 @@
-import { pgTable, uuid, timestamp, text, integer, boolean, uniqueIndex, index } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, timestamp, text, integer, boolean, uniqueIndex, index, check } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
 import type { SourceId, SourceSourceType, CrawlStrategy, Principal } from '@iip/contracts';
 
@@ -54,6 +54,30 @@ export const sources = pgTable(
     confirmed_by: text('confirmed_by').$type<Principal>(),
     confirmed_at: timestamp('confirmed_at', { withTimezone: true, mode: 'date' }),
     confirmation_rationale: text('confirmation_rationale'),
+    // Story 3.2 — lawful-access gate fields (FR-1.2). `crawling_disabled`
+    // defaults true (fail-closed: a source cannot be crawled until cleared by
+    // the automated check + operator confirmation/override). The check-signal
+    // fields are nullable until the first check runs; the confirmation +
+    // override provenance fields mirror the SEC-6 discipline.
+    lawful_access_status: text('lawful_access_status').$type<'pending' | 'allowed' | 'blocked'>().notNull().default('pending'),
+    lawful_access_checked_at: timestamp('lawful_access_checked_at', { withTimezone: true, mode: 'date' }),
+    robots_status: text('robots_status').$type<'allowed' | 'disallowed' | 'unreachable' | null>(),
+    paywall_detected: boolean('paywall_detected'),
+    login_required: boolean('login_required'),
+    captcha_detected: boolean('captcha_detected'),
+    // terms_forbid_scraping is NOT NULL DEFAULT false: it is a manual operator
+    // flag, honest-by-default (a source is ToS-forbidden only when explicitly
+    // marked). AC-1 — NOT auto-detected from HTML.
+    terms_forbid_scraping: boolean('terms_forbid_scraping').notNull().default(false),
+    robots_txt_content: text('robots_txt_content'),
+    lawful_access_confirmed: boolean('lawful_access_confirmed').notNull().default(false),
+    lawful_access_confirmed_by: text('lawful_access_confirmed_by').$type<Principal>(),
+    lawful_access_confirmed_at: timestamp('lawful_access_confirmed_at', { withTimezone: true, mode: 'date' }),
+    lawful_access_override: boolean('lawful_access_override').notNull().default(false),
+    lawful_access_override_by: text('lawful_access_override_by').$type<Principal>(),
+    lawful_access_override_at: timestamp('lawful_access_override_at', { withTimezone: true, mode: 'date' }),
+    lawful_access_override_rationale: text('lawful_access_override_rationale'),
+    crawling_disabled: boolean('crawling_disabled').notNull().default(true),
     created_at: timestamp('created_at', { withTimezone: true, mode: 'date' })
       .defaultNow()
       .notNull(),
@@ -70,5 +94,19 @@ export const sources = pgTable(
     confirmedIdx: index('sources_confirmed_idx').on(table.confirmed),
     // Index on trust_tier for the tier-filtered citation queries (EI-8).
     trustTierIdx: index('sources_trust_tier_idx').on(table.trust_tier),
+    // Story 3.2 — lawful-access gate indexes (FR-1.2). The status index serves
+    // the operator triage "show me all blocked sources"; the crawling_disabled
+    // index serves the crawler's pre-flight "which sources are crawlable?".
+    lawfulAccessStatusIdx: index('sources_lawful_access_status_idx').on(table.lawful_access_status),
+    crawlingDisabledIdx: index('sources_crawling_disabled_idx').on(table.crawling_disabled),
+    // CHECK constraints mirror the zod enums so DB-level drift is caught.
+    lawfulAccessStatusCheck: check(
+      'sources_lawful_access_status_check',
+      sql`${table.lawful_access_status} IN ('pending', 'allowed', 'blocked')`,
+    ),
+    robotsStatusCheck: check(
+      'sources_robots_status_check',
+      sql`${table.robots_status} IS NULL OR ${table.robots_status} IN ('allowed', 'disallowed', 'unreachable')`,
+    ),
   }),
 );

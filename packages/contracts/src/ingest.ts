@@ -162,6 +162,8 @@ export const RegisterSourcePayloadSchema = z
       .optional(),
     is_wire_service: z.boolean().default(false),
     original_publisher_id: SourceIdSchema.optional(),
+    // Story 3.2 — manual operator flag for ToS scraping prohibition (AC-1).
+    terms_forbid_scraping: z.boolean().optional(),
   })
   // REJECT `confirmed` + all unknown keys: callers cannot self-attest trust
   // (DoD-3). `.strict()` makes any unrecognized key a validation error so the
@@ -194,6 +196,8 @@ export const UpdateSourcePayloadSchema = z
       .optional(),
     is_wire_service: z.boolean().optional(),
     original_publisher_id: SourceIdSchema.nullable().optional(),
+    // Story 3.2 — manual operator flag for ToS scraping prohibition (AC-1).
+    terms_forbid_scraping: z.boolean().optional(),
   })
   .strict();
 export type UpdateSourcePayload = z.infer<typeof UpdateSourcePayloadSchema>;
@@ -238,6 +242,27 @@ export const SourceResponseSchema = z.object({
   confirmed_by: z.string().nullable(),
   confirmed_at: z.string().datetime().nullable(),
   confirmation_rationale: z.string().nullable(),
+  // Story 3.2 — lawful-access gate fields (FR-1.2). The automated check fields
+  // are nullable until the first check runs; the confirmation + override fields
+  // mirror the SEC-6 provenance discipline. `crawling_disabled` defaults true
+  // (fail-closed: a source cannot be crawled until cleared). `terms_forbid_scraping`
+  // is NOT nullable — it is a NOT NULL DEFAULT false manual operator flag (AC-1).
+  lawful_access_status: z.enum(['pending', 'allowed', 'blocked']),
+  lawful_access_checked_at: z.string().datetime().nullable(),
+  robots_status: z.enum(['allowed', 'disallowed', 'unreachable']).nullable(),
+  paywall_detected: z.boolean().nullable(),
+  login_required: z.boolean().nullable(),
+  captcha_detected: z.boolean().nullable(),
+  terms_forbid_scraping: z.boolean(),
+  robots_txt_content: z.string().nullable(),
+  lawful_access_confirmed: z.boolean(),
+  lawful_access_confirmed_by: z.string().nullable(),
+  lawful_access_confirmed_at: z.string().datetime().nullable(),
+  lawful_access_override: z.boolean(),
+  lawful_access_override_by: z.string().nullable(),
+  lawful_access_override_at: z.string().datetime().nullable(),
+  lawful_access_override_rationale: z.string().nullable(),
+  crawling_disabled: z.boolean(),
   created_at: z.string().datetime(),
   updated_at: z.string().datetime(),
 });
@@ -255,9 +280,110 @@ export const SourceListFiltersSchema = z
     source_type: SourceSourceTypeLiteral.optional(),
     trust_tier: z.coerce.number().int().refine(isValidTrustTier).optional(),
     confirmed: z.coerce.boolean().optional(),
+    lawful_access_status: z.enum(['pending', 'allowed', 'blocked']).optional(),
+    crawling_disabled: z.coerce.boolean().optional(),
   })
   .strip();
 export type SourceListFilters = z.infer<typeof SourceListFiltersSchema>;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Lawful-access gate (FR-1.2, Story 3.2 — the pure decision function's I/O)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * LawfulAccessInputSchema — the pre-computed detection signals fed to the pure
+ * `assessLawfulAccess` decision function (Story 3.2).
+ *
+ * The gate is a pure function over these signals; the HTTP-fetching + HTML-
+ * scanning logic that POPULATES them lives in Story 3.3's fetch adapter. This
+ * decoupling keeps the gate trivially testable + free of network I/O. The
+ * signals cover the five AC-1 checks:
+ *  - `robotsCheck.allowed` — does the source's robots.txt permit `User-Agent: *`?
+ *  - `paywallDetected` — paywall indicators (Piano / subscription blockers)?
+ *  - `loginRequired` — HTML forms with `type="password"` / auth gates?
+ *  - `captchaRequired` — Turnstile / ReCAPTCHA / DataDome challenge scripts?
+ *  - `tosForbidden` — the manual operator flag for ToS scraping prohibition
+ *    (NOT auto-detected from HTML; read from the persisted source record).
+ *
+ * `crawlDelayMs` is the robots.txt `Crawl-delay` directive (null when absent);
+ * recorded for provenance but does not affect the allowed/blocked decision.
+ *
+ * @rules FR-1.2, SEC-5, AC-1
+ */
+export const LawfulAccessInputSchema = z
+  .object({
+    robotsCheck: z.object({
+      allowed: z.boolean(),
+      crawlDelayMs: z.number().nullable(),
+    }),
+    paywallDetected: z.boolean(),
+    loginRequired: z.boolean(),
+    captchaRequired: z.boolean(),
+    tosForbidden: z.boolean(),
+  })
+  .strict();
+export type LawfulAccessInput = z.infer<typeof LawfulAccessInputSchema>;
+
+/**
+ * LawfulAccessCheckResultSchema — the persisted shape of a completed automated
+ * lawful-access check (AC-1). The route handler writes this to the source row
+ * via `repo.saveLawfulAccessCheckResult`.
+ *
+ * `robots_status` is the three-valued robots.txt outcome (`'allowed'` /
+ * `'disallowed'` / `'unreachable'`); an unreachable robots.txt is treated as a
+ * block (AC-7, fail-closed). `robots_txt_content` captures the fetched
+ * robots.txt body for forensic provenance (null on unreachable). `recorded_at`
+ * is the ISO-8601 UTC timestamp the check ran.
+ *
+ * @rules FR-1.2, AC-1, AC-7
+ */
+export const LawfulAccessCheckResultSchema = z.object({
+  robots_status: z.enum(['allowed', 'disallowed', 'unreachable']),
+  paywall_detected: z.boolean(),
+  login_required: z.boolean(),
+  captcha_detected: z.boolean(),
+  terms_forbid_scraping: z.boolean(),
+  robots_txt_content: z.string().nullable(),
+  recorded_at: z.string().datetime(),
+});
+export type LawfulAccessCheckResult = z.infer<typeof LawfulAccessCheckResultSchema>;
+
+/**
+ * ConfirmLawfulAccessPayloadSchema — the request body for
+ * `POST /sources/:id/lawful-access/confirm` (AC-3).
+ *
+ * `confirmed` toggles operator confirmation; `rationale` is an optional free-
+ * text note. Confirmation is not a backdoor: confirming a blocked source is
+ * rejected with 409 (AC-3); blocked sources must go through the override
+ * workflow (AC-4).
+ *
+ * @rules FR-1.2, AC-3
+ */
+export const ConfirmLawfulAccessPayloadSchema = z
+  .object({
+    confirmed: z.boolean(),
+    rationale: z.string().optional(),
+  })
+  .strict();
+export type ConfirmLawfulAccessPayload = z.infer<typeof ConfirmLawfulAccessPayloadSchema>;
+
+/**
+ * OverrideLawfulAccessPayloadSchema — the request body for
+ * `POST /sources/:id/lawful-access/override` (AC-4).
+ *
+ * `rationale` is REQUIRED + non-empty: an override bypasses a lawful-access
+ * block, so a non-empty justification MUST be recorded and appended to the
+ * hash-chained editorial log (AC-11). An empty rationale is a validation
+ * error at this schema layer.
+ *
+ * @rules FR-1.2, AC-4, AC-11
+ */
+export const OverrideLawfulAccessPayloadSchema = z
+  .object({
+    rationale: z.string().min(1),
+  })
+  .strict();
+export type OverrideLawfulAccessPayload = z.infer<typeof OverrideLawfulAccessPayloadSchema>;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Documents (FR-1.3, FR-1.5 — per-artifact provenance + content_checksum dedupe)

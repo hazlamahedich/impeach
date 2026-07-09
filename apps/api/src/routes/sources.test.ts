@@ -18,6 +18,7 @@
 import { describe, it, expect } from 'vitest';
 import Fastify from 'fastify';
 import { createSourceRoutes } from './sources.js';
+import type { SourceRouteDeps, LawfulAccessSignalFetcher } from './sources.js';
 import type { SourceRegistryRepo } from '@iip/db';
 import type { SourceResponse } from '@iip/contracts';
 import type { ResolvedPrincipal } from '@iip/auth';
@@ -37,9 +38,35 @@ function makeRepo(overrides: Partial<{
   findByUrlImpl: SourceRegistryRepo['findByUrl'];
   updateImpl: SourceRegistryRepo['update'];
   listImpl: SourceRegistryRepo['list'];
+  saveLawfulAccessCheckResultImpl: SourceRegistryRepo['saveLawfulAccessCheckResult'];
+  confirmLawfulAccessImpl: SourceRegistryRepo['confirmLawfulAccess'];
+  overrideLawfulAccessImpl: SourceRegistryRepo['overrideLawfulAccess'];
 }> = {}): SourceRegistryRepo & { store: Map<string, SourceResponse> } {
   const store = new Map<string, SourceResponse>();
   const urlIndex = new Map<string, string>();
+
+  /** Default lawful-access fields for a freshly-created source (Story 3.2). */
+  function defaultLawfulAccessFields() {
+    return {
+      lawful_access_status: 'pending' as SourceResponse['lawful_access_status'],
+      lawful_access_checked_at: null,
+      robots_status: null,
+      paywall_detected: null,
+      login_required: null,
+      captcha_detected: null,
+      terms_forbid_scraping: false,
+      robots_txt_content: null,
+      lawful_access_confirmed: false,
+      lawful_access_confirmed_by: null,
+      lawful_access_confirmed_at: null,
+      lawful_access_override: false,
+      lawful_access_override_by: null,
+      lawful_access_override_at: null,
+      lawful_access_override_rationale: null,
+      crawling_disabled: true,
+    };
+  }
+
   return {
     store,
     async create(input) {
@@ -55,7 +82,9 @@ function makeRepo(overrides: Partial<{
         crawl_strategy: input.crawl_strategy, trust_tier: input.trust_tier ?? 1,
         confirmed: false, confirmation_status: 'tentative', is_wire_service: input.is_wire_service,
         original_publisher_id: input.original_publisher_id ?? null, confirmed_by: null,
-        confirmed_at: null, confirmation_rationale: null, created_at: now, updated_at: now,
+        confirmed_at: null, confirmation_rationale: null,
+        ...defaultLawfulAccessFields(),
+        created_at: now, updated_at: now,
       };
       store.set(id, row);
       urlIndex.set(normalized, id);
@@ -97,6 +126,22 @@ function makeRepo(overrides: Partial<{
         confirmed_by: existing.confirmed_by,
         confirmed_at: existing.confirmed_at,
         confirmation_rationale: existing.confirmation_rationale,
+        lawful_access_status: existing.lawful_access_status,
+        lawful_access_checked_at: existing.lawful_access_checked_at,
+        robots_status: existing.robots_status,
+        paywall_detected: existing.paywall_detected,
+        login_required: existing.login_required,
+        captcha_detected: existing.captcha_detected,
+        terms_forbid_scraping: existing.terms_forbid_scraping,
+        robots_txt_content: existing.robots_txt_content,
+        lawful_access_confirmed: existing.lawful_access_confirmed,
+        lawful_access_confirmed_by: existing.lawful_access_confirmed_by,
+        lawful_access_confirmed_at: existing.lawful_access_confirmed_at,
+        lawful_access_override: existing.lawful_access_override,
+        lawful_access_override_by: existing.lawful_access_override_by,
+        lawful_access_override_at: existing.lawful_access_override_at,
+        lawful_access_override_rationale: existing.lawful_access_override_rationale,
+        crawling_disabled: existing.crawling_disabled,
         created_at: existing.created_at,
         updated_at: new Date().toISOString(),
       };
@@ -109,8 +154,61 @@ function makeRepo(overrides: Partial<{
         if (filters.source_type !== undefined && s.source_type !== filters.source_type) return false;
         if (filters.trust_tier !== undefined && s.trust_tier !== filters.trust_tier) return false;
         if (filters.confirmed !== undefined && s.confirmed !== filters.confirmed) return false;
+        if (filters.lawful_access_status !== undefined && s.lawful_access_status !== filters.lawful_access_status) return false;
+        if (filters.crawling_disabled !== undefined && s.crawling_disabled !== filters.crawling_disabled) return false;
         return true;
       });
+    },
+    async saveLawfulAccessCheckResult(id, result, status) {
+      if (overrides.saveLawfulAccessCheckResultImpl) return overrides.saveLawfulAccessCheckResultImpl(id, result, status);
+      const existing = store.get(id);
+      if (existing === undefined) return null;
+      const updated: SourceResponse = {
+        ...existing,
+        lawful_access_status: status,
+        lawful_access_checked_at: result.recorded_at,
+        robots_status: result.robots_status,
+        paywall_detected: result.paywall_detected,
+        login_required: result.login_required,
+        captcha_detected: result.captcha_detected,
+        robots_txt_content: result.robots_txt_content,
+        crawling_disabled: true,
+        updated_at: new Date().toISOString(),
+      };
+      store.set(id, updated);
+      return updated;
+    },
+    async confirmLawfulAccess(id, confirmed, _rationale, operatorSub) {
+      if (overrides.confirmLawfulAccessImpl) return overrides.confirmLawfulAccessImpl(id, confirmed, _rationale, operatorSub);
+      const existing = store.get(id);
+      if (existing === undefined) return null;
+      const enableCrawling = confirmed && existing.lawful_access_status === 'allowed';
+      const updated: SourceResponse = {
+        ...existing,
+        lawful_access_confirmed: confirmed,
+        lawful_access_confirmed_by: operatorSub,
+        lawful_access_confirmed_at: new Date().toISOString(),
+        crawling_disabled: !enableCrawling,
+        updated_at: new Date().toISOString(),
+      };
+      store.set(id, updated);
+      return updated;
+    },
+    async overrideLawfulAccess(id, rationale, operatorSub) {
+      if (overrides.overrideLawfulAccessImpl) return overrides.overrideLawfulAccessImpl(id, rationale, operatorSub);
+      const existing = store.get(id);
+      if (existing === undefined) return null;
+      const updated: SourceResponse = {
+        ...existing,
+        lawful_access_override: true,
+        lawful_access_override_by: operatorSub,
+        lawful_access_override_at: new Date().toISOString(),
+        lawful_access_override_rationale: rationale,
+        crawling_disabled: false,
+        updated_at: new Date().toISOString(),
+      };
+      store.set(id, updated);
+      return updated;
     },
   };
 }
@@ -132,7 +230,9 @@ function seedSource(overrides: Partial<Parameters<SourceRegistryRepo['create']>[
 async function buildApp(
   repo: SourceRegistryRepo,
   scope: string[] = ['sources:write', 'sources:read'],
-  opts: { authenticated?: boolean } = {},
+  opts: {
+    authenticated?: boolean;
+  } & Partial<SourceRouteDeps> = {},
 ): Promise<ReturnType<typeof Fastify>> {
   const app = Fastify();
   if (opts.authenticated !== false) {
@@ -143,7 +243,9 @@ async function buildApp(
       } as unknown as ResolvedPrincipal;
     });
   }
-  await app.register(createSourceRoutes({ repo }));
+  const { authenticated: _a, ...routeDeps } = opts;
+  void _a;
+  await app.register(createSourceRoutes({ repo, ...routeDeps }));
   return app;
 }
 
@@ -526,6 +628,270 @@ describe('PATCH /sources/:id', () => {
     const app = await buildApp(makeRepo());
     const res = await app.inject({ method: 'PATCH', url: '/sources/not-a-uuid', payload: { trust_tier: 1 } });
     expect(res.statusCode).toBe(404);
+    await app.close();
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Story 3.2 — Lawful-access gate endpoints (check / confirm / override)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** A stub signal fetcher returning controllable signals (AC-1 check endpoint). */
+function makeStubFetcher(opts: {
+  robotsStatus?: 'allowed' | 'disallowed' | 'unreachable';
+  paywall?: boolean;
+  login?: boolean;
+  captcha?: boolean;
+}): LawfulAccessSignalFetcher {
+  return async () => ({
+    robotsStatus: opts.robotsStatus ?? 'allowed',
+    robotsAllowed: (opts.robotsStatus ?? 'allowed') === 'allowed',
+    robotsCrawlDelayMs: null,
+    robotsTxtContent: (opts.robotsStatus ?? 'allowed') === 'unreachable' ? null : 'User-agent: *\nAllow: /',
+    paywallDetected: opts.paywall ?? false,
+    loginRequired: opts.login ?? false,
+    captchaRequired: opts.captcha ?? false,
+  });
+}
+
+describe('POST /sources/:id/lawful-access/check (AC-1, AC-6, AC-7)', () => {
+  it('checks a public source → 200 with lawful_access_status=allowed', async () => {
+    const repo = makeRepo();
+    const created = await repo.create(seedSource({ url: 'https://senate.gov/press' }));
+    const app = await buildApp(repo, ['sources:write'], { fetchSignals: makeStubFetcher({ robotsStatus: 'allowed' }) });
+    const res = await app.inject({ method: 'POST', url: `/sources/${created.id}/lawful-access/check` });
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body) as SourceResponse;
+    expect(body.lawful_access_status).toBe('allowed');
+    await app.close();
+  });
+
+  it('checks a blocked source (paywall) → 200 with lawful_access_status=blocked', async () => {
+    const repo = makeRepo();
+    const created = await repo.create(seedSource({}));
+    const app = await buildApp(repo, ['sources:write'], { fetchSignals: makeStubFetcher({ paywall: true }) });
+    const res = await app.inject({ method: 'POST', url: `/sources/${created.id}/lawful-access/check` });
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body) as SourceResponse;
+    expect(body.lawful_access_status).toBe('blocked');
+    expect(body.paywall_detected).toBe(true);
+    await app.close();
+  });
+
+  it('returns 400 for a manual crawl strategy (AC-6)', async () => {
+    const repo = makeRepo();
+    const created = await repo.create(seedSource({ crawl_strategy: 'manual' }));
+    const app = await buildApp(repo, ['sources:write'], { fetchSignals: makeStubFetcher({}) });
+    const res = await app.inject({ method: 'POST', url: `/sources/${created.id}/lawful-access/check` });
+    expect(res.statusCode).toBe(400);
+    expect((JSON.parse(res.body) as { error: { code: string } }).error.code).toBe('bad_request');
+    await app.close();
+  });
+
+  it('returns 404 when the source does not exist (AC-5)', async () => {
+    const app = await buildApp(makeRepo(), ['sources:write'], { fetchSignals: makeStubFetcher({}) });
+    const res = await app.inject({ method: 'POST', url: '/sources/22222222-2222-4222-8222-222222222222/lawful-access/check' });
+    expect(res.statusCode).toBe(404);
+    await app.close();
+  });
+
+  it('returns 401 when unauthenticated (SEC-1)', async () => {
+    const repo = makeRepo();
+    const created = await repo.create(seedSource({}));
+    const app = await buildApp(repo, ['sources:write'], { authenticated: false, fetchSignals: makeStubFetcher({}) });
+    const res = await app.inject({ method: 'POST', url: `/sources/${created.id}/lawful-access/check` });
+    expect(res.statusCode).toBe(401);
+    await app.close();
+  });
+
+  it('returns 403 without sources:write scope (SEC-1)', async () => {
+    const repo = makeRepo();
+    const created = await repo.create(seedSource({}));
+    const app = await buildApp(repo, ['sources:read'], { fetchSignals: makeStubFetcher({}) });
+    const res = await app.inject({ method: 'POST', url: `/sources/${created.id}/lawful-access/check` });
+    expect(res.statusCode).toBe(403);
+    await app.close();
+  });
+
+  it('returns 404 for a malformed id (not a UUID)', async () => {
+    const app = await buildApp(makeRepo(), ['sources:write'], { fetchSignals: makeStubFetcher({}) });
+    const res = await app.inject({ method: 'POST', url: '/sources/not-a-uuid/lawful-access/check' });
+    expect(res.statusCode).toBe(404);
+    await app.close();
+  });
+});
+
+describe('POST /sources/:id/lawful-access/confirm (AC-3)', () => {
+  it('confirms an allowed source → 200 + crawling_disabled=false', async () => {
+    const repo = makeRepo();
+    const created = await repo.create(seedSource({}));
+    await repo.saveLawfulAccessCheckResult(created.id, {
+      robots_status: 'allowed', paywall_detected: false, login_required: false,
+      captcha_detected: false, terms_forbid_scraping: false, robots_txt_content: 'x',
+      recorded_at: new Date().toISOString(),
+    }, 'allowed');
+    const app = await buildApp(repo, ['sources:write']);
+    const res = await app.inject({
+      method: 'POST', url: `/sources/${created.id}/lawful-access/confirm`,
+      payload: { confirmed: true },
+    });
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body) as SourceResponse;
+    expect(body.lawful_access_confirmed).toBe(true);
+    expect(body.crawling_disabled).toBe(false);
+    await app.close();
+  });
+
+  it('rejects confirming a blocked source → 409 (AC-3)', async () => {
+    const repo = makeRepo();
+    const created = await repo.create(seedSource({}));
+    await repo.saveLawfulAccessCheckResult(created.id, {
+      robots_status: 'allowed', paywall_detected: true, login_required: false,
+      captcha_detected: false, terms_forbid_scraping: false, robots_txt_content: 'x',
+      recorded_at: new Date().toISOString(),
+    }, 'blocked');
+    const app = await buildApp(repo, ['sources:write']);
+    const res = await app.inject({
+      method: 'POST', url: `/sources/${created.id}/lawful-access/confirm`,
+      payload: { confirmed: true },
+    });
+    expect(res.statusCode).toBe(409);
+    expect((JSON.parse(res.body) as { error: { code: string } }).error.code).toBe('conflict');
+    await app.close();
+  });
+
+  it('returns 404 when the source does not exist (AC-5)', async () => {
+    const app = await buildApp(makeRepo(), ['sources:write']);
+    const res = await app.inject({
+      method: 'POST', url: '/sources/22222222-2222-4222-8222-222222222222/lawful-access/confirm',
+      payload: { confirmed: true },
+    });
+    expect(res.statusCode).toBe(404);
+    await app.close();
+  });
+
+  it('returns 400 for an invalid payload (missing confirmed)', async () => {
+    const repo = makeRepo();
+    const created = await repo.create(seedSource({}));
+    const app = await buildApp(repo, ['sources:write']);
+    const res = await app.inject({
+      method: 'POST', url: `/sources/${created.id}/lawful-access/confirm`,
+      payload: { rationale: 'x' },
+    });
+    expect(res.statusCode).toBe(400);
+    await app.close();
+  });
+});
+
+describe('POST /sources/:id/lawful-access/override (AC-4, AC-8, AC-11)', () => {
+  it('overrides a blocked source → 200 + crawling_disabled=false', async () => {
+    const repo = makeRepo();
+    const created = await repo.create(seedSource({}));
+    await repo.saveLawfulAccessCheckResult(created.id, {
+      robots_status: 'allowed', paywall_detected: true, login_required: false,
+      captcha_detected: false, terms_forbid_scraping: false, robots_txt_content: 'x',
+      recorded_at: new Date().toISOString(),
+    }, 'blocked');
+    const app = await buildApp(repo, ['sources:write']);
+    const res = await app.inject({
+      method: 'POST', url: `/sources/${created.id}/lawful-access/override`,
+      payload: { rationale: 'FOI grant #1234' },
+    });
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body) as SourceResponse;
+    expect(body.lawful_access_override).toBe(true);
+    expect(body.lawful_access_override_rationale).toBe('FOI grant #1234');
+    expect(body.crawling_disabled).toBe(false);
+    await app.close();
+  });
+
+  it('rejects override on a never-checked source → 400 (AC-4)', async () => {
+    const repo = makeRepo();
+    const created = await repo.create(seedSource({}));
+    const app = await buildApp(repo, ['sources:write']);
+    const res = await app.inject({
+      method: 'POST', url: `/sources/${created.id}/lawful-access/override`,
+      payload: { rationale: 'bypass' },
+    });
+    expect(res.statusCode).toBe(400);
+    expect((JSON.parse(res.body) as { error: { message: string } }).error.message).toContain('check');
+    await app.close();
+  });
+
+  it('rejects override on an allowed non-disabled source → 400 (AC-8)', async () => {
+    const repo = makeRepo();
+    const created = await repo.create(seedSource({}));
+    await repo.saveLawfulAccessCheckResult(created.id, {
+      robots_status: 'allowed', paywall_detected: false, login_required: false,
+      captcha_detected: false, terms_forbid_scraping: false, robots_txt_content: 'x',
+      recorded_at: new Date().toISOString(),
+    }, 'allowed');
+    await repo.confirmLawfulAccess(created.id, true, null, 'op');
+    const app = await buildApp(repo, ['sources:write']);
+    const res = await app.inject({
+      method: 'POST', url: `/sources/${created.id}/lawful-access/override`,
+      payload: { rationale: 'bypass' },
+    });
+    expect(res.statusCode).toBe(400);
+    expect((JSON.parse(res.body) as { error: { message: string } }).error.message).toContain('blocked');
+    await app.close();
+  });
+
+  it('returns 404 when the source does not exist (AC-5)', async () => {
+    const app = await buildApp(makeRepo(), ['sources:write']);
+    const res = await app.inject({
+      method: 'POST', url: '/sources/22222222-2222-4222-8222-222222222222/lawful-access/override',
+      payload: { rationale: 'x' },
+    });
+    expect(res.statusCode).toBe(404);
+    await app.close();
+  });
+
+  it('returns 400 for an empty rationale', async () => {
+    const repo = makeRepo();
+    const created = await repo.create(seedSource({}));
+    await repo.saveLawfulAccessCheckResult(created.id, {
+      robots_status: 'allowed', paywall_detected: true, login_required: false,
+      captcha_detected: false, terms_forbid_scraping: false, robots_txt_content: 'x',
+      recorded_at: new Date().toISOString(),
+    }, 'blocked');
+    const app = await buildApp(repo, ['sources:write']);
+    const res = await app.inject({
+      method: 'POST', url: `/sources/${created.id}/lawful-access/override`,
+      payload: { rationale: '' },
+    });
+    expect(res.statusCode).toBe(400);
+    await app.close();
+  });
+});
+
+describe('GET /sources — lawful-access filters (AC-9)', () => {
+  it('filters by lawful_access_status', async () => {
+    const repo = makeRepo();
+    const a = await repo.create(seedSource({ url: 'https://a.example.com' }));
+    const b = await repo.create(seedSource({ url: 'https://b.example.com' }));
+    await repo.saveLawfulAccessCheckResult(b.id, {
+      robots_status: 'allowed', paywall_detected: true, login_required: false,
+      captcha_detected: false, terms_forbid_scraping: false, robots_txt_content: 'x',
+      recorded_at: new Date().toISOString(),
+    }, 'blocked');
+    const app = await buildApp(repo, ['sources:read']);
+    const res = await app.inject({ method: 'GET', url: '/sources?lawful_access_status=blocked' });
+    expect(res.statusCode).toBe(200);
+    const rows = JSON.parse(res.body) as SourceResponse[];
+    expect(rows.every((s) => s.lawful_access_status === 'blocked')).toBe(true);
+    void a;
+    await app.close();
+  });
+
+  it('filters by crawling_disabled', async () => {
+    const repo = makeRepo();
+    await repo.create(seedSource({ url: 'https://a.example.com' }));
+    const app = await buildApp(repo, ['sources:read']);
+    const res = await app.inject({ method: 'GET', url: '/sources?crawling_disabled=true' });
+    expect(res.statusCode).toBe(200);
+    const rows = JSON.parse(res.body) as SourceResponse[];
+    expect(rows.every((s) => s.crawling_disabled)).toBe(true);
     await app.close();
   });
 });

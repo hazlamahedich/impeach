@@ -43,6 +43,13 @@
       "when": 1751731200000,
       "tag": "0005_sources_deferred_fields",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1751817600000,
+      "tag": "0006_lawful_access_gate_fields",
+      "breakpoints": true
     }
   ]
 }

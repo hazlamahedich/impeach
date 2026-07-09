@@ -1,163 +1,187 @@
 /**
- * Story 3.2 — Lawful-Access Gate contract test (ATDD RED phase).
+ * Story 3.2 — Lawful-Access Gate contract test (ATDD GREEN).
  *
  * The lawful-access gate decides whether a source may be crawled automatically.
- * It has NO implementation yet — this suite is RED by design (describe.skip)
- * until Story 3.2 ships the gate module under `packages/ingest/src/access/`.
- *
- * The gate is defamation-adjacent: crawling a paywalled / ToS-forbidden source
- * can contaminate the corpus with unlawfully-obtained evidence, undermining
- * every downstream citation. Hence the gate is a T1 invariant and the "disable,
+ * It is defamation-adjacent: crawling a paywalled / ToS-forbidden source can
+ * contaminate the corpus with unlawfully-obtained evidence, undermining every
+ * downstream citation. Hence the gate is a T1 invariant and the "disable,
  * never bypass" property is mechanically enforced here.
  *
- * @rules FR-1.2, NFR-L-1, SEC-5, AC-11
- * @adr ADR-001, ADR-0007
- * @activates-in Epic 3 (Story 3.2 — assessLawfulAccess gate module)
+ * Activated in Story 3.2: the gate module `@iip/ingest/access/lawful-access-gate`
+ * ships `assessLawfulAccess` (pure decision) + `overrideDisable` (AC-11 log
+ * entry builder). This suite locks the decision matrix + override contract.
  *
- * GIVEN a source is registered for automated crawling
- * WHEN the lawful-access gate runs
- * THEN public sources are cleared for crawl
- *   AND paywall/login/CAPTCHA/ToS-forbidden sources are DISABLED (never bypassed)
- *   AND robots.txt directives are respected (NFR-L-1)
- *   AND the gate result is recorded with timestamp + operator confirmation
- *   AND a disabled source can be overridden only with AC-11-logged justification
+ * @rules FR-1.2, NFR-L-1, SEC-5, AC-1, AC-4, AC-11
+ * @adr ADR-0001, ADR-0007
  */
 
 import { describe, it, expect } from 'vitest';
-import { SourceSourceType, CrawlStrategy } from '@iip/contracts';
+import { assessLawfulAccess, overrideDisable } from '@iip/ingest/access/lawful-access-gate';
+import { SourceResponseSchema, EditorialLogEvent } from '@iip/contracts';
 
-// ─── RED-PHASE STUB ────────────────────────────────────────────────────────
-// Story 3.2 has not shipped `assessLawfulAccess` yet. We dynamically import so
-// the suite COLLECTS without failing. Once the gate module lands, remove
-// `describe.skip` and the dynamic-import wrapper.
-async function loadGate() {
-  // Variable specifier so Vite cannot statically resolve a subpath absent from
-  // the package `exports` map (Story 3.2 module not shipped yet). The catch
-  // keeps the suite GREEN at collection; describe.skip quarantines the body.
-  const specifier = '@iip/ingest/access/lawful-access-gate';
-  return import(specifier).catch(() => null);
-}
+// ─────────────────────────────────────────────────────────────────────────────
+// Helpers
+// ─────────────────────────────────────────────────────────────────────────────
 
-describe.skip('Story 3.2 — Lawful-Access Gate contract (ATDD RED)', () => {
+const SOURCE_ID = '11111111-1111-4111-8111-111111111111' as never; // branded SourceId
+
+const ALLOWED_INPUT = {
+  robotsCheck: { allowed: true, crawlDelayMs: null },
+  paywallDetected: false,
+  loginRequired: false,
+  captchaRequired: false,
+  tosForbidden: false,
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// assessLawfulAccess — decision matrix
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('Story 3.2 — Lawful-Access Gate contract', () => {
   // ─────────────────────────────────────────────────────────────────────────
   // POSITIVE: public source cleared for crawl (FR-1.2)
   // ─────────────────────────────────────────────────────────────────────────
 
-  it('[P0] LA-1: a public source (no paywall, robots allow) → decision: ALLOW', async () => {
-    const gate = await loadGate();
-    // Given: a public government source whose robots.txt allows crawling.
-    const input = {
-      source: {
-        id: 'src-allow-001',
-        url: 'https://www.senate.gov/press/releases.rss',
-        source_type: SourceSourceType.enum.press_release,
-        crawl_strategy: CrawlStrategy.enum.rss,
-      },
-      robotsCheck: { allowed: true, crawlDelayMs: null },
-      paywallDetected: false,
-      loginRequired: false,
-      captchaRequired: false,
-      tosForbidden: false,
-    };
-    // When: the gate assesses lawful access.
-    const result = gate?.assessLawfulAccess(input);
-    // Then: the decision is ALLOW with a recorded timestamp.
-    expect(result?.decision).toBe('allow');
-    expect(result?.reason).toBe('public_source_robots_allowed');
-    expect(result?.recordedAt).toBeInstanceOf(Date);
+  it('[P0] LA-1: a public source (no paywall, robots allow) → decision: allowed', () => {
+    const result = assessLawfulAccess(ALLOWED_INPUT);
+    expect(result.decision).toBe('allowed');
+    expect(result.reason).toBe('public_source_robots_allowed');
+    expect(result.recordedAt).toBeInstanceOf(Date);
   });
 
   // ─────────────────────────────────────────────────────────────────────────
   // NEGATIVE: disable, never bypass (FR-1.2 — the core property)
   // ─────────────────────────────────────────────────────────────────────────
 
-  it('[P0] LA-2: a paywalled source → decision: DISABLE (never bypass)', async () => {
-    const gate = await loadGate();
-    const input = {
-      source: { id: 'src-paywall', url: 'https://paywalled.example.com', source_type: SourceSourceType.enum.media, crawl_strategy: CrawlStrategy.enum.api },
-      robotsCheck: { allowed: true, crawlDelayMs: null },
-      paywallDetected: true,
-      loginRequired: false,
-      captchaRequired: false,
-      tosForbidden: false,
-    };
-    const result = gate?.assessLawfulAccess(input);
-    expect(result?.decision).toBe('disable');
-    expect(result?.reason).toContain('paywall');
+  it('[P0] LA-2: a paywalled source → decision: disable (never bypass)', () => {
+    const result = assessLawfulAccess({ ...ALLOWED_INPUT, paywallDetected: true });
+    expect(result.decision).toBe('disable');
+    expect(result.reason).toContain('paywall');
   });
 
-  it('[P0] LA-3: a login-required source → decision: DISABLE', async () => {
-    const gate = await loadGate();
-    const input = {
-      source: { id: 'src-login', url: 'https://login.example.com', source_type: SourceSourceType.enum.media, crawl_strategy: CrawlStrategy.enum.list_page },
-      robotsCheck: { allowed: true, crawlDelayMs: null },
-      paywallDetected: false,
-      loginRequired: true,
-      captchaRequired: false,
-      tosForbidden: false,
-    };
-    const result = gate?.assessLawfulAccess(input);
-    expect(result?.decision).toBe('disable');
-    expect(result?.reason).toContain('login');
+  it('[P0] LA-3: a login-required source → decision: disable', () => {
+    const result = assessLawfulAccess({ ...ALLOWED_INPUT, loginRequired: true });
+    expect(result.decision).toBe('disable');
+    expect(result.reason).toContain('login');
   });
 
-  it('[P0] LA-4: a CAPTCHA-protected source → decision: DISABLE', async () => {
-    const gate = await loadGate();
-    const input = {
-      source: { id: 'src-captcha', url: 'https://captcha.example.com', source_type: SourceSourceType.enum.government, crawl_strategy: CrawlStrategy.enum.sitemap },
-      robotsCheck: { allowed: true, crawlDelayMs: null },
-      paywallDetected: false,
-      loginRequired: false,
-      captchaRequired: true,
-      tosForbidden: false,
-    };
-    const result = gate?.assessLawfulAccess(input);
-    expect(result?.decision).toBe('disable');
-    expect(result?.reason).toContain('captcha');
+  it('[P0] LA-4: a CAPTCHA-protected source → decision: disable', () => {
+    const result = assessLawfulAccess({ ...ALLOWED_INPUT, captchaRequired: true });
+    expect(result.decision).toBe('disable');
+    expect(result.reason).toContain('captcha');
   });
 
-  it('[P0] LA-5: a robots.txt-disallowed path → decision: DISABLE (NFR-L-1)', async () => {
-    const gate = await loadGate();
-    const input = {
-      source: { id: 'src-robots', url: 'https://blocked.example.com/secret', source_type: SourceSourceType.enum.media, crawl_strategy: CrawlStrategy.enum.rss },
+  it('[P0] LA-5: a robots.txt-disallowed path → decision: disable (NFR-L-1)', () => {
+    const result = assessLawfulAccess({
+      ...ALLOWED_INPUT,
       robotsCheck: { allowed: false, crawlDelayMs: null },
-      paywallDetected: false,
-      loginRequired: false,
-      captchaRequired: false,
-      tosForbidden: false,
-    };
-    const result = gate?.assessLawfulAccess(input);
-    expect(result?.decision).toBe('disable');
-    expect(result?.reason).toContain('robots');
+    });
+    expect(result.decision).toBe('disable');
+    expect(result.reason).toContain('robots');
+  });
+
+  it('[P0] LA-7: a ToS-forbidden source → decision: disable', () => {
+    const result = assessLawfulAccess({ ...ALLOWED_INPUT, tosForbidden: true });
+    expect(result.decision).toBe('disable');
+    expect(result.reason).toBe('tos_forbidden');
+  });
+
+  it('[P1] LA-8: robots.txt unreachable → decision: disable (fail-closed)', () => {
+    // An unreachable robots.txt maps to robotsAllowed=false (AC-7 fail-closed);
+    // the pure gate sees allowed=false and disables via robots_disallowed.
+    const result = assessLawfulAccess({
+      ...ALLOWED_INPUT,
+      robotsCheck: { allowed: false, crawlDelayMs: null },
+    });
+    expect(result.decision).toBe('disable');
+    expect(result.reason).toBe('robots_disallowed');
   });
 
   // ─────────────────────────────────────────────────────────────────────────
   // OVERRIDE: AC-11 editorial-log requirement (FR-1.2 manual override)
   // ─────────────────────────────────────────────────────────────────────────
 
-  it('[P1] LA-6: override of a disabled source requires AC-11 justification (no silent bypass)', async () => {
-    const gate = await loadGate();
-    const input = {
-      source: { id: 'src-override', url: 'https://tos-forbidden.example.com', source_type: SourceSourceType.enum.media, crawl_strategy: CrawlStrategy.enum.api },
-      robotsCheck: { allowed: true, crawlDelayMs: null },
-      paywallDetected: false,
-      loginRequired: false,
-      captchaRequired: false,
-      tosForbidden: true,
-    };
-    const assessment = gate?.assessLawfulAccess(input);
-    expect(assessment?.decision).toBe('disable');
-
+  it('[P1] LA-6: override of a disabled source requires AC-11 justification (no silent bypass)', () => {
     // When: an operator attempts to override WITHOUT justification.
-    const overrideAttempt = gate?.overrideDisable(input.source.id, { justification: '' });
+    const overrideAttempt = overrideDisable(SOURCE_ID, { justification: '', url: 'https://example.com' });
     // Then: the override is REJECTED — justification is mandatory.
-    expect(overrideAttempt?.ok).toBe(false);
+    expect(overrideAttempt.ok).toBe(false);
 
     // When: the override includes a non-empty justification.
-    const validOverride = gate?.overrideDisable(input.source.id, { justification: 'FOI request #1234 granted 2026-07-01' });
+    const validOverride = overrideDisable(SOURCE_ID, {
+      justification: 'FOI request #1234 granted 2026-07-01',
+      url: 'https://example.com',
+    });
     // Then: the override succeeds AND emits an AC-11 editorial-log entry.
-    expect(validOverride?.ok).toBe(true);
-    expect(validOverride?.editorialLogEntry).toBeDefined();
-    expect(validOverride?.editorialLogEntry?.event).toBe('source.access_override');
+    expect(validOverride.ok).toBe(true);
+    if (validOverride.ok) {
+      expect(validOverride.editorialLogEntry.event).toBe('source.access_override');
+      expect(validOverride.editorialLogEntry.payload.source_id).toBe(SOURCE_ID);
+      expect(validOverride.editorialLogEntry.payload.rationale).toBe('FOI request #1234 granted 2026-07-01');
+    }
+  });
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Contract shapes: SourceResponseSchema carries all 15 lawful-access fields
+  // ─────────────────────────────────────────────────────────────────────────
+
+  it('SourceResponseSchema parses a response with all 15 lawful-access fields', () => {
+    const response = {
+      id: SOURCE_ID,
+      name: 'Senate Press',
+      url: 'https://senate.gov/press',
+      source_type: 'press_release',
+      crawl_strategy: 'rss',
+      trust_tier: 1,
+      confirmed: false,
+      confirmation_status: 'tentative',
+      is_wire_service: false,
+      original_publisher_id: null,
+      confirmed_by: null,
+      confirmed_at: null,
+      confirmation_rationale: null,
+      lawful_access_status: 'blocked',
+      lawful_access_checked_at: '2026-07-09T00:00:00.000Z',
+      robots_status: 'disallowed',
+      paywall_detected: true,
+      login_required: false,
+      captcha_detected: false,
+      terms_forbid_scraping: false,
+      robots_txt_content: 'User-agent: *\nDisallow: /',
+      lawful_access_confirmed: false,
+      lawful_access_confirmed_by: null,
+      lawful_access_confirmed_at: null,
+      lawful_access_override: true,
+      lawful_access_override_by: 'operator-1',
+      lawful_access_override_at: '2026-07-09T00:00:01.000Z',
+      lawful_access_override_rationale: 'FOI grant',
+      crawling_disabled: false,
+      created_at: '2026-07-09T00:00:00.000Z',
+      updated_at: '2026-07-09T00:00:01.000Z',
+    };
+    const result = SourceResponseSchema.safeParse(response);
+    expect(result.success).toBe(true);
+  });
+
+  it('EditorialLogEvent accepts a source.access_override event', () => {
+    const event = {
+      event: 'source.access_override',
+      payload: {
+        source_id: SOURCE_ID,
+        url: 'https://example.com',
+        rationale: 'FOI request #1234 granted 2026-07-01',
+      },
+    };
+    const result = EditorialLogEvent.safeParse(event);
+    expect(result.success).toBe(true);
+  });
+
+  it('EditorialLogEvent rejects a source.access_override with empty rationale', () => {
+    const event = {
+      event: 'source.access_override',
+      payload: { source_id: SOURCE_ID, url: 'https://example.com', rationale: '' },
+    };
+    const result = EditorialLogEvent.safeParse(event);
+    expect(result.success).toBe(false);
   });
 });

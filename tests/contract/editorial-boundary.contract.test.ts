@@ -62,7 +62,7 @@ describe('Story 2.4 — Editorial log boundary contracts (SEC-6)', () => {
   });
 
   // TC-2.2: Discriminated union schema
-  it('TC-2.2: @iip/contracts exports EditorialLogEvent as z.discriminatedUnion with 21 event variants', () => {
+  it('TC-2.2: @iip/contracts exports EditorialLogEvent as z.discriminatedUnion with 22 event variants', () => {
     const events = [
       'system.genesis',
       'auth.revoked',
@@ -87,6 +87,8 @@ describe('Story 2.4 — Editorial log boundary contracts (SEC-6)', () => {
       // Story 2.11 — audit circuit-breaker transitions (ADR-0029 §5)
       'audit.circuit_breaker.opened',
       'audit.circuit_breaker.closed',
+      // Story 3.2 — source lawful-access manual override (FR-1.2, AC-4, AC-11)
+      'source.access_override',
     ];
     for (const event of events) {
       const sample = makeSampleEvent(event);
@@ -338,6 +340,12 @@ function makeSampleEvent(event: string): unknown {
     // Story 2.11 — audit circuit-breaker transitions (ADR-0029 §5)
     'audit.circuit_breaker.opened': { reason: 'audit-worker unreachable', poll_latency_ms: 50 },
     'audit.circuit_breaker.closed': { poll_latency_ms: 12 },
+    // Story 3.2 — source lawful-access manual override (FR-1.2, AC-4, AC-11)
+    'source.access_override': {
+      source_id: '11111111-1111-4111-8111-111111111111',
+      url: 'https://example.com',
+      rationale: 'FOI request #1234 granted 2026-07-01',
+    },
   };
   return payloads[event];
 }
