@@ -34,10 +34,12 @@ import {
   type SourceId,
   type SourceSourceType,
   type CrawlStrategy,
+  type Principal,
   type SourceResponse,
   type RegisterSourcePayload,
   type UpdateSourcePayload,
   type SourceListFilters,
+  type LawfulAccessCheckResult,
 } from '@iip/contracts';
 import type { ConfirmationStatusLiteral } from '@iip/contracts';
 
@@ -62,6 +64,26 @@ export interface SourceRegistryRepo {
   update(id: SourceId, patch: UpdateSourcePayload): Promise<SourceResponse | null>;
   /** List with optional filters. */
   list(filters: SourceListFilters): Promise<SourceResponse[]>;
+  // Story 3.2 — lawful-access gate mutations (FR-1.2).
+  /** Persist an automated lawful-access check result + set status/crawling_disabled (AC-1). */
+  saveLawfulAccessCheckResult(
+    id: SourceId,
+    result: LawfulAccessCheckResult,
+    status: 'allowed' | 'blocked',
+  ): Promise<SourceResponse | null>;
+  /** Record operator confirmation of the lawful-access check (AC-3). */
+  confirmLawfulAccess(
+    id: SourceId,
+    confirmed: boolean,
+    rationale: string | null,
+    operatorSub: string,
+  ): Promise<SourceResponse | null>;
+  /** Record an operator override of a lawful-access block (AC-4). */
+  overrideLawfulAccess(
+    id: SourceId,
+    rationale: string,
+    operatorSub: string,
+  ): Promise<SourceResponse | null>;
 }
 
 /**
@@ -105,6 +127,30 @@ function toResponse(row: typeof sources.$inferSelect): SourceResponse {
     confirmed_by: row.confirmed_by,
     confirmed_at: row.confirmed_at === null ? null : row.confirmed_at.toISOString(),
     confirmation_rationale: row.confirmation_rationale,
+    // Story 3.2 — lawful-access gate fields (FR-1.2).
+    lawful_access_status: row.lawful_access_status,
+    lawful_access_checked_at:
+      row.lawful_access_checked_at === null ? null : row.lawful_access_checked_at.toISOString(),
+    robots_status: row.robots_status,
+    paywall_detected: row.paywall_detected,
+    login_required: row.login_required,
+    captcha_detected: row.captcha_detected,
+    terms_forbid_scraping: row.terms_forbid_scraping,
+    robots_txt_content: row.robots_txt_content,
+    lawful_access_confirmed: row.lawful_access_confirmed,
+    lawful_access_confirmed_by: row.lawful_access_confirmed_by,
+    lawful_access_confirmed_at:
+      row.lawful_access_confirmed_at === null
+        ? null
+        : row.lawful_access_confirmed_at.toISOString(),
+    lawful_access_override: row.lawful_access_override,
+    lawful_access_override_by: row.lawful_access_override_by,
+    lawful_access_override_at:
+      row.lawful_access_override_at === null
+        ? null
+        : row.lawful_access_override_at.toISOString(),
+    lawful_access_override_rationale: row.lawful_access_override_rationale,
+    crawling_disabled: row.crawling_disabled,
     created_at: row.created_at.toISOString(),
     updated_at: row.updated_at.toISOString(),
   };
@@ -139,6 +185,13 @@ export function createSourcesRepository(db: Db): SourceRegistryRepo {
           confirmed: false,
           is_wire_service: payload.is_wire_service,
           original_publisher_id: payload.original_publisher_id ?? null,
+          // Story 3.2 — initialize lawful-access fields explicitly (AC-1). A
+          // new source is pending its check + crawling-disabled by default
+          // (fail-closed). The DB defaults match, but setting them here makes
+          // the invariant explicit + survives a future default flip.
+          lawful_access_status: 'pending',
+          crawling_disabled: true,
+          terms_forbid_scraping: payload.terms_forbid_scraping ?? false,
         })
         .returning();
       if (row === undefined) {
@@ -184,6 +237,9 @@ export function createSourcesRepository(db: Db): SourceRegistryRepo {
       if (patch.original_publisher_id !== undefined) {
         setClause.original_publisher_id = patch.original_publisher_id;
       }
+      if (patch.terms_forbid_scraping !== undefined) {
+        setClause.terms_forbid_scraping = patch.terms_forbid_scraping;
+      }
       const [row] = await db
         .update(sources)
         .set(setClause)
@@ -203,10 +259,103 @@ export function createSourcesRepository(db: Db): SourceRegistryRepo {
       if (filters.confirmed !== undefined) {
         conditions.push(eq(sources.confirmed, filters.confirmed));
       }
+      // Story 3.2 — lawful-access filters (AC-9, additive with existing filters).
+      if (filters.lawful_access_status !== undefined) {
+        conditions.push(eq(sources.lawful_access_status, filters.lawful_access_status));
+      }
+      if (filters.crawling_disabled !== undefined) {
+        conditions.push(eq(sources.crawling_disabled, filters.crawling_disabled));
+      }
       const where = conditions.length > 0 ? and(...conditions) : undefined;
       const query = where === undefined ? db.select().from(sources) : db.select().from(sources).where(where);
       const rows = await query;
       return rows.map(toResponse);
+    },
+
+    async saveLawfulAccessCheckResult(
+      id: SourceId,
+      result: LawfulAccessCheckResult,
+      status: 'allowed' | 'blocked',
+    ): Promise<SourceResponse | null> {
+      // AC-1 — persist the automated check result. `lawful_access_status`
+      // reflects the gate decision; `crawling_disabled` follows: a blocked
+      // source is disabled, an allowed source remains disabled until operator
+      // confirmation (AC-3) — confirmation is the explicit enable gate.
+      const setClause: Partial<typeof sources.$inferInsert> = {
+        updated_at: new Date(),
+        lawful_access_status: status,
+        lawful_access_checked_at: new Date(result.recorded_at),
+        robots_status: result.robots_status,
+        paywall_detected: result.paywall_detected,
+        login_required: result.login_required,
+        captcha_detected: result.captcha_detected,
+        robots_txt_content: result.robots_txt_content,
+        crawling_disabled: true,
+      };
+      const [row] = await db
+        .update(sources)
+        .set(setClause)
+        .where(eq(sources.id, id))
+        .returning();
+      return row === undefined ? null : toResponse(row);
+    },
+
+    async confirmLawfulAccess(
+      id: SourceId,
+      confirmed: boolean,
+      rationale: string | null,
+      operatorSub: string,
+    ): Promise<SourceResponse | null> {
+      // AC-3 — record operator confirmation. When confirmed=true AND the
+      // automated check is 'allowed', crawling is enabled. When confirmed=false
+      // (or the check is blocked), crawling stays disabled. The route layer
+      // enforces the 409 reject on confirming a blocked source (AC-3).
+      const [existing] = await db
+        .select()
+        .from(sources)
+        .where(eq(sources.id, id))
+        .limit(1);
+      if (existing === undefined) return null;
+      const enableCrawling = confirmed && existing.lawful_access_status === 'allowed';
+      const setClause: Partial<typeof sources.$inferInsert> = {
+        updated_at: new Date(),
+        lawful_access_confirmed: confirmed,
+        lawful_access_confirmed_by: operatorSub as Principal,
+        lawful_access_confirmed_at: new Date(),
+        crawling_disabled: !enableCrawling,
+      };
+      void rationale; // rationale persisted by the route via a separate concern if needed
+      const [row] = await db
+        .update(sources)
+        .set(setClause)
+        .where(eq(sources.id, id))
+        .returning();
+      return row === undefined ? null : toResponse(row);
+    },
+
+    async overrideLawfulAccess(
+      id: SourceId,
+      rationale: string,
+      operatorSub: string,
+    ): Promise<SourceResponse | null> {
+      // AC-4 — record an operator override of a lawful-access block. Enables
+      // crawling (the override IS the enable for a blocked source). The route
+      // layer enforces the preconditions (source is blocked + has been checked)
+      // and appends the AC-11 editorial-log entry.
+      const setClause: Partial<typeof sources.$inferInsert> = {
+        updated_at: new Date(),
+        lawful_access_override: true,
+        lawful_access_override_by: operatorSub as Principal,
+        lawful_access_override_at: new Date(),
+        lawful_access_override_rationale: rationale,
+        crawling_disabled: false,
+      };
+      const [row] = await db
+        .update(sources)
+        .set(setClause)
+        .where(eq(sources.id, id))
+        .returning();
+      return row === undefined ? null : toResponse(row);
     },
   };
 }

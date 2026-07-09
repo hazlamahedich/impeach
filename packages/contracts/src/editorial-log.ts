@@ -19,6 +19,7 @@
 import { z } from 'zod';
 import { createHash } from 'node:crypto';
 import canonicalize from 'canonicalize';
+import { SourceIdSchema } from './ingest.js';
 
 // ─────────────────────────────────────────────────────────────────────────
 // Branded Types (DoD-1)
@@ -364,6 +365,29 @@ const AuditCircuitBreakerClosedPayload = z
   })
   .strict();
 
+// ── Story 3.2 — Source lawful-access manual override payload (FR-1.2, AC-11) ──
+//
+// When an operator overrides a lawful-access block, the override MUST be
+// recorded in the hash-chained editorial log so the bypass is attributable
+// (AC-11 personal-criminal-exposure defense). The payload names the source, the
+// URL that was overridden, and the operator's non-empty rationale.
+
+/**
+ * Source lawful-access override — an operator bypassed an automated lawful-access
+ * block (e.g. an FOI-grant permits crawling a ToS-forbidden source). The
+ * rationale is REQUIRED + non-empty; the editorial-log append makes the bypass
+ * attributable (AC-11).
+ *
+ * @rules FR-1.2, AC-4, AC-11
+ */
+const SourceAccessOverridePayload = z
+  .object({
+    source_id: SourceIdSchema,
+    url: z.string().min(1),
+    rationale: z.string().min(1),
+  })
+  .strict();
+
 /**
  * EditorialLogEvent — the complete event catalog as a discriminated union
  * (DoD-6). Each variant has a typed payload Zod schema. Adding a new event
@@ -418,6 +442,11 @@ export const EditorialLogEvent = z.discriminatedUnion('event', [
   z.object({
     event: z.literal('audit.circuit_breaker.closed'),
     payload: AuditCircuitBreakerClosedPayload,
+  }),
+  // Story 3.2 — source lawful-access manual override (FR-1.2, AC-4, AC-11)
+  z.object({
+    event: z.literal('source.access_override'),
+    payload: SourceAccessOverridePayload,
   }),
 ]);
 export type EditorialLogEvent = z.infer<typeof EditorialLogEvent>;

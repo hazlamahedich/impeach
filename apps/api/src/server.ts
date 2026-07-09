@@ -394,8 +394,14 @@ async function buildApp(config: ValidatedConfig): Promise<{
   // 3. Intake routes.
   await app.register(createIntakeRoutes({ gate, withTx } as never));
 
-  // 4. Source registry routes (Story 3.1, FR-1.1).
-  await app.register(createSourceRoutes({ repo: sourcesRepo }));
+  // 4. Source registry routes (Story 3.1, FR-1.1; Story 3.2 AC-11 editorial log).
+  await app.register(
+    createSourceRoutes({
+      repo: sourcesRepo,
+      editorialLog: editorialRepo,
+      systemSigner,
+    }),
+  );
 
   // 5. Query routes (ADR-0029 §5 fail-closed).
   await app.register(createQueryRoutes({ auditHealth, serveClaims }));

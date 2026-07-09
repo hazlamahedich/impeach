@@ -186,6 +186,11 @@ export {
   ConfirmationStatusLiteral,
   SourceResponseSchema,
   SourceListFiltersSchema,
+  // Story 3.2 — lawful-access gate schemas (FR-1.2)
+  LawfulAccessInputSchema,
+  LawfulAccessCheckResultSchema,
+  ConfirmLawfulAccessPayloadSchema,
+  OverrideLawfulAccessPayloadSchema,
 } from './ingest.js';
 export type {
   SourceId,
@@ -207,4 +212,9 @@ export type {
   ConfirmationStatusLiteral as ConfirmationStatusLiteralType,
   SourceResponse,
   SourceListFilters,
+  // Story 3.2 — lawful-access gate schemas (FR-1.2)
+  LawfulAccessInput,
+  LawfulAccessCheckResult,
+  ConfirmLawfulAccessPayload,
+  OverrideLawfulAccessPayload,
 } from './ingest.js';

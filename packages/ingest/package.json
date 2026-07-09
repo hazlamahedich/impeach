@@ -7,6 +7,10 @@
     ".": {
       "types": "./src/index.ts",
       "default": "./src/index.ts"
+    },
+    "./access/lawful-access-gate": {
+      "types": "./src/access/lawful-access-gate.ts",
+      "default": "./src/access/lawful-access-gate.ts"
     }
   },
   "scripts": {
