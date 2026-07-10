@@ -1,6 +1,7 @@
 # generated: 2026-06-22
-# last_updated: 2026-07-06
-# project: impeachment watch
+  # last_updated: 2026-07-10
+  last_updated: 2026-07-10
+  # project: impeachment watch
 # project_key: NOKEY
 # tracking_system: file-system
 # story_location: {project-root}/_bmad-output/implementation-artifacts
@@ -36,7 +37,7 @@
 
 generated: 2026-06-22
   # story 1-3 re-promoted to in-progress (P0-P3 complete, dev started)
-last_updated: 2026-07-09
+last_updated: 2026-07-10
   # story 3-2 moved in-progress -> review (2026-07-09; ALL 6 tasks done, all 9 ACs satisfied: Task 0 contracts [LawfulAccessInputSchema + LawfulAccessCheckResultSchema + ConfirmLawfulAccessPayloadSchema + OverrideLawfulAccessPayloadSchema in ingest.ts; source.access_override event variant added to EditorialLogEvent 21→22 variants with strict payload; SourceResponseSchema +15 lawful-access fields; SourceListFiltersSchema +lawful_access_status/crawling_disabled filters; all re-exported; editorial-boundary TC-2.2 updated]; Task 1 migration 0006 [15 columns incl crawling_disabled DEFAULT true NOT NULL fail-closed + terms_forbid_scraping DEFAULT false NOT NULL; 2 CHECK constraints; 2 indexes; Drizzle schema updated with $type<> literal unions + check() constraints; journal idx 6]; Task 2 pure gate [assessLawfulAccess priority-ordered decision matrix robots→paywall→login→captcha→tos→allow + overrideDisable empty-justification reject + editorial-log entry builder; ./access/lawful-access-gate export added; 11 unit tests GREEN]; Task 3 repository [+3 methods saveLawfulAccessCheckResult/confirmLawfulAccess/overrideLawfulAccess; create initializes pending+disabled; toResponse +15 fields; list +2 filters AC-9]; Task 4 routes [3 endpoints check/confirm/override — AC-1 injectable LawfulAccessSignalFetcher + default createDefaultSignalFetcher w/ robots.txt parser + paywall/login/CAPTCHA heuristics, AC-6 manual 400, AC-7 unreachable→blocked, AC-3 confirm-blocked 409, AC-4 override-unchecked 400, AC-8 override-non-blocked 400, AC-11 appends source.access_override to __system__ via injectable EditorialLogAppender+systemSigner; sourceResponseSchema +15 fields for OpenAPI; GET querystring +2 filters]; Task 5 tests [12 integration real-route+stub-repo+stub-fetcher+appender-capture AC-1..9; 11 contract rewrote RED→GREEN LA-1 fix+LA-7+LA-8+15-field-parse+event-accept; 30 signal-detection unit tests; 18 route unit tests; Stryker 55.69% ≥ break:55]. Verification: typecheck 4/4 GREEN, test contracts 63/63 + db 9/9 + ingest 65/65(+11) + api 92/92(+48) GREEN, contract lawful-access-gate 11/11 + editorial-boundary 10/10 + ingest-domain 45/45 + integration 12/12 GREEN, lint clean, Stryker sources.ts 55.69%. HONEST DEVIATIONS: [1] Default signal fetcher ships here to make /check functional without Story 3.3 — injectable, replaceable; pure gate remains network-free. [2] Integration tests use injected stub repo+fetcher — established codebase pattern; DB-level covered by ingest-schema integration (env-blocked at baseline a99fea0). [3] Stryker 55.69% — ~44% OpenAPI doc literals untestable (AJV permissive; zod validator) same as 3.1. [4] terms_forbid_scraping defaults false + readable but not writable via 3.2 API surface — Task 0 doesn't list it in Register/Update schemas.)
   # story 3-2 moved review -> done (2026-07-09; code review applied 5 patches: P1 server.ts wires editorialRepo+systemSigner into createSourceRoutes so AC-11 source.access_override actually appends in production; P2 removed custom EditorialLogAppender abstraction, route now calls editorialLog.appendToPartition directly (uses makeEntry via repo); P3 terms_forbid_scraping added to RegisterSourcePayloadSchema + UpdateSourcePayloadSchema + PATCH OpenAPI body + repo create/update persistence; P4 confirm/override routes now require principal.sub via requirePrincipalSub and return 401 instead of fabricating '__unknown__'; P5 override JTI uses crypto.randomUUID() unconditionally, removing Math.random fallback. Re-verification: typecheck 4/4 GREEN, apps/api unit 81/81 GREEN, contract lawful-access-gate 11/11 + editorial-boundary 10/10 + sources-boundary 28/28 GREEN, integration lawful-access-gate 12/12 GREEN. Pre-existing env-dependent integration failures [sops/compose/audit-health/pg-age-pgvector/polyglot-eval] unchanged.)
   # story 3-2 promoted backlog -> ready-for-dev (2026-07-09; Ultimate story context created)
@@ -189,7 +190,9 @@ development_status:
   epic-3: in-progress
   3-1-source-registry-confirmed-trust-tiers: review-complete
   3-2-lawful-access-gate: done
-  3-3-discover-fetch-deduplicate: backlog
+  # story 3-3 promoted backlog -> ready-for-dev (2026-07-10; Ultimate story context created)
+  # story 3-3 moved review -> done (2026-07-10; code review applied 12 patches + 6 deferred; verification: typecheck 4/4 GREEN, ingest unit 88/88 GREEN, contract 8/8 GREEN, lint clean)
+  3-3-discover-fetch-deduplicate: done
   3-4-immutable-raw-snapshots: backlog
   3-5-per-artifact-provenance: backlog
   3-6-idempotent-observable-resilient-ingestion: backlog

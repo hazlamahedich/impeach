@@ -191,6 +191,12 @@ export {
   LawfulAccessCheckResultSchema,
   ConfirmLawfulAccessPayloadSchema,
   OverrideLawfulAccessPayloadSchema,
+  // Story 3.3 — fetch adapter schemas (FR-1.3)
+  DiscoveredUrlSchema,
+  ManualUploadProvenanceSchema,
+  FetchedDocumentSchema,
+  CleanedDocumentSchema,
+  FetchMetadataSchema,
 } from './ingest.js';
 export type {
   SourceId,
@@ -217,4 +223,10 @@ export type {
   LawfulAccessCheckResult,
   ConfirmLawfulAccessPayload,
   OverrideLawfulAccessPayload,
+  // Story 3.3 — fetch adapter schemas (FR-1.3)
+  DiscoveredUrl,
+  ManualUploadProvenance,
+  FetchedDocument,
+  CleanedDocument,
+  FetchMetadata,
 } from './ingest.js';

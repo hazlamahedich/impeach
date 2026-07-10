@@ -8,3 +8,10 @@ export {
   normalizeUrl,
   type SourceRegistryRepo,
 } from './repositories/sources.js';
+// Story 3.3 — documents repository (FR-1.3, PC-1a)
+export {
+  createDocumentsRepository,
+  type DocumentsRepository,
+  type DocumentRow,
+  type UpsertDocumentInput,
+} from './repositories/documents.js';
