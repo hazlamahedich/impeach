@@ -1,8 +1,8 @@
 /**
- * Story 3.4 — MinIO bucket versioning + append-only integration test (ATDD RED).
+ * Story 3.4 — MinIO bucket versioning + append-only integration test.
  *
- * Coverage gap from the Epic 3 test-design (R3.4c, NFR-S-5): the existing RS-1..5
- * scaffolds are CONTRACT tests on the snapshot store port (pure logic). They
+ * Coverage gap from the Epic 3 test-design (R3.4c, NFR-S-5): the contract
+ * tests (RS-1..9) test the snapshot store port with a mock client. They
  * cannot verify the REAL MinIO bucket is configured as versioned + append-only +
  * object-locked — the infra property that makes a cited PDF un-swappable.
  *
@@ -11,14 +11,15 @@
  * If the bucket is mutable, the chain of custody breaks and "the PDF was
  * swapped" becomes a real defense.
  *
- * The MinIO infra is UP (`infra/docker-compose.yml` + `infra/minio/init-bucket.sh`)
- * but no TS client consumes it yet, and no test asserts the bucket CONFIG. This
- * suite is RED by design (describe.skip) until Story 3.4 ships the snapshot
- * client + a bucket-config introspection method.
+ * These tests launch a REAL MinIO container via Testcontainers, provision the
+ * bucket with the production ``init-bucket.sh`` configuration (Object Lock +
+ * versioning + GOVERNANCE mode), and assert the bucket config via the snapshot
+ * store's introspection methods.
+ *
+ * Pool: 'forks' + singleFork — Testcontainers holds TCP sockets.
  *
  * @rules FR-1.4, NFR-S-5, SEC-5
  * @adr ADR-001
- * @activates-in Epic 3 (Story 3.4 — MinIO snapshot client + bucket-config introspection)
  *
  * GIVEN a document is fetched and cleaned
  * WHEN the raw snapshot bucket is provisioned
@@ -28,83 +29,66 @@
  */
 
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { Buffer } from 'node:buffer';
 import { makeValidContentChecksum } from '../support/helpers/ingest';
+import { startTestMinio } from '../support/helpers/test-minio';
+import { createMinioSnapshotStore } from '@iip/ingest/snapshot';
 
-// ─── RED-PHASE STUB ────────────────────────────────────────────────────────
-// Story 3.4 has not shipped the snapshot client yet. Dynamic import lets the
-// suite COLLECT. Once the module lands, remove `describe.skip` + the wrapper.
-async function loadSnapshotModule() {
-  // Variable specifier so Vite cannot statically resolve a subpath absent from
-  // the package `exports` map (Story 3.4 module not shipped yet). The catch
-  // keeps the suite GREEN at collection; describe.skip quarantines the body.
-  const specifier = '@iip/ingest/snapshot';
-  return import(specifier).catch(() => null);
-}
+let endpoint: string | undefined;
+let teardown: (() => Promise<void>) | undefined;
 
-// The Testcontainers MinIO harness is shared with the integration suite.
-async function loadTestMinio() {
-  // Variable specifier so Vite cannot statically resolve a not-yet-existing
-  // helper (the Testcontainers harness is authored at green phase). The catch
-  // keeps the suite GREEN at collection; describe.skip quarantines the body.
-  const specifier = '../support/helpers/test-minio';
-  return import(specifier).catch(() => null);
-}
+beforeAll(async () => {
+  const started = await startTestMinio();
+  endpoint = started.endpoint;
+  teardown = started.teardown;
+});
 
-describe.skip('Story 3.4 — MinIO bucket versioning + append-only integration (ATDD RED)', () => {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let minio: any;
-  let teardown: (() => Promise<void>) | undefined;
+afterAll(async () => {
+  await teardown?.();
+});
 
-  beforeAll(async () => {
-    const harness = await loadTestMinio();
-    const started = harness ? await harness.startTestMinio() : null;
-    minio = started?.client;
-    teardown = started?.teardown;
-  });
-
-  afterAll(async () => {
-    await teardown?.();
-  });
-
+describe('Story 3.4 — MinIO bucket versioning + append-only integration', () => {
   // ─────────────────────────────────────────────────────────────────────────
   // Bucket versioning (NFR-S-5 — overwrite creates a new version, never a mutation)
   // ─────────────────────────────────────────────────────────────────────────
 
   it('[P0] RSM-1: the raw-snapshots bucket has versioning ENABLED', async () => {
-    const mod = await loadSnapshotModule();
-    const store = mod?.createMinioSnapshotStore
-      ? mod.createMinioSnapshotStore({ endpoint: minio?.endpoint, bucket: 'raw-snapshots' })
-      : undefined;
-    // Then: the bucket reports versioning is enabled (NFR-S-5).
-    const config = store ? await store.bucketVersioningConfig() : undefined;
-    expect(config?.status).toBe('Enabled');
+    const store = createMinioSnapshotStore({
+      endpoint: endpoint!,
+      rootUser: 'minioadmin',
+      rootPassword: 'minioadmin',
+      bucket: 'raw-snapshots',
+    });
+    const config = await store.bucketVersioningConfig();
+    expect(config.status).toBe('Enabled');
   });
 
-  it('[P0] RSM-2: re-putting different content under the same logical key creates a NEW version (not an overwrite)', async () => {
-    const mod = await loadSnapshotModule();
-    const store = mod?.createMinioSnapshotStore
-      ? mod.createMinioSnapshotStore({ endpoint: minio?.endpoint, bucket: 'raw-snapshots' })
-      : undefined;
+  it('[P0] RSM-2: re-putting different content under the same logical key creates a NEW object (not an overwrite)', async () => {
+    const store = createMinioSnapshotStore({
+      endpoint: endpoint!,
+      rootUser: 'minioadmin',
+      rootPassword: 'minioadmin',
+      bucket: 'raw-snapshots',
+    });
     // Given: a snapshot was stored.
     const original = {
       url: 'https://www.senate.gov/press/release-001',
       fetchedAt: '2026-07-08T10:00:00Z',
       contentType: 'text/html',
       bytes: Buffer.from('original-content'),
-      headers: {},
     };
-    const first = store ? await store.put(original) : undefined;
+    const first = await store.put(original);
     // When: DIFFERENT content is stored (simulating an attempted swap).
     const swapped = { ...original, bytes: Buffer.from('tampered-content') };
-    const second = store ? await store.put(swapped) : undefined;
+    const second = await store.put(swapped);
     // Then: the content-addressed keys DIFFER (SHA-256 of content, so a swap is
     // detected as a distinct object — the original is never mutated).
-    expect(first?.key).not.toBe(second?.key);
-    expect(first?.key).toBe(makeValidContentChecksum('original-content'));
-    expect(second?.key).toBe(makeValidContentChecksum('tampered-content'));
+    expect(first.key).not.toBe(second.key);
+    expect(first.key).toBe(makeValidContentChecksum('original-content'));
+    expect(second.key).toBe(makeValidContentChecksum('tampered-content'));
     // And: retrieving the original key still returns the ORIGINAL bytes.
-    const retrieved = store && first ? await store.get(first.key) : undefined;
-    expect(retrieved?.bytes).toEqual(Buffer.from('original-content'));
+    const retrieved = await store.get(first.key);
+    expect(retrieved.bytes).toEqual(Buffer.from('original-content'));
   });
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -112,14 +96,15 @@ describe.skip('Story 3.4 — MinIO bucket versioning + append-only integration (
   // ─────────────────────────────────────────────────────────────────────────
 
   it('[P0] RSM-3: the raw-snapshots bucket has object locking ENABLED (GOVERNANCE/COMPLIANCE)', async () => {
-    const mod = await loadSnapshotModule();
-    const store = mod?.createMinioSnapshotStore
-      ? mod.createMinioSnapshotStore({ endpoint: minio?.endpoint, bucket: 'raw-snapshots' })
-      : undefined;
-    // Then: the bucket reports object-locking is enabled (the legal-hold basis).
-    const config = store ? await store.bucketObjectLockConfig() : undefined;
-    expect(config?.objectLockEnabled).toBe(true);
+    const store = createMinioSnapshotStore({
+      endpoint: endpoint!,
+      rootUser: 'minioadmin',
+      rootPassword: 'minioadmin',
+      bucket: 'raw-snapshots',
+    });
+    const config = await store.bucketObjectLockConfig();
+    expect(config.objectLockEnabled).toBe(true);
     // And: the mode is GOVERNANCE or COMPLIANCE (not unset).
-    expect(['GOVERNANCE', 'COMPLIANCE']).toContain(config?.mode);
+    expect(['GOVERNANCE', 'COMPLIANCE']).toContain(config.mode);
   });
 });

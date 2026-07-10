@@ -45,6 +45,9 @@ export type IntakeOperatorKeyring = Brand<
 /** A validated partner keyring record for Tier-5 provenance verification (SEC-2, AC-5). */
 export type IntakePartnerKeyring = Brand<Record<string, string>, 'IntakePartnerKeyring'>;
 
+/** A validated MinIO root password — the S3-compatible credential for the raw-snapshot bucket (Story 3.4). */
+export type MinioPassword = Brand<string, 'MinioPassword'>;
+
 // ─────────────────────────────────────────────────────────────────────────
 // Result<T, E> — this package does not depend on @iip/contracts' Result
 // (would create an import cycle once config gains more dependencies).
@@ -70,6 +73,8 @@ export type ConfigError =
 export interface ValidatedConfig {
   readonly databaseUrl: DatabaseUrl;
   readonly redisUrl: RedisUrl;
+  /** MinIO root password — the S3-compatible credential for the raw-snapshot bucket (Story 3.4, FR-1.4). */
+  readonly minioRootPassword: MinioPassword;
   /** Intake two-person state machine configuration (SEC-2, DoD-4). */
   readonly intake: {
     /** Operator public keys by kid: base64 SPKI Ed25519 + revocation status. */
@@ -269,6 +274,11 @@ export function validateConfig(
   const redis = validateRedisUrl(redisRaw.value);
   if (!redis.ok) return redis;
 
+  // Story 3.4 — MinIO root password for the raw-snapshot bucket (FR-1.4, PC-2.6).
+  const minioPasswordRaw = readRequired(source, 'MINIO_ROOT_PASSWORD');
+  if (!minioPasswordRaw.ok) return minioPasswordRaw;
+  const minioRootPassword = minioPasswordRaw.value as MinioPassword;
+
   const operatorKeyringRaw = readRequiredJson<Record<string, OperatorKeyConfig>>(
     source,
     'INTAKE_OPERATOR_PUBLIC_KEYS',
@@ -319,6 +329,7 @@ export function validateConfig(
     value: {
       databaseUrl: db.value,
       redisUrl: redis.value,
+      minioRootPassword,
       intake: {
         operatorPublicKeys: operatorKeyring.value,
         partnerPublicKeys: partnerKeyring.value,

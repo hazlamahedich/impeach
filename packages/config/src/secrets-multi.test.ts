@@ -15,6 +15,7 @@ import { validateConfig, bootOrDie } from './secrets.js';
 const VALID_ENV: Record<string, string | undefined> = {
   ['DATABASE_URL']: 'postgres://postgres:pw@localhost:5433/iip',
   ['REDIS_URL']: 'redis://localhost:6380',
+  ['MINIO_ROOT_PASSWORD']: 'minioadmin',
   ['INTAKE_OPERATOR_PUBLIC_KEYS']: JSON.stringify({
     ['op-1']: { key: 'ZmFrZS1rZXk=', status: 'active' as const },
   }),
