@@ -13,10 +13,22 @@ export {
   type ValidatedConfig,
   type DatabaseUrl,
   type RedisUrl,
+  type MinioPassword,
   type OperatorKeyConfig,
   type IntakeOperatorKeyring,
   type IntakePartnerKeyring,
 } from './secrets.js';
+
+// Story 3.4 — MinIO non-secret infrastructure config (FR-1.4, PC-2.6, NFR-S-5).
+//
+// Secrets (MINIO_ROOT_PASSWORD) live in secrets.ts as minioRootPassword; the
+// non-secret endpoint/bucket config lives here so config changes do not look
+// like secret rotations (PC-2.6).
+export {
+  getMinioConfig,
+  DEFAULT_RAW_SNAPSHOTS_BUCKET,
+  type MinioConfig,
+} from './minio.js';
 
 // Story 2.10 — config_history repository + onConfigChange hook (PC-2.6, VAL-8).
 //

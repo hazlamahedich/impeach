@@ -59,7 +59,10 @@ services:
       retries: 5
 
   minio:
-    image: minio/minio:RELEASE.2025-07-25T11-22-23Z
+    # Pinned to a stable MinIO release digest. The previous tag was malformed/
+    # non-existent; :latest was a temporary workaround. Update only after
+    # verifying the new digest on Docker Hub and in CI.
+    image: minio/minio@sha256:d249d1fb6966de4d8ad26c04754b545205ff15a62e4fd19ebd0f26fa5baacbc0 # RELEASE.2025-07-23T15-54-02Z
     command: server /data --console-address ":9001"
     # Host ports default to 9100/9001 to avoid conflicts with local MinIO.
     ports:
@@ -79,7 +82,8 @@ services:
 
   # MinIO bucket init sidecar — creates raw-snapshots bucket idempotently
   minio-init:
-    image: minio/mc:RELEASE.2025-07-25T11-22-23Z
+    # Pinned digest matching the mc release closest to the MinIO server digest above.
+    image: minio/mc@sha256:a7fe349ef4bd8521fb8497f55c6042871b2ae640607cf99d9bede5e9bdf11727 # RELEASE.2025-08-13T08-35-41Z
     depends_on:
       minio:
         condition: service_healthy

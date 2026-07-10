@@ -15,7 +15,8 @@
   "mutate": [
     "src/gate/state.ts",
     "src/crypto/verify.ts",
-    "src/attestation.ts"
+    "src/attestation.ts",
+    "src/snapshot/index.ts"
   ],
   "ignorePatterns": [
     "**/._*",

@@ -14,6 +14,7 @@ import {
 const VALID_ENV: Record<string, string | undefined> = {
   ['DATABASE_URL']: 'postgres://postgres:pw@localhost:5433/iip',
   ['REDIS_URL']: 'redis://localhost:6380',
+  ['MINIO_ROOT_PASSWORD']: 'minioadmin',
   ['INTAKE_OPERATOR_PUBLIC_KEYS']: JSON.stringify({
     ['op-1']: { key: 'ZmFrZS1rZXk=', status: 'active' as const },
   }),
@@ -44,6 +45,14 @@ describe('Story 1.11 — Task 1: validateConfig() (D7, NFR-S-4)', () => {
         expect(typeof v.databaseUrl).toBe('string');
       }
     });
+
+    it('populates minioRootPassword when MINIO_ROOT_PASSWORD present', () => {
+      const result = validateConfig(VALID_ENV);
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.value.minioRootPassword).toBe(VALID_ENV['MINIO_ROOT_PASSWORD']);
+      }
+    });
   });
 
   describe('missing required env vars', () => {
@@ -63,6 +72,16 @@ describe('Story 1.11 — Task 1: validateConfig() (D7, NFR-S-4)', () => {
       expect(result.ok).toBe(false);
       if (!result.ok) {
         expect((result.error as { name: string }).name).toBe('REDIS_URL');
+      }
+    });
+
+    it('MISSING MINIO_ROOT_PASSWORD → ConfigError kind=MISSING', () => {
+      const env = { ...VALID_ENV, MINIO_ROOT_PASSWORD: undefined };
+      const result = validateConfig(env);
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.error.kind).toBe('MISSING');
+        expect((result.error as { name: string }).name).toBe('MINIO_ROOT_PASSWORD');
       }
     });
 
@@ -172,6 +191,15 @@ describe('Story 1.11 — Task 1: bootOrDie() (fail-closed)', () => {
     const logged = errSpy.mock.calls.map((c) => String(c[0])).join('');
     expect(logged).not.toContain(secretValue);
     expect(logged).toContain('REDIS_URL');
+  });
+
+  it('does not leak MINIO_ROOT_PASSWORD value when MISSING', () => {
+    const secretValue = 'super-secret-minio-password';
+    const env = { ...VALID_ENV, DATABASE_URL: undefined, MINIO_ROOT_PASSWORD: secretValue };
+    expect(() => bootOrDie(env)).toThrow();
+    const logged = errSpy.mock.calls.map((c) => String(c[0])).join('');
+    // The password must never appear in the log stream even on unrelated failure.
+    expect(logged).not.toContain(secretValue);
   });
 });
 
