@@ -11,6 +11,14 @@
     "./access/lawful-access-gate": {
       "types": "./src/access/lawful-access-gate.ts",
       "default": "./src/access/lawful-access-gate.ts"
+    },
+    "./fetch": {
+      "types": "./src/fetch/index.ts",
+      "default": "./src/fetch/index.ts"
+    },
+    "./dedupe": {
+      "types": "./src/dedupe/index.ts",
+      "default": "./src/dedupe/index.ts"
     }
   },
   "scripts": {

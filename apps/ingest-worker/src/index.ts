@@ -7,6 +7,13 @@
 export { processIntakeDocument } from './worker.js';
 export type { WorkerPrincipal } from './worker.js';
 
+// Story 3.3 — fetch pipeline (FR-1.3)
+export {
+  runFetchPipeline,
+  CrawlingDisabledError,
+  type FetchPipelineResult,
+} from './fetch-pipeline.js';
+
 export const packageName = '@iip/ingest-worker';
 
 function main(): void {

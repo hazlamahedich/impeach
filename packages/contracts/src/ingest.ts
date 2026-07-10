@@ -547,3 +547,114 @@ export type IngestJobPayload = z.infer<typeof IngestJobPayloadSchema>;
  * @rules STR-3, PC-2.4
  */
 export const STAGE_COMPLETED_SUFFIX = '.completed' as const;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Fetch adapters (FR-1.3, Story 3.3 — Crawler port I/O contracts)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * DiscoveredUrl — a URL discovered by a Crawler's `discover()` method (AC-1).
+ *
+ * Carries the URL plus optional metadata the crawl strategy extracted (e.g. the
+ * feed entry title, the sitemap lastmod). `discovered_at` is the ISO-8601 UTC
+ * timestamp the URL was discovered (PC-8).
+ *
+ * @rules FR-1.3, AC-1
+ */
+export const DiscoveredUrlSchema = z.object({
+  url: z.string().url(),
+  title: z.string().optional(),
+  discovered_at: z.string().datetime(),
+});
+export type DiscoveredUrl = z.infer<typeof DiscoveredUrlSchema>;
+
+/**
+ * ManualUploadProvenance — the operator-supplied provenance record for manually
+ * uploaded documents (AC-5, FR-1.3).
+ *
+ * Every field is REQUIRED: a manually uploaded document without full provenance
+ * is a provenance gap that breaks the citation chain. `obtained_via` records
+ * HOW the document was obtained (manual download, FOI request, partnership
+ * drop). `content_hash` is the hash of the raw uploaded bytes (distinct from
+ * `ContentChecksum` which is over the cleaned text). `legal_basis` records the
+ * legal basis for obtaining the document (public record, FOI, court order).
+ *
+ * @rules FR-1.3, AC-5
+ */
+export const ManualUploadProvenanceSchema = z.object({
+  source_url: z.string().url(),
+  obtained_via: z.string().min(1),
+  retrieved_at: z.string().datetime(),
+  uploader_id: z.string().min(1),
+  reviewer_id: z.string().min(1),
+  content_hash: ContentChecksumSchema,
+  legal_basis: z.string().min(1),
+});
+export type ManualUploadProvenance = z.infer<typeof ManualUploadProvenanceSchema>;
+
+/**
+ * FetchedDocument — the raw bytes + metadata returned by a Crawler's `fetch()`
+ * method (AC-2).
+ *
+ * The raw bytes are the unmodified HTTP response body (HTML, PDF, etc.); the
+ * `clean()` step transforms them into `CleanedDocument`. `contentType` drives
+ * the cleanup pipeline (HTML stripping vs PDF OCR). `fetchedAt` is the
+ * ISO-8601 UTC timestamp the fetch completed (PC-8); it is optional because
+ * the `clean()` step can be invoked with a raw document that was not fetched
+ * through the adapter (e.g. a pre-existing byte buffer in tests).
+ *
+ * `provenance` carries the manual-upload provenance record when the document
+ * was obtained via manual upload (AC-5); automated fetches omit it.
+ *
+ * @rules FR-1.3, AC-2, AC-5
+ */
+export const FetchedDocumentSchema = z.object({
+  url: z.string().url(),
+  rawBytes: z.custom<Uint8Array>((val) => val instanceof Uint8Array),
+  contentType: z.string(),
+  fetchedAt: z.string().datetime().optional(),
+  provenance: ManualUploadProvenanceSchema.optional(),
+});
+export type FetchedDocument = z.infer<typeof FetchedDocumentSchema>;
+
+/**
+ * CleanedDocument — the structured-text output of a Crawler's `clean()` method
+ * (AC-2, FA-7).
+ *
+ * `text` is the cleaned content: HTML stripped to text, PDF OCR'd to text. The
+ * text MUST be a faithful containment of the source — no hallucinated tokens
+ * (FA-7). `contentChecksum` is the SHA-256 of the cleaned text (the dedupe
+ * anchor, FR-1.3). `provenance` is carried through from the fetch step for
+ * manual uploads (AC-5).
+ *
+ * @rules FR-1.3, AC-2, AC-3, FA-7
+ */
+export const CleanedDocumentSchema = z.object({
+  url: z.string().url(),
+  text: z.string(),
+  contentChecksum: ContentChecksumSchema,
+  provenance: ManualUploadProvenanceSchema.optional(),
+});
+export type CleanedDocument = z.infer<typeof CleanedDocumentSchema>;
+
+/**
+ * FetchMetadata — the metadata persisted alongside a document in the
+ * `documents.fetch_metadata` jsonb column (AC-5, FR-1.3).
+ *
+ * This is the database-level shape; the API-level shape is `FetchedDocument`.
+ * `headers` are the HTTP response headers (content-type, etag, last-modified);
+ * the provenance fields are populated for manual uploads and absent for
+ * automated fetches.
+ *
+ * @rules FR-1.3, AC-5
+ */
+export const FetchMetadataSchema = z.object({
+  url: z.string().url(),
+  retrieved_at: z.string().datetime(),
+  headers: z.record(z.string(), z.string()).optional(),
+  obtained_via: z.string().optional(),
+  uploader_id: z.string().optional(),
+  reviewer_id: z.string().optional(),
+  legal_basis: z.string().optional(),
+});
+export type FetchMetadata = z.infer<typeof FetchMetadataSchema>;
