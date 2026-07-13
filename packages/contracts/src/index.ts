@@ -4,7 +4,7 @@ export function hello(): string {
   return `alive: ${packageName}`;
 }
 
-export { AppError, CitationEmitError } from './error.js';
+export { AppError, CitationEmitError, SourceNotFoundError, SourceHasDocumentsError, InvalidSpanError } from './error.js';
 export { CitationTuple, CitationRef, SourceTier, CitationProvenance } from './citation.js';
 export type {
   CitationTuple as CitationTupleType,

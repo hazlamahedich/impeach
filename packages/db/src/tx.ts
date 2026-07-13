@@ -16,6 +16,10 @@
  */
 import type { Db } from './client.js';
 
+export interface WithTxOptions {
+  isolationLevel?: 'read uncommitted' | 'read committed' | 'repeatable read' | 'serializable';
+}
+
 /**
  * Run `fn` inside a Drizzle transaction. The callback receives the
  * transaction-bound query builder (typed as {@link Db} for ergonomic query
@@ -27,6 +31,7 @@ import type { Db } from './client.js';
 export async function withTx<T>(
   db: Db,
   fn: (tx: Db) => Promise<T>,
+  options?: WithTxOptions,
 ): Promise<T> {
-  return db.transaction(async (tx) => fn(tx as unknown as Db));
+  return db.transaction(async (tx) => fn(tx as unknown as Db), options);
 }

@@ -158,6 +158,7 @@ describe('Story 3.2 — Lawful-Access Gate contract', () => {
       crawling_disabled: false,
       created_at: '2026-07-09T00:00:00.000Z',
       updated_at: '2026-07-09T00:00:01.000Z',
+      deleted_at: null,
     };
     const result = SourceResponseSchema.safeParse(response);
     expect(result.success).toBe(true);

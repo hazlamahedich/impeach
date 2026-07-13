@@ -19,7 +19,7 @@
 import { z } from 'zod';
 import { createHash } from 'node:crypto';
 import canonicalize from 'canonicalize';
-import { SourceIdSchema } from './ingest.js';
+import { SourceIdSchema, DocumentIdSchema, ContentChecksumSchema } from './ingest.js';
 
 // ─────────────────────────────────────────────────────────────────────────
 // Branded Types (DoD-1)
@@ -388,6 +388,30 @@ const SourceAccessOverridePayload = z
   })
   .strict();
 
+// ── Story 3.5 — Document registered payload (FR-1.5, AC-6, SEC-6) ──
+//
+// Every `registerDocument` call MUST produce an editorial log entry recording
+// the provenance fields so the act of creating a document row is attributable
+// (AC-6 personal-criminal-exposure defense). The payload names the documentId,
+// the content_checksum (the dedupe anchor), and the source_id it was derived
+// from.
+
+/**
+ * Document registered — a new per-artifact provenance record was created in the
+ * `documents` table (FR-1.5). The editorial-log append makes the registration
+ * attributable (AC-6, SEC-6). Carries the `documentId` + `contentChecksum` +
+ * `sourceId` triple so the provenance chain is mechanically auditable.
+ *
+ * @rules FR-1.5, AC-6, SEC-6
+ */
+const DocumentRegisteredPayload = z
+  .object({
+    document_id: DocumentIdSchema,
+    content_checksum: ContentChecksumSchema,
+    source_id: SourceIdSchema,
+  })
+  .strict();
+
 /**
  * EditorialLogEvent — the complete event catalog as a discriminated union
  * (DoD-6). Each variant has a typed payload Zod schema. Adding a new event
@@ -447,6 +471,11 @@ export const EditorialLogEvent = z.discriminatedUnion('event', [
   z.object({
     event: z.literal('source.access_override'),
     payload: SourceAccessOverridePayload,
+  }),
+  // Story 3.5 — document registration provenance (FR-1.5, AC-6, SEC-6)
+  z.object({
+    event: z.literal('document.registered'),
+    payload: DocumentRegisteredPayload,
   }),
 ]);
 export type EditorialLogEvent = z.infer<typeof EditorialLogEvent>;

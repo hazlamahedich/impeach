@@ -15,6 +15,7 @@
  * @rules PC-1a
  */
 import type { Db } from './client.js';
+import type { PgTable, IndexColumn } from 'drizzle-orm/pg-core';
 
 /**
  * Upsert where the incoming row wins on conflict (last-write-wins).
@@ -32,9 +33,9 @@ import type { Db } from './client.js';
  */
 export async function upsertLastWriteWins<TTable extends Record<string, unknown>>(
   db: Db,
-  table: { $inferInsert: TTable; insert: (values: TTable) => { onConflictDoUpdate: (config: { target: unknown; set: Partial<TTable> }) => { returning: () => Promise<unknown[]> } } },
+  table: PgTable,
   row: TTable,
-  conflictTarget: unknown,
+  conflictTarget: IndexColumn | IndexColumn[],
 ): Promise<unknown> {
   // Build the SET clause: update every column except the primary key 'id'.
   const setClause = Object.keys(row as Record<string, unknown>)
@@ -44,9 +45,10 @@ export async function upsertLastWriteWins<TTable extends Record<string, unknown>
       return acc;
     }, {});
 
-  const result = await table
-    .insert(row)
-    .onConflictDoUpdate({ target: conflictTarget, set: setClause })
+  const result = await db
+    .insert(table)
+    .values(row as Record<string, unknown>)
+    .onConflictDoUpdate({ target: conflictTarget, set: setClause as Record<string, unknown> })
     .returning();
   return (result as unknown[])[0];
 }
@@ -65,17 +67,30 @@ export async function upsertLastWriteWins<TTable extends Record<string, unknown>
  * @param conflictTarget - the unique column(s) that trigger the conflict
  * @returns the existing row (on conflict) or the inserted row (on insert)
  */
-export async function upsertFirstWriteWins<TTable extends Record<string, unknown>>(
+export interface UpsertFirstWriteWinsResult<T> {
+  row: T;
+  inserted: boolean;
+}
+
+export async function upsertFirstWriteWins<
+  TTable extends Record<string, unknown>,
+  TRow extends Record<string, unknown>,
+>(
   db: Db,
-  table: { $inferInsert: TTable; insert: (values: TTable) => { onConflictDoNothing: (config: { target: unknown }) => { returning: () => Promise<unknown[]> } } },
+  table: PgTable,
   row: TTable,
-  conflictTarget: unknown,
-): Promise<unknown> {
-  const result = await table
-    .insert(row)
+  conflictTarget: IndexColumn | IndexColumn[],
+): Promise<UpsertFirstWriteWinsResult<TRow>> {
+  const result = (await db
+    .insert(table)
+    .values(row as Record<string, unknown>)
     .onConflictDoNothing({ target: conflictTarget })
-    .returning();
-  // On conflict, returning() yields an empty array; the caller should re-fetch
-  // if it needs the existing row. This matches Drizzle's onConflictDoNothing semantics.
-  return (result as unknown[])[0];
+    .returning()) as TRow[];
+  const inserted = result.length > 0;
+  if (inserted && result[0] !== undefined) {
+    return { row: result[0], inserted: true };
+  }
+
+  // Caller must re-fetch the existing row; onConflictDoNothing does not return it.
+  return { row: undefined as unknown as TRow, inserted: false };
 }

@@ -26,7 +26,7 @@
  * @rules FR-1.1, SEC-3, AC-1, AC-2, AC-4, AC-6, AC-7, DoD-2
  * @adr ADR-001
  */
-import { eq, and, type SQL } from 'drizzle-orm';
+import { eq, and, isNull, type SQL } from 'drizzle-orm';
 import type { Db } from '../client.js';
 import { sources } from '../schema/sources.js';
 import {
@@ -56,7 +56,7 @@ import type { ConfirmationStatusLiteral } from '@iip/contracts';
 export interface SourceRegistryRepo {
   /** Create a source. Applies default tier mapping (AC-2); confirmed=false. */
   create(payload: RegisterSourcePayload): Promise<SourceResponse>;
-  /** Find a single source by ID, or null. */
+  /** Find a single source by ID, or null. Excludes soft-deleted sources by default. */
   findById(id: SourceId): Promise<SourceResponse | null>;
   /** Find a single source by URL (case-insensitive, trailing-slash-normalized). */
   findByUrl(url: string): Promise<SourceResponse | null>;
@@ -64,6 +64,8 @@ export interface SourceRegistryRepo {
   update(id: SourceId, patch: UpdateSourcePayload): Promise<SourceResponse | null>;
   /** List with optional filters. */
   list(filters: SourceListFilters): Promise<SourceResponse[]>;
+  /** Soft-delete a source. Fails with a typed error if documents still reference it. */
+  delete(id: SourceId): Promise<void>;
   // Story 3.2 — lawful-access gate mutations (FR-1.2).
   /** Persist an automated lawful-access check result + set status/crawling_disabled (AC-1). */
   saveLawfulAccessCheckResult(
@@ -153,6 +155,7 @@ function toResponse(row: typeof sources.$inferSelect): SourceResponse {
     crawling_disabled: row.crawling_disabled,
     created_at: row.created_at.toISOString(),
     updated_at: row.updated_at.toISOString(),
+    deleted_at: row.deleted_at === null ? null : row.deleted_at.toISOString(),
   };
 }
 
@@ -203,7 +206,11 @@ export function createSourcesRepository(db: Db): SourceRegistryRepo {
     },
 
     async findById(id: SourceId): Promise<SourceResponse | null> {
-      const [row] = await db.select().from(sources).where(eq(sources.id, id)).limit(1);
+      const [row] = await db
+        .select()
+        .from(sources)
+        .where(and(eq(sources.id, id), isNull(sources.deleted_at)))
+        .limit(1);
       return row === undefined ? null : toResponse(row);
     },
 
@@ -213,9 +220,20 @@ export function createSourcesRepository(db: Db): SourceRegistryRepo {
       const [row] = await db
         .select()
         .from(sources)
-        .where(eq(sources.url, normalizeUrl(url)))
+        .where(and(eq(sources.url, normalizeUrl(url)), isNull(sources.deleted_at)))
         .limit(1);
       return row === undefined ? null : toResponse(row);
+    },
+
+    async delete(id: SourceId): Promise<void> {
+      // Hard-delete. The FK from documents.source_id -> sources.id is
+      // RESTRICTed, so any existing document row blocks the source deletion at
+      // the DB level (SQLSTATE 23503). The provenance coordinator translates
+      // that raw error into SourceHasDocumentsError (AC-10). A soft-delete was
+      // considered but it violates AC-10: a soft-deleted source still exists and
+      // its documents still reference it, so callers could not distinguish a
+      // blocked delete from a successful one.
+      await db.delete(sources).where(eq(sources.id, id));
     },
 
     async update(id: SourceId, patch: UpdateSourcePayload): Promise<SourceResponse | null> {
@@ -249,7 +267,7 @@ export function createSourcesRepository(db: Db): SourceRegistryRepo {
     },
 
     async list(filters: SourceListFilters): Promise<SourceResponse[]> {
-      const conditions: SQL[] = [];
+      const conditions: SQL[] = [isNull(sources.deleted_at)];
       if (filters.source_type !== undefined) {
         conditions.push(eq(sources.source_type, filters.source_type as SourceSourceType));
       }
@@ -266,9 +284,8 @@ export function createSourcesRepository(db: Db): SourceRegistryRepo {
       if (filters.crawling_disabled !== undefined) {
         conditions.push(eq(sources.crawling_disabled, filters.crawling_disabled));
       }
-      const where = conditions.length > 0 ? and(...conditions) : undefined;
-      const query = where === undefined ? db.select().from(sources) : db.select().from(sources).where(where);
-      const rows = await query;
+      const where = and(...conditions);
+      const rows = await db.select().from(sources).where(where);
       return rows.map(toResponse);
     },
 

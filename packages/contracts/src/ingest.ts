@@ -265,6 +265,7 @@ export const SourceResponseSchema = z.object({
   crawling_disabled: z.boolean(),
   created_at: z.string().datetime(),
   updated_at: z.string().datetime(),
+  deleted_at: z.string().datetime().nullable(),
 });
 export type SourceResponse = z.infer<typeof SourceResponseSchema>;
 
@@ -648,13 +649,27 @@ export type CleanedDocument = z.infer<typeof CleanedDocumentSchema>;
  *
  * @rules FR-1.3, AC-5
  */
-export const FetchMetadataSchema = z.object({
-  url: z.string().url(),
-  retrieved_at: z.string().datetime(),
-  headers: z.record(z.string(), z.string()).optional(),
-  obtained_via: z.string().optional(),
-  uploader_id: z.string().optional(),
-  reviewer_id: z.string().optional(),
-  legal_basis: z.string().optional(),
-});
+export const FetchMetadataSchema = z
+  .object({
+    fetchedAt: z
+      .string()
+      .refine(
+        (s) => s.endsWith('Z') || /[+-]\d{2}:\d{2}$/.test(s),
+        'must include timezone',
+      )
+      .transform((s) => new Date(s)),
+    fetchStatus: z.number().int().min(100).max(599),
+    contentType: z.string().min(1),
+    lastModified: z
+      .string()
+      .refine(
+        (s) => s.endsWith('Z') || /[+-]\d{2}:\d{2}$/.test(s),
+        'must include timezone',
+      )
+      .transform((s) => new Date(s))
+      .optional(),
+    retryCount: z.number().int().min(0).default(0),
+    embeddingVersion: z.number().int().min(0).optional(),
+  })
+  .strict();
 export type FetchMetadata = z.infer<typeof FetchMetadataSchema>;

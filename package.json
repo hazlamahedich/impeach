@@ -36,6 +36,7 @@
     "@iip/api": "workspace:*",
     "@playwright/test": "1.55.1",
     "@iip/auth": "workspace:*",
+    "@iip/citation": "workspace:*",
     "@iip/config": "workspace:*",
     "@iip/contracts": "workspace:*",
     "@iip/db": "workspace:*",

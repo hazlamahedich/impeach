@@ -38,6 +38,7 @@ function makeRepo(overrides: Partial<{
   findByUrlImpl: SourceRegistryRepo['findByUrl'];
   updateImpl: SourceRegistryRepo['update'];
   listImpl: SourceRegistryRepo['list'];
+  deleteImpl: SourceRegistryRepo['delete'];
   saveLawfulAccessCheckResultImpl: SourceRegistryRepo['saveLawfulAccessCheckResult'];
   confirmLawfulAccessImpl: SourceRegistryRepo['confirmLawfulAccess'];
   overrideLawfulAccessImpl: SourceRegistryRepo['overrideLawfulAccess'];
@@ -82,9 +83,9 @@ function makeRepo(overrides: Partial<{
         crawl_strategy: input.crawl_strategy, trust_tier: input.trust_tier ?? 1,
         confirmed: false, confirmation_status: 'tentative', is_wire_service: input.is_wire_service,
         original_publisher_id: input.original_publisher_id ?? null, confirmed_by: null,
-        confirmed_at: null, confirmation_rationale: null,
+        confirmed_at: null,         confirmation_rationale: null,
         ...defaultLawfulAccessFields(),
-        created_at: now, updated_at: now,
+        created_at: now, updated_at: now, deleted_at: null,
       };
       store.set(id, row);
       urlIndex.set(normalized, id);
@@ -126,6 +127,7 @@ function makeRepo(overrides: Partial<{
         confirmed_by: existing.confirmed_by,
         confirmed_at: existing.confirmed_at,
         confirmation_rationale: existing.confirmation_rationale,
+        deleted_at: existing.deleted_at,
         lawful_access_status: existing.lawful_access_status,
         lawful_access_checked_at: existing.lawful_access_checked_at,
         robots_status: existing.robots_status,
@@ -209,6 +211,15 @@ function makeRepo(overrides: Partial<{
       };
       store.set(id, updated);
       return updated;
+    },
+    async delete(id) {
+      if (overrides.deleteImpl) return overrides.deleteImpl(id);
+      const existing = store.get(id);
+      if (existing === undefined) {
+        throw Object.assign(new Error('not found'), { code: 'P2025' });
+      }
+      store.delete(id);
+      urlIndex.delete(normalizeUrl(existing.url));
     },
   };
 }

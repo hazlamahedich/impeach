@@ -11,11 +11,11 @@ import type { DocumentId, SourceId, ContentChecksum, RawSnapshotKey } from '@iip
  * `raw_snapshot_key` + fetch metadata; per-artifact provenance (`source_doc_id`
  * + character span) is wired into the citation package from Story 1.6.
  *
- * **Idempotent upsert on `content_checksum` (PC-1a, FR-1.3):** the same document
- * ingested twice produces the same checksum and is processed once. The unique
- * index on `content_checksum` is the dedupe anchor; `upsertLastWriteWins`
- * (PC-1a, packages/db/src/upsert.ts) resolves conflicts. Provenance is decoupled
- * from embeddings (AC-4): re-embedding preserves the citation via this table.
+ * **Idempotent upsert on `(source_id, content_checksum)` (PC-1a, FR-1.3, AC-3):**
+ * the same document ingested twice from the same source produces the same row.
+ * The composite unique index is the dedupe anchor; `upsertFirstWriteWins`
+ * (PC-1a, packages/db/src/upsert.ts) resolves conflicts. Provenance is
+ * decoupled from embeddings (AC-4): re-embedding preserves the citation.
  *
  * **Lineage relationship to `intake_documents`:** `intake_documents` is the
  * SEC-2 two-person-intake gate state (reviewer/approver signatures); `documents`
@@ -42,8 +42,8 @@ export const documents = pgTable(
       .references(() => sources.id),
     content_checksum: text('content_checksum').$type<ContentChecksum>().notNull(),
     raw_snapshot_key: text('raw_snapshot_key').$type<RawSnapshotKey>().notNull(),
-    // Fetch metadata: { url, retrieved_at, headers, obtained_via, uploader_id?, reviewer_id?, legal_basis? }
-    // (FR-1.3 manual-upload provenance record). jsonb because the shape varies by crawl strategy.
+    // Fetch metadata: { fetchedAt, fetchStatus, contentType, lastModified?, retryCount, embeddingVersion? }
+    // (FR-1.5 AC-8 provenance record). jsonb validated by FetchMetadataSchema at write/read boundaries.
     fetch_metadata: jsonb('fetch_metadata').notNull(),
     // Nullable lineage to intake_documents (SEC-2 gate state). Manual uploads skip the gate.
     intake_document_id: uuid('intake_document_id'),
@@ -55,9 +55,13 @@ export const documents = pgTable(
       .notNull(),
   },
   (table) => ({
-    // Dedupe anchor (PC-1a, FR-1.3): the same content_checksum cannot produce
-    // two documents. upsertLastWriteWins resolves conflicts.
-    contentChecksumUq: uniqueIndex('documents_content_checksum_uq').on(table.content_checksum),
+    // Composite dedupe anchor (PC-1a, FR-1.3, AC-3): the same content_checksum
+    // from the SAME source is idempotent; from a DIFFERENT source creates a
+    // separate document row. upsertFirstWriteWins resolves conflicts.
+    sourceIdContentChecksumUq: uniqueIndex('documents_source_id_content_checksum_uq').on(
+      table.source_id,
+      table.content_checksum,
+    ),
     // Index on source_id for the "list documents from this source" query.
     sourceIdIdx: index('documents_source_id_idx').on(table.source_id),
     // Index on intake_document_id for the gate-state join (sparse: nullable).
