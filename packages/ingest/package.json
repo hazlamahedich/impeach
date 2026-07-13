@@ -23,6 +23,10 @@
     "./snapshot": {
       "types": "./src/snapshot/index.ts",
       "default": "./src/snapshot/index.ts"
+    },
+    "./provenance": {
+      "types": "./src/provenance/index.ts",
+      "default": "./src/provenance/index.ts"
     }
   },
   "scripts": {
@@ -33,7 +37,10 @@
   },
   "dependencies": {
     "@iip/contracts": "workspace:*",
-    "minio": "8.0.3"
+    "@iip/db": "workspace:*",
+    "@iip/citation": "workspace:*",
+    "minio": "8.0.3",
+    "pino": "^9.5.0"
   },
   "devDependencies": {
     "@iip/test-utils": "workspace:*",

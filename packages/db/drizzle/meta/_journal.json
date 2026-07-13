@@ -50,6 +50,13 @@
       "when": 1751817600000,
       "tag": "0006_lawful_access_gate_fields",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1751904000000,
+      "tag": "0007_document_embeddings_composite_uq",
+      "breakpoints": true
     }
   ]
 }

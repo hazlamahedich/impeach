@@ -68,6 +68,7 @@ const validDbRow = {
   crawling_disabled: true,
   created_at: '2026-07-08T00:00:00.000Z',
   updated_at: '2026-07-08T00:00:00.000Z',
+  deleted_at: null,
 } as const;
 
 // ─────────────────────────────────────────────────────────────────────────────

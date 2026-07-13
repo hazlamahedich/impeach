@@ -12,11 +12,11 @@
  * @rules STR-12, AC-1
  * @adr ADR-002
  */
-export { compatibilityProbe } from './compatibility-probe.js';
 export { intakeDocuments } from './intake-documents.js';
 export { editorialLog } from './editorial-log.js';
 export { configHistory } from './config-history.js';
 // Epic 3 prep (TD3) — ingest pipeline tables (FR-1.1, FR-1.3, FR-1.5, FR-1.6)
 export { sources } from './sources.js';
 export { documents } from './documents.js';
+export { documentEmbeddings } from './document-embeddings.js';
 export { ingestionJobs } from './ingestion-jobs.js';

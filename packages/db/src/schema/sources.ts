@@ -43,6 +43,11 @@ export const sources = pgTable(
     name: text('name').notNull(),
     url: text('url').notNull(),
     source_type: text('source_type').$type<SourceSourceType>().notNull(),
+    // Soft-delete support: a deleted source row is marked rather than removed,
+    // preserving FK references from documents. This column is managed by the
+    // sources repository; direct DELETE on sources remains RESTRICTed by the
+    // documents FK.
+    deleted_at: timestamp('deleted_at', { withTimezone: true, mode: 'date' }),
     crawl_strategy: text('crawl_strategy').$type<CrawlStrategy>().notNull(),
     trust_tier: integer('trust_tier').notNull(),
     confirmed: boolean('confirmed').notNull().default(false),
